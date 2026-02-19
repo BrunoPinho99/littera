@@ -78,15 +78,21 @@ const App: React.FC = () => {
     init();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
       if (session) {
+        // Sessão real: sempre limpar o modo demo
+        localStorage.removeItem('littera_demo_mode');
+        localStorage.removeItem('littera_demo_type');
+        setIsDemoMode(false);
+        setSession(session);
         setUserType(session.user.user_metadata?.user_type || 'student');
         loadNotifications(session.user.id);
-      } else if (!localStorage.getItem('littera_demo_mode')) {
-        // Se não há sessão e não é demo, reseta estados para login
-        setSession(null);
-        setIsDemoMode(false);
-        setUserType('student');
+      } else {
+        // Sem sessão: só reseta se não estava em modo demo
+        if (!localStorage.getItem('littera_demo_mode')) {
+          setSession(null);
+          setIsDemoMode(false);
+          setUserType('student');
+        }
       }
     });
     return () => sub.subscription.unsubscribe();

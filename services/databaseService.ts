@@ -84,8 +84,14 @@ export const saveEssayToDatabase = async (topicTitle: string, input: EssayInput,
   }
 };
 
-export const getSchoolData = async (schoolId?: string): Promise<School | null> => {
-  if (!schoolId || schoolId === 'demo-school') return { id: 'demo', name: "Escola Exemplo", city: "Demonstração" };
+export const getSchoolData = async (schoolId?: string | null): Promise<School | null> => {
+  // Modo demo explícito
+  if (!schoolId || schoolId === 'demo-school') {
+    if (schoolId === 'demo-school') {
+      return { id: 'demo', name: "Escola Exemplo", city: "Demonstração" };
+    }
+    return null; // Sem school_id real, retorna null sem entrar em demo
+  }
 
   const { data, error } = await supabase
     .from('schools')

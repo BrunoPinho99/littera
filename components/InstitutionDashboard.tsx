@@ -25,6 +25,21 @@ interface InstitutionDashboardProps {
 const ITEMS_PER_PAGE = 8;
 
 const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab = 'students', userType = 'school_admin' }) => {
+
+  // Helper: busca o school_id real do usuário (metadados ou tabela profiles)
+  const getResolvedSchoolId = async (session: any): Promise<string> => {
+    const fromMeta = session?.user?.user_metadata?.school_id;
+    if (fromMeta) return fromMeta;
+    if (session?.user?.id) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('school_id')
+        .eq('id', session.user.id)
+        .single();
+      if (data?.school_id) return data.school_id;
+    }
+    return 'demo-school';
+  };
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
 
@@ -81,9 +96,22 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       const userMetadata = session?.user?.user_metadata;
-      const schoolId = userMetadata?.school_id || 'demo-school';
       const userRole = userMetadata?.user_type || 'student';
       const classId = userRole === 'teacher' ? userMetadata?.class_id : undefined;
+
+      // Busca o school_id dos metadados OU direto da tabela profiles (fallback para novos usuários)
+      let schoolId = userMetadata?.school_id;
+      if (!schoolId && session?.user?.id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('id', session.user.id)
+          .single();
+        schoolId = profileData?.school_id;
+      }
+
+      // Só usa 'demo-school' se não houver sessão real
+      if (!schoolId) schoolId = session ? null : 'demo-school';
 
       const [schoolData, classesData, professorsData, studentsData, essaysData] = await Promise.all([
         getSchoolData(schoolId),
@@ -116,7 +144,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     setIsSavingClass(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const schoolId = session?.user?.user_metadata?.school_id || 'demo-school';
+      const schoolId = await getResolvedSchoolId(session);
 
       const createdClass = await createClass({
         name: newClass.name,
@@ -149,7 +177,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     setIsSavingProfessor(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const schoolId = session?.user?.user_metadata?.school_id || 'demo-school';
+      const schoolId = await getResolvedSchoolId(session);
 
       const createdProf = await createProfessor({
         name: newProfessor.name,
@@ -182,7 +210,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     setIsSavingStudent(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const schoolId = session?.user?.user_metadata?.school_id || 'demo-school';
+      const schoolId = await getResolvedSchoolId(session);
 
       const createdStudent = await createStudent({
         name: newStudent.name,
@@ -272,7 +300,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       if (studentsToCreate.length > 0) {
         try {
           const { data: { session } } = await supabase.auth.getSession();
-          const schoolId = session?.user?.user_metadata?.school_id || 'demo-school';
+          const schoolId = await getResolvedSchoolId(session);
 
           const result = await createStudentsBulk(studentsToCreate, schoolId);
 
@@ -341,7 +369,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     setIsSavingAssignment(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const schoolId = session?.user?.user_metadata?.school_id || 'demo-school';
+      const schoolId = await getResolvedSchoolId(session);
 
       await createAssignment({
         title: newAssignment.title,
