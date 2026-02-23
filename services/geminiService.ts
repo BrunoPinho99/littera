@@ -4,10 +4,10 @@ import { CorrectionResult, EssayInput, Topic } from "../types";
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
 if (!apiKey) {
-  console.error("ALERTA: Chave API não encontrada. Verifique o .env.local");
+  console.error("ALERTA: Chave API não encontrada. Verifique as variáveis de ambiente (VITE_GEMINI_API_KEY) no painel da sua hospedagem (ex: Vercel).");
 }
 
-const genAI = new GoogleGenerativeAI(apiKey || "");
+const genAI = new GoogleGenerativeAI(apiKey || "missing_key");
 
 const cleanJsonString = (str: string) => {
   if (!str) return "{}";
