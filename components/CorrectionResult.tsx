@@ -19,7 +19,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto pb-10 px-4 md:px-0">
       <div className="bg-surface-light dark:bg-surface-dark rounded-3xl shadow-xl overflow-hidden mb-8 border border-gray-100 dark:border-slate-700">
-        
+
         {/* IA Detection Banner - Agora Estático */}
         {result.aiDetected && (
           <div className="bg-rose-600 text-white p-6 flex flex-col md:flex-row items-center gap-4 border-b border-rose-700">
@@ -36,15 +36,15 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack 
         {/* Header / Score */}
         <div className={`p-10 text-center relative overflow-hidden ${result.aiDetected ? 'bg-rose-50' : 'bg-slate-900 text-white'}`}>
           {!result.aiDetected && (
-             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/20 to-transparent pointer-events-none"></div>
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/20 to-transparent pointer-events-none"></div>
           )}
-          
+
           <div className="flex flex-col items-center relative z-10">
             <h2 className={`${result.aiDetected ? 'text-rose-400' : 'text-gray-400'} text-sm font-bold uppercase tracking-widest mb-2`}>
               {result.aiDetected ? "Redação Zerada" : "Nota Final"}
             </h2>
             <div className={`text-7xl md:text-8xl font-black mb-4 ${getScoreColor(result.totalScore)} drop-shadow-lg`}>
-              {result.totalScore}
+              {result.aiDetected ? 0 : result.totalScore}
             </div>
 
             {/* Tema da Redação */}
@@ -55,14 +55,14 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack 
                 </h3>
               </div>
             )}
-            
+
             <div className="flex flex-wrap justify-center gap-4 items-center">
               <div className={`px-4 py-1.5 rounded-full backdrop-blur-md text-xs font-bold border flex items-center gap-2 ${result.aiDetected ? 'bg-rose-100 border-rose-200 text-rose-600' : 'bg-white/10 border-white/20 text-white'}`}>
                 <span className="material-icons-outlined text-sm">timer</span>
                 Produzida em: {result.timeTaken || "--"}
               </div>
               <div className={`px-4 py-1.5 rounded-full backdrop-blur-md text-xs font-bold border ${result.aiDetected ? 'bg-rose-600 text-white border-rose-700' : 'bg-primary/20 border-primary/30 text-primary-light'}`}>
-                 {result.aiDetected ? "INFRAÇÃO TÉCNICA" : (result.totalScore >= 800 ? "Elite Littera" : "Em Evolução")}
+                {result.aiDetected ? "INFRAÇÃO TÉCNICA" : (result.totalScore >= 800 ? "Elite Littera" : "Em Evolução")}
               </div>
             </div>
           </div>
@@ -85,7 +85,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack 
             <span className="material-icons-outlined text-primary">checklist</span>
             Detalhamento por Competência
           </h3>
-          
+
           <div className="space-y-6">
             {result.competencies.map((comp, index) => (
               <div key={index} className="bg-white dark:bg-surface-dark p-5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm">
@@ -98,10 +98,10 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack 
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="w-full bg-gray-100 dark:bg-slate-700 rounded-full h-2 mb-3">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-1000 ${comp.score === 200 ? 'bg-green-500' : comp.score >= 160 ? 'bg-primary' : 'bg-amber-400'}`} 
+                  <div
+                    className={`h-2 rounded-full transition-all duration-1000 ${comp.score === 200 ? 'bg-green-500' : comp.score >= 160 ? 'bg-primary' : 'bg-amber-400'}`}
                     style={{ width: `${(comp.score / 200) * 100}%` }}
                   ></div>
                 </div>
@@ -116,13 +116,13 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack 
 
         {/* Actions */}
         <div className="p-8 flex justify-center">
-            <button 
-                onClick={onBack}
-                className="flex items-center gap-2 px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:shadow-lg transition-all"
-            >
-                <span className="material-icons-outlined">arrow_back</span>
-                Tentar Novamente
-            </button>
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 px-8 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold hover:shadow-lg transition-all"
+          >
+            <span className="material-icons-outlined">arrow_back</span>
+            Tentar Novamente
+          </button>
         </div>
 
       </div>
@@ -131,4 +131,3 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack 
 };
 
 export default CorrectionResultView;
-    
