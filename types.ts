@@ -81,6 +81,8 @@ export interface School {
   id: string;
   name: string;
   city: string;
+  subscription_status?: string;
+  subscription_id?: string;
 }
 
 export interface UserProfile {

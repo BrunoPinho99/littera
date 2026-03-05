@@ -86,8 +86,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
   return (
     <header className={`fixed w-full top-0 z-[100] transition-all duration-500 px-6 ${scrolled ? 'pt-4' : 'pt-6'}`}>
       <div className={`max-w-[1400px] mx-auto transition-all duration-500 ${scrolled
-          ? 'bg-white/80 dark:bg-background-dark/80 backdrop-blur-xl shadow-premium border border-gray-100 dark:border-white/5 rounded-[2rem]'
-          : 'bg-transparent'
+        ? 'bg-white/80 dark:bg-background-dark/80 backdrop-blur-xl shadow-premium border border-gray-100 dark:border-white/5 rounded-[2rem]'
+        : 'bg-transparent'
         }`}>
         <nav className="h-20 flex items-center justify-between px-8">
 
@@ -114,8 +114,8 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
                 key={item.id}
                 onClick={() => onViewChange(item.id)}
                 className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-sm font-black transition-all duration-300 ${currentView === item.id
-                    ? 'bg-white dark:bg-slate-800 text-primary shadow-sm scale-100'
-                    : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10'
+                  ? 'bg-white dark:bg-slate-800 text-primary shadow-sm scale-100'
+                  : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/10'
                   }`}
               >
                 <span className={`material-icons-outlined text-xl transition-transform ${currentView === item.id ? 'scale-110' : ''}`}>
@@ -154,7 +154,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
                       <span className={`material-icons-outlined text-[12px] ${userRank.color}`}>{userRank.icon}</span>
                     )}
                     <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                      {userType === 'teacher' ? 'Docente' : userType === 'school_admin' ? 'Admin' : (userRank ? userRank.label : userType)}
+                      {userType === 'teacher' ? 'Docente' : userType === 'school_admin' ? 'Admin' : `Nível: ${userRank ? userRank.label : 'Aluno'}`}
                     </p>
                   </div>
                 </div>
