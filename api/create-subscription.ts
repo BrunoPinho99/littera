@@ -14,8 +14,10 @@ export default async function handler(req: any, res: any) {
 
         // Se planPrice não vier do frontend, assume um fallback
         const amount = planPrice ? parseFloat(planPrice) : 497.00;
+        // Captura o token de qualquer uma das variáveis possíveis (VITE_MP_ACCESS_TOKEN ou MP_ACCESS_TOKEN)
+        const token = process.env.MP_ACCESS_TOKEN || process.env.VITE_MP_ACCESS_TOKEN || '';
 
-        const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN || '' });
+        const client = new MercadoPagoConfig({ accessToken: token });
         const preApprovalPlan = new PreApprovalPlan(client);
 
         const planData = {

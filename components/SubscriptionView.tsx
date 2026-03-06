@@ -96,7 +96,7 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Erro ao gerar pagamento');
+        throw new Error(data.error || data.message || 'Erro ao gerar pagamento');
       }
 
       // Se o backend retornou um preferenceId, exibe o Wallet Brick
