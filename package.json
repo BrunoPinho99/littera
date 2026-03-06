@@ -12,6 +12,7 @@
   "dependencies": {
     "@google/genai": "^1.33.0",
     "@google/generative-ai": "^0.21.0",
+    "@mercadopago/sdk-react": "^1.0.7",
     "@supabase/supabase-js": "^2.39.0",
     "mercadopago": "^2.12.0",
     "react": "18.2.0",
