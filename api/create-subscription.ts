@@ -6,7 +6,7 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const { schoolId, email, planPrice, returnUrl } = req.body;
+        const { schoolId, email, planPrice, returnUrl, frequency } = req.body;
 
         if (!schoolId || !email) {
             return res.status(400).json({ message: 'schoolId and email are required' });
@@ -21,7 +21,7 @@ export default async function handler(req: any, res: any) {
         const planData = {
             reason: 'Littera B2B Access',
             auto_recurring: {
-                frequency: 1,
+                frequency: frequency || 1,
                 frequency_type: 'months',
                 transaction_amount: amount,
                 currency_id: 'BRL',

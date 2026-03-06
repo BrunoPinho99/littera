@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import SubscriptionView from './SubscriptionView';
 
 interface LandingPageProps {
     onLoginClick: () => void;
@@ -370,89 +371,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
 
             <section className="py-24 bg-gray-50 dark:bg-slate-900/50" id="pricing">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
+                    <div className="text-center mb-8">
                         <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">Planos para sua Instituição</h2>
                         <p className="text-xl text-muted-light dark:text-muted-dark max-w-2xl mx-auto">Transforme o desempenho pedagógico da sua escola com uma solução completa e personalizada.</p>
                     </div>
-                    <div className="max-w-4xl mx-auto">
-                        <div className="bg-primary rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden text-white">
-                            <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-                            <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-black/10 rounded-full blur-3xl"></div>
-                            <div className="relative z-10">
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12">
-                                    <div>
-                                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold mb-4 border border-white/30 backdrop-blur-sm">
-                                            <span className="flex h-2 w-2 rounded-full bg-yellow-400"></span>
-                                            OFERTA INSTITUCIONAL COMPLETA
-                                        </div>
-                                        <h3 className="text-3xl md:text-4xl font-bold mb-2">Plano Littera Elite</h3>
-                                        <p className="text-white/80 text-lg">A solução definitiva para redes de ensino e colégios focados em excelência no ENEM.</p>
-                                    </div>
-                                    <div className="text-left md:text-right">
-                                        <div className="text-sm font-medium text-white/70 mb-1 uppercase tracking-wider">Investimento</div>
-                                        <div className="text-5xl md:text-6xl font-extrabold tracking-tight">Sob Consulta</div>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6 mb-12">
-                                    <ul className="space-y-4">
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">Correções Ilimitadas por Aluno</span>
-                                        </li>
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">IA Treinada em Competências ENEM</span>
-                                        </li>
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">Dashboard de Evolução em Tempo Real</span>
-                                        </li>
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">Sistema Anti-plágio de Alta Precisão</span>
-                                        </li>
-                                    </ul>
-                                    <ul className="space-y-4">
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">Suporte e Consultoria Pedagógica</span>
-                                        </li>
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">Integração Total com Google & MS Teams</span>
-                                        </li>
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">Relatórios Gerenciais para Coordenação</span>
-                                        </li>
-                                        <li className="flex items-center gap-3">
-                                            <div className="bg-white/20 rounded-full p-1"><span className="material-icons text-white text-base">check</span></div>
-                                            <span className="text-lg font-medium">Treinamento para Equipe de Professores</span>
-                                        </li>
-                                    </ul>
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-6">
-                                    <button
-                                        onClick={() => { }}
-                                        className="flex-1 bg-white text-primary hover:bg-gray-100 px-8 py-5 rounded-2xl text-center font-bold text-xl transition-all shadow-xl hover:shadow-black/20 flex items-center justify-center gap-3"
-                                    >
-                                        Falar com um Consultor
-                                        <span className="material-icons">arrow_forward</span>
-                                    </button>
-                                    <button
-                                        onClick={() => onDemoClick('student')}
-                                        className="sm:w-1/3 border border-white/40 hover:bg-white/10 px-8 py-5 rounded-2xl text-center font-semibold text-lg transition-all flex items-center justify-center"
-                                    >
-                                        Ver Demo
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="mt-12 flex items-center justify-center gap-8 opacity-60">
-                            <div className="flex items-center gap-2"><span className="material-icons text-sm">lock</span> <span className="text-xs uppercase font-bold tracking-widest">Seguro & Confiável</span></div>
-                            <div className="flex items-center gap-2"><span className="material-icons text-sm">verified_user</span> <span className="text-xs uppercase font-bold tracking-widest">LGPD Compliance</span></div>
-                            <div className="flex items-center gap-2"><span className="material-icons text-sm">stars</span> <span className="text-xs uppercase font-bold tracking-widest">Premium Support</span></div>
-                        </div>
+
+                    {/* Renderiza o componente de assinatura real com Mercado Pago */}
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-slate-700">
+                        <SubscriptionView
+                            onPlanSelected={() => { }}
+                            onCancel={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }) }}
+                        />
+                    </div>
+
+                    <div className="mt-12 flex items-center justify-center gap-8 opacity-60">
+                        <div className="flex items-center gap-2"><span className="material-icons text-sm">lock</span> <span className="text-xs uppercase font-bold tracking-widest">Seguro & Confiável</span></div>
+                        <div className="flex items-center gap-2"><span className="material-icons text-sm">verified_user</span> <span className="text-xs uppercase font-bold tracking-widest">LGPD Compliance</span></div>
+                        <div className="flex items-center gap-2"><span className="material-icons text-sm">stars</span> <span className="text-xs uppercase font-bold tracking-widest">Premium Support</span></div>
                     </div>
                 </div>
             </section>
