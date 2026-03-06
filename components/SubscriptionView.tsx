@@ -14,30 +14,34 @@ interface Plan {
   features: string[];
   recommended?: boolean;
   color: string;
+  frequency: number; // Mapeado para a frequência da assinatura no Mercado Pago
 }
 
 const plans: Plan[] = [
   {
-    id: 'free',
-    name: 'Essencial',
-    price: 'R$ 0',
+    id: 'pro_mensal',
+    name: 'Pro Mensal',
+    price: 'R$ 29,90',
     color: 'bg-gray-500',
-    features: ['3 correções por mês', 'Temas semanais', 'Feedback básico IA', 'Acesso ao ranking']
+    frequency: 1,
+    features: ['Correções ilimitadas', 'Análise detalhada', 'Feedback instantâneo da IA']
   },
   {
-    id: 'premium',
-    name: 'Pro',
-    price: 'R$ 29,90',
+    id: 'pro_semestral',
+    name: 'Pro Semestral',
+    price: 'R$ 149,90',
     recommended: true,
     color: 'bg-primary',
-    features: ['Correções ilimitadas', 'Análise detalhada competência', 'Geração de temas personalizada', 'Suporte prioritário', 'Sem anúncios']
+    frequency: 6,
+    features: ['Tudo do Mensal', '16% de desconto', 'Suporte prioritário']
   },
   {
-    id: 'escolar',
-    name: 'Escolar',
-    price: 'Consulte',
+    id: 'pro_anual',
+    name: 'Pro Anual',
+    price: 'R$ 249,90',
     color: 'bg-blue-600',
-    features: ['Painel para professores', 'Relatórios de turma', 'Gestão de alunos', 'Temas exclusivos da escola']
+    frequency: 12,
+    features: ['Tudo do Semestral', '30% de desconto', 'Acesso a temas exclusivos']
   }
 ];
 
@@ -56,10 +60,6 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
   const [preferenceId, setPreferenceId] = useState<string | null>(null);
 
   const handleSubscribe = (plan: Plan) => {
-    if (plan.id === 'free') {
-      onPlanSelected('Free');
-      return;
-    }
     setSelectedPlan(plan);
     setPreferenceId(null); // Reseta a preferência se trocar de plano
     setErrorMsg('');
@@ -86,6 +86,7 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
           planId: selectedPlan.id,
           name: selectedPlan.name,
           planPrice: isNaN(numericPrice) ? 29.90 : numericPrice,
+          frequency: selectedPlan.frequency,
           email: 'contato@escola.com',
           schoolId: 'escola-b2b',
           returnUrl: window.location.href
@@ -118,7 +119,8 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto py-8">
-      {!selectedPlan ? (
+      {/* Sempre mostramos os planos para não perder a altura da página */}
+      <div className={selectedPlan ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
         <>
           <div className="text-center mb-16">
             <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4">Escolha seu Plano</h1>
@@ -145,7 +147,9 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
                 <div className="mb-6">
                   <span className="text-4xl font-black text-gray-900 dark:text-white">{plan.price}</span>
-                  {plan.id !== 'escolar' && <span className="text-gray-500 ml-1">/mês</span>}
+                  <span className="text-gray-500 ml-1">
+                    {plan.frequency === 1 ? '/mês' : plan.frequency === 6 ? '/semestre' : '/ano'}
+                  </span>
                 </div>
 
                 <ul className="space-y-4 mb-8 flex-grow">
@@ -164,7 +168,7 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
                     : 'bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700'
                     }`}
                 >
-                  {plan.id === 'escolar' ? 'Falar com Consultor' : 'Começar Agora'}
+                  Assinar Agora
                 </button>
               </div>
             ))}
@@ -176,80 +180,85 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
             </button>
           </div>
         </>
-      ) : (
-        <div className="max-w-md mx-auto bg-white dark:bg-surface-dark rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-slate-700">
-          <div className="bg-blue-600 p-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo-0.png" className="w-6 h-6 object-contain" alt="Mercado Pago" />
+      </div>
+
+      {/* Checkout Modal (Fica por cima da tela inteira) */}
+      {selectedPlan && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-surface-dark rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700">
+            <div className="bg-blue-600 p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                  <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo-0.png" className="w-6 h-6 object-contain" alt="Mercado Pago" />
+                </div>
+                <span className="text-white font-bold">Mercado Pago</span>
               </div>
-              <span className="text-white font-bold">Mercado Pago</span>
+              <button onClick={() => setSelectedPlan(null)} className="text-white/80 hover:text-white">
+                <span className="material-icons-outlined">close</span>
+              </button>
             </div>
-            <button onClick={() => setSelectedPlan(null)} className="text-white/80 hover:text-white">
-              <span className="material-icons-outlined">close</span>
-            </button>
-          </div>
 
-          <div className="p-8">
-            {paymentSuccess ? (
-              <div className="text-center py-8 animate-fade-in">
-                <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <span className="material-icons-outlined text-5xl">check</span>
+            <div className="p-8">
+              {paymentSuccess ? (
+                <div className="text-center py-8 animate-fade-in">
+                  <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <span className="material-icons-outlined text-5xl">check</span>
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pagamento Aprovado!</h2>
+                  <p className="text-gray-500">Sua assinatura {selectedPlan.name} foi ativada.</p>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pagamento Aprovado!</h2>
-                <p className="text-gray-500">Sua assinatura {selectedPlan.name} foi ativada.</p>
-              </div>
-            ) : (
-              <>
-                <div className="mb-8">
-                  <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Resumo do Pedido</h3>
-                  <div className="flex justify-between items-end">
-                    <span className="text-lg font-bold text-gray-900 dark:text-white">Assinatura Tese {selectedPlan.name}</span>
-                    <span className="text-lg font-bold text-primary">{selectedPlan.price}</span>
+              ) : (
+                <>
+                  <div className="mb-8">
+                    <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Resumo do Pedido</h3>
+                    <div className="flex justify-between items-end">
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">Assinatura Tese {selectedPlan.name}</span>
+                      <span className="text-lg font-bold text-primary">{selectedPlan.price}</span>
+                    </div>
                   </div>
-                </div>
 
-                {errorMsg && (
-                  <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 flex items-center gap-2">
-                    <span className="material-icons-outlined text-base">error_outline</span>
-                    {errorMsg}
-                  </div>
-                )}
+                  {errorMsg && (
+                    <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 flex items-center gap-2">
+                      <span className="material-icons-outlined text-base">error_outline</span>
+                      {errorMsg}
+                    </div>
+                  )}
 
-                {/* 1. Mostra o botão de gerar apenas se NÃO tiver preferenceId */}
-                {!preferenceId && (
-                  <>
-                    <button
-                      disabled={isProcessing}
-                      onClick={handleMercadoPagoPayment}
-                      className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
-                    >
-                      {isProcessing ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      ) : (
-                        <span>Gerar Pagamento Seguro</span>
-                      )}
-                    </button>
-                    <p className="text-center text-[10px] text-gray-400 mt-4 px-4">
-                      Pagamento processado com segurança pelo Mercado Pago. Ao clicar, você aceita nossos termos de uso.
-                    </p>
-                  </>
-                )}
+                  {/* 1. Mostra o botão de gerar apenas se NÃO tiver preferenceId */}
+                  {!preferenceId && (
+                    <>
+                      <button
+                        disabled={isProcessing}
+                        onClick={handleMercadoPagoPayment}
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
+                      >
+                        {isProcessing ? (
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                          <span>Gerar Pagamento Seguro</span>
+                        )}
+                      </button>
+                      <p className="text-center text-[10px] text-gray-400 mt-4 px-4">
+                        Pagamento processado com segurança pelo Mercado Pago. Ao clicar, você aceita nossos termos de uso.
+                      </p>
+                    </>
+                  )}
 
-                {/* 2. Mostra o Brick do Mercado Pago apenas se o preferenceId já existir */}
-                {preferenceId && (
-                  <div className="mt-4 animate-fade-in">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
-                      Finalize seu pagamento de forma segura abaixo:
-                    </h3>
-                    <Wallet
-                      initialization={{ preferenceId: preferenceId as string }}
-                      customization={{ valueProp: 'security_details' }}
-                    />
-                  </div>
-                )}
-              </>
-            )}
+                  {/* 2. Mostra o Brick do Mercado Pago apenas se o preferenceId já existir */}
+                  {preferenceId && (
+                    <div className="mt-4 animate-fade-in">
+                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
+                        Finalize seu pagamento de forma segura abaixo:
+                      </h3>
+                      <Wallet
+                        initialization={{ preferenceId: preferenceId as string }}
+                        customization={{ valueProp: 'security_details' }}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
