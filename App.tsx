@@ -13,6 +13,7 @@ import ProfileView from './components/ProfileView';
 import LoginView from './components/LoginView';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import LandingPage from './components/LandingPage';
+import CheckoutForm from './components/CheckoutForm';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification } from './types';
 import { correctEssay } from './services/geminiService';
@@ -155,7 +156,6 @@ const App: React.FC = () => {
 
   // Standalone Views (no Navbar/Footer) - Allow access even if not logged in
   if (currentView === 'checkout' && checkoutPlan) {
-    const CheckoutForm = require('./components/CheckoutForm').default;
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 transition-colors">
         <CheckoutForm
