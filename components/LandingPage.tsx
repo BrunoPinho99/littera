@@ -376,7 +376,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         <p className="text-xl text-muted-light dark:text-muted-dark max-w-2xl mx-auto">Transforme o desempenho pedagógico da sua escola com uma solução completa e personalizada.</p>
                     </div>
 
-                    {/* Renderiza o componente de assinatura real com Mercado Pago */}
+                    {/* Renderiza o componente de assinatura real com Asaas */}
                     <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-slate-700">
                         <SubscriptionView
                             onPlanSelected={() => { }}

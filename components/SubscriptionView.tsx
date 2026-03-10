@@ -1,11 +1,5 @@
+// components/SubscriptionView.tsx
 import React, { useState } from 'react';
-import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
-
-// Inicializa com a Public Key do Mercado Pago (variável de ambiente)
-const mpPublicKey = import.meta.env.VITE_MP_PUBLIC_KEY || '';
-if (mpPublicKey) {
-  initMercadoPago(mpPublicKey, { locale: 'pt-BR' });
-}
 
 interface Plan {
   id: string;
@@ -14,7 +8,7 @@ interface Plan {
   features: string[];
   recommended?: boolean;
   color: string;
-  frequency: number; // Mapeado para a frequência da assinatura no Mercado Pago
+  frequency: number;
 }
 
 const plans: Plan[] = [
@@ -51,30 +45,18 @@ interface SubscriptionViewProps {
 }
 
 const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onCancel }) => {
-  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Estado para armazenar o ID do pagamento gerado no back-end
-  const [preferenceId, setPreferenceId] = useState<string | null>(null);
+  const handleSubscribe = async (plan: Plan) => {
+    if (isProcessingId) return;
 
-  const handleSubscribe = (plan: Plan) => {
-    setSelectedPlan(plan);
-    setPreferenceId(null); // Reseta a preferência se trocar de plano
-    setErrorMsg('');
-  };
-
-  const handleMercadoPagoPayment = async () => {
-    if (!selectedPlan) return;
-
-    setIsProcessing(true);
+    setIsProcessingId(plan.id);
     setErrorMsg('');
 
     try {
-      // Formata o preço de 'R$ 29,90' para o número 29.90
       const numericPrice = parseFloat(
-        selectedPlan.price.replace('R$ ', '').replace('.', '').replace(',', '.')
+        plan.price.replace('R$ ', '').replace('.', '').replace(',', '.')
       );
 
       const response = await fetch('/api/create-subscription', {
@@ -83,50 +65,57 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          planId: selectedPlan.id,
-          name: selectedPlan.name,
+          planId: plan.id,
+          name: 'Nome do Gestor/Escola', // Pegar do contexto do usuário logado
           planPrice: isNaN(numericPrice) ? 29.90 : numericPrice,
-          frequency: selectedPlan.frequency,
-          email: 'contato@escola.com',
-          schoolId: 'escola-b2b',
-          returnUrl: window.location.href
+          frequency: plan.frequency,
+          email: 'contato@escola.com', // Pegar do contexto do usuário logado
+          schoolId: 'escola-b2b', // Pegar do contexto
         }),
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || data.message || 'Erro ao gerar pagamento');
+      const text = await response.text();
+      let data;
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error('O servidor retornou uma resposta inválida (não-JSON). Certifique-se de estar rodando as Serverless Functions (ex: vercel dev).');
       }
 
-      // Se o backend retornou um preferenceId, exibe o Wallet Brick
-      if (data.id) {
-        setPreferenceId(data.id);
-      } else if (data.init_point) {
-        // Fallback: redireciona para o checkout do Mercado Pago
-        window.location.href = data.init_point;
+      if (!response.ok) {
+        throw new Error(data.message || `Erro do servidor: ${response.status}`);
+      }
+
+      if (data.checkoutUrl) {
+        // Redireciona a escola para o portal de pagamento do Asaas em nova aba
+        window.open(data.checkoutUrl, '_blank');
       } else {
         setErrorMsg('Erro ao gerar link de pagamento.');
       }
 
     } catch (error: any) {
       console.error('Erro no processamento:', error);
-      setErrorMsg(error.message || 'Ocorreu um erro ao conectar com o Mercado Pago.');
+      setErrorMsg(error.message || 'Ocorreu um erro ao conectar com o provedor de pagamentos.');
     } finally {
-      setIsProcessing(false);
+      setIsProcessingId(null);
     }
   };
 
   return (
     <div className="animate-fade-in max-w-6xl mx-auto py-8">
-      {/* Sempre mostramos os planos para não perder a altura da página */}
-      <div className={selectedPlan ? "opacity-50 pointer-events-none transition-opacity" : "transition-opacity"}>
+      <div className="transition-opacity">
         <>
           <div className="text-center mb-16">
             <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-4">Escolha seu Plano</h1>
             <p className="text-gray-500 dark:text-gray-400 text-lg max-w-2xl mx-auto">
               Invista no seu futuro. Escolha o plano que melhor se adapta à sua rotina de estudos e alcance a nota 1000.
             </p>
+            {errorMsg && (
+              <div className="animate-fade-in mt-6 inline-flex p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 items-center justify-center gap-2">
+                <span className="material-icons-outlined text-base">error_outline</span>
+                {errorMsg}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -162,13 +151,18 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
                 </ul>
 
                 <button
+                  disabled={isProcessingId !== null}
                   onClick={() => handleSubscribe(plan)}
-                  className={`w-full py-4 rounded-xl font-bold transition-all transform active:scale-95 ${plan.recommended
+                  className={`w-full py-4 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 ${plan.recommended
                     ? 'bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/30'
                     : 'bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700'
-                    }`}
+                    } ${isProcessingId !== null && isProcessingId !== plan.id ? 'opacity-50' : ''}`}
                 >
-                  Assinar Agora
+                  {isProcessingId === plan.id ? (
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    "Assinar Agora"
+                  )}
                 </button>
               </div>
             ))}
@@ -181,87 +175,6 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
           </div>
         </>
       </div>
-
-      {/* Checkout Modal (Fica por cima da tela inteira) */}
-      {selectedPlan && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-surface-dark rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700">
-            <div className="bg-blue-600 p-6 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-                  <img src="https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo-0.png" className="w-6 h-6 object-contain" alt="Mercado Pago" />
-                </div>
-                <span className="text-white font-bold">Mercado Pago</span>
-              </div>
-              <button onClick={() => setSelectedPlan(null)} className="text-white/80 hover:text-white">
-                <span className="material-icons-outlined">close</span>
-              </button>
-            </div>
-
-            <div className="p-8">
-              {paymentSuccess ? (
-                <div className="text-center py-8 animate-fade-in">
-                  <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <span className="material-icons-outlined text-5xl">check</span>
-                  </div>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pagamento Aprovado!</h2>
-                  <p className="text-gray-500">Sua assinatura {selectedPlan.name} foi ativada.</p>
-                </div>
-              ) : (
-                <>
-                  <div className="mb-8">
-                    <h3 className="text-gray-500 text-xs font-bold uppercase mb-1">Resumo do Pedido</h3>
-                    <div className="flex justify-between items-end">
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">Assinatura Tese {selectedPlan.name}</span>
-                      <span className="text-lg font-bold text-primary">{selectedPlan.price}</span>
-                    </div>
-                  </div>
-
-                  {errorMsg && (
-                    <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 flex items-center gap-2">
-                      <span className="material-icons-outlined text-base">error_outline</span>
-                      {errorMsg}
-                    </div>
-                  )}
-
-                  {/* 1. Mostra o botão de gerar apenas se NÃO tiver preferenceId */}
-                  {!preferenceId && (
-                    <>
-                      <button
-                        disabled={isProcessing}
-                        onClick={handleMercadoPagoPayment}
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2"
-                      >
-                        {isProcessing ? (
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        ) : (
-                          <span>Gerar Pagamento Seguro</span>
-                        )}
-                      </button>
-                      <p className="text-center text-[10px] text-gray-400 mt-4 px-4">
-                        Pagamento processado com segurança pelo Mercado Pago. Ao clicar, você aceita nossos termos de uso.
-                      </p>
-                    </>
-                  )}
-
-                  {/* 2. Mostra o Brick do Mercado Pago apenas se o preferenceId já existir */}
-                  {preferenceId && (
-                    <div className="mt-4 animate-fade-in">
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 text-center">
-                        Finalize seu pagamento de forma segura abaixo:
-                      </h3>
-                      <Wallet
-                        initialization={{ preferenceId: preferenceId as string }}
-                        customization={{ valueProp: 'security_details' }}
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
