@@ -53,6 +53,9 @@ const App: React.FC = () => {
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Checkout State
+  const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+
   // 1. Initialize Session
   useEffect(() => {
     const init = async () => {
@@ -150,6 +153,27 @@ const App: React.FC = () => {
 
   if (isInitializing) return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">Carregando Littera...</div>;
 
+  // Standalone Views (no Navbar/Footer) - Allow access even if not logged in
+  if (currentView === 'checkout' && checkoutPlan) {
+    const CheckoutForm = require('./components/CheckoutForm').default;
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 transition-colors">
+        <CheckoutForm
+          plan={checkoutPlan}
+          onBack={() => {
+            setCheckoutPlan(null);
+            setCurrentView(getDefaultView(userType));
+          }}
+          onSuccess={() => {
+            alert('Assinatura ativada com sucesso!');
+            setCheckoutPlan(null);
+            setCurrentView(getDefaultView(userType));
+          }}
+        />
+      </div>
+    );
+  }
+
   if (!session && !isDemoMode) {
     if (showLogin) {
       return <LoginView onLoginSuccess={() => { }} onEnterDemo={(t) => {
@@ -172,6 +196,10 @@ const App: React.FC = () => {
           localStorage.setItem('littera_demo_mode', 'true');
           localStorage.setItem('littera_demo_type', t);
           setNotifications(notificationsData);
+        }}
+        onCheckout={(plan) => {
+          setCheckoutPlan(plan);
+          setCurrentView('checkout');
         }}
       />
     );

@@ -4,9 +4,10 @@ import SubscriptionView from './SubscriptionView';
 interface LandingPageProps {
     onLoginClick: () => void;
     onDemoClick: (type: 'student' | 'teacher') => void;
+    onCheckout?: (plan: any) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, onCheckout }) => {
     return (
         <div className="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark antialiased transition-colors duration-300">
             <style>{`
@@ -381,6 +382,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         <SubscriptionView
                             onPlanSelected={() => { }}
                             onCancel={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }) }}
+                            onCheckout={onCheckout}
                         />
                     </div>
 

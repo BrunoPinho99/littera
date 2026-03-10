@@ -1,5 +1,4 @@
-// components/SubscriptionView.tsx
-import React, { useState } from 'react';
+import React from 'react';
 
 interface Plan {
   id: string;
@@ -40,64 +39,15 @@ const plans: Plan[] = [
 ];
 
 interface SubscriptionViewProps {
-  onPlanSelected: (planId: string) => void;
+  onPlanSelected?: (planId: string) => void;
   onCancel: () => void;
+  onCheckout?: (plan: Plan) => void;
 }
 
-const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onCancel }) => {
-  const [isProcessingId, setIsProcessingId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const handleSubscribe = async (plan: Plan) => {
-    if (isProcessingId) return;
-
-    setIsProcessingId(plan.id);
-    setErrorMsg('');
-
-    try {
-      const numericPrice = parseFloat(
-        plan.price.replace('R$ ', '').replace('.', '').replace(',', '.')
-      );
-
-      const response = await fetch('/api/create-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planId: plan.id,
-          name: 'Nome do Gestor/Escola', // Pegar do contexto do usuário logado
-          planPrice: isNaN(numericPrice) ? 29.90 : numericPrice,
-          frequency: plan.frequency,
-          email: 'contato@escola.com', // Pegar do contexto do usuário logado
-          schoolId: 'escola-b2b', // Pegar do contexto
-        }),
-      });
-
-      const text = await response.text();
-      let data;
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error('O servidor retornou uma resposta inválida (não-JSON). Certifique-se de estar rodando as Serverless Functions (ex: vercel dev).');
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || `Erro do servidor: ${response.status}`);
-      }
-
-      if (data.checkoutUrl) {
-        // Redireciona a escola para o portal de pagamento do Asaas em nova aba
-        window.open(data.checkoutUrl, '_blank');
-      } else {
-        setErrorMsg('Erro ao gerar link de pagamento.');
-      }
-
-    } catch (error: any) {
-      console.error('Erro no processamento:', error);
-      setErrorMsg(error.message || 'Ocorreu um erro ao conectar com o provedor de pagamentos.');
-    } finally {
-      setIsProcessingId(null);
+const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onCancel, onCheckout }) => {
+  const handleSubscribe = (plan: Plan) => {
+    if (onCheckout) {
+      onCheckout(plan);
     }
   };
 
@@ -110,12 +60,6 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
             <p className="text-gray-500 dark:text-gray-400 text-lg max-w-2xl mx-auto">
               Invista no seu futuro. Escolha o plano que melhor se adapta à sua rotina de estudos e alcance a nota 1000.
             </p>
-            {errorMsg && (
-              <div className="animate-fade-in mt-6 inline-flex p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 items-center justify-center gap-2">
-                <span className="material-icons-outlined text-base">error_outline</span>
-                {errorMsg}
-              </div>
-            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -151,18 +95,13 @@ const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onC
                 </ul>
 
                 <button
-                  disabled={isProcessingId !== null}
                   onClick={() => handleSubscribe(plan)}
                   className={`w-full py-4 rounded-xl font-bold transition-all transform active:scale-95 flex items-center justify-center gap-2 ${plan.recommended
                     ? 'bg-primary hover:bg-primary-dark text-white shadow-lg shadow-primary/30'
                     : 'bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-slate-700'
-                    } ${isProcessingId !== null && isProcessingId !== plan.id ? 'opacity-50' : ''}`}
+                    }`}
                 >
-                  {isProcessingId === plan.id ? (
-                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                  ) : (
-                    "Assinar Agora"
-                  )}
+                  Assinar Agora
                 </button>
               </div>
             ))}
