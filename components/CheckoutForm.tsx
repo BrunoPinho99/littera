@@ -16,6 +16,8 @@ interface CheckoutFormProps {
 
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onSuccess }) => {
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [successData, setSuccessData] = useState<any>(null);
     const [errorMsg, setErrorMsg] = useState('');
 
     // Form State
@@ -24,6 +26,8 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onS
         name: '',
         email: '',
         phone: '',
+        password: '',
+        confirmPassword: '',
         postalCode: '',
         addressNumber: '',
         addressComplement: '',
@@ -34,7 +38,42 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onS
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
+        let { name, value } = e.target;
+
+        if (name === 'cpfCnpj') {
+            value = value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})/, '$1-$2');
+                if (value.length > 14) value = value.substring(0, 14);
+            } else {
+                value = value.substring(0, 14).replace(/(\d{2})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1/$2').replace(/(\d{4})(\d{1,2})/, '$1-$2');
+            }
+        }
+
+        if (name === 'phone') {
+            value = value.replace(/\D/g, '').substring(0, 11);
+            value = value.replace(/^(\d{2})(\d)/g, '($1) $2').replace(/(\d)(\d{4})$/, '$1-$2');
+        }
+
+        if (name === 'postalCode') {
+            value = value.replace(/\D/g, '').substring(0, 8);
+            value = value.replace(/^(\d{5})(\d)/, '$1-$2');
+        }
+
+        if (name === 'cardNumber') {
+            value = value.replace(/\D/g, '').substring(0, 16);
+            value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+        }
+
+        if (name === 'cardExpiry') {
+            value = value.replace(/\D/g, '').substring(0, 4);
+            value = value.replace(/(\d{2})(\d)/, '$1/$2');
+        }
+
+        if (name === 'cardCvv') {
+            value = value.replace(/\D/g, '').substring(0, 4);
+        }
+
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -44,6 +83,13 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onS
         setErrorMsg('');
 
         try {
+            if (!schoolId && formData.password !== formData.confirmPassword) {
+                throw new Error('As senhas não coincidem.');
+            }
+            if (!schoolId && formData.password.length < 6) {
+                throw new Error('A senha deve ter pelo menos 6 caracteres.');
+            }
+
             const numericPrice = parseFloat(
                 plan.price.replace('R$ ', '').replace('.', '').replace(',', '.')
             );
@@ -59,6 +105,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onS
                     planId: plan.id,
                     planPrice: numericPrice,
                     frequency: plan.frequency,
+                    password: formData.password,
                     customer: {
                         name: formData.name,
                         cpfCnpj: formData.cpfCnpj.replace(/\D/g, ''),
@@ -91,7 +138,12 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onS
             }
 
             // Sucesso
-            onSuccess();
+            setSuccessData({
+                orderDate: new Date().toLocaleDateString('pt-BR'),
+                planName: plan.name,
+                amount: plan.price
+            });
+            setIsSuccess(true);
 
         } catch (error: any) {
             console.error('Erro no checkout:', error);
@@ -100,6 +152,54 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onS
             setIsProcessing(false);
         }
     };
+
+    if (isSuccess && successData) {
+        return (
+            <div className="animate-fade-in max-w-lg mx-auto py-12 px-4 flex items-center justify-center min-h-[80vh]">
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] p-8 md:p-10 shadow-xl border border-gray-100 dark:border-slate-800 w-full flex flex-col items-center text-center">
+                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 border-[8px] border-primary/5">
+                        <span className="material-icons-outlined text-4xl text-primary">check</span>
+                    </div>
+
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-3">
+                        Sucesso! Assinatura<br />confirmada.
+                    </h2>
+
+                    <p className="text-gray-500 dark:text-gray-400 mb-8 text-sm max-w-sm">
+                        Verifique seu e-mail para confirmação e instruções adicionais sobre o seu acesso.
+                    </p>
+
+                    <div className="w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 space-y-4 mb-8 text-sm">
+                        <div className="flex justify-between items-center text-left">
+                            <span className="text-gray-500">Data</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{successData.orderDate}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-left">
+                            <span className="text-gray-500">Plano</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{successData.planName}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-left">
+                            <span className="text-gray-500">Valor Pago</span>
+                            <span className="font-semibold text-gray-900 dark:text-white">{successData.amount}</span>
+                        </div>
+                        {!schoolId && (
+                            <div className="flex justify-between items-center text-left pt-4 mt-4 border-t border-gray-200 dark:border-slate-700">
+                                <span className="text-gray-500">Login</span>
+                                <span className="font-semibold text-primary">{formData.email}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        onClick={onSuccess}
+                        className="w-full py-4 bg-[#0B0F19] hover:bg-black dark:bg-primary dark:hover:bg-primary-dark text-white rounded-2xl font-bold transition-all"
+                    >
+                        Acessar Conta
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="animate-fade-in max-w-5xl mx-auto py-8 px-4">
@@ -190,6 +290,42 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onS
                                 />
                             </div>
                         </div>
+
+                        {!schoolId && (
+                            <>
+                                <hr className="border-gray-100 dark:border-slate-700 my-6" />
+                                <h3 className="flex items-center gap-2 text-lg font-bold text-gray-900 dark:text-white mb-4">
+                                    <span className="material-icons-outlined text-primary">lock_outline</span>
+                                    Crie seu Acesso
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Senha de Acesso</label>
+                                        <input
+                                            required
+                                            type="password"
+                                            name="password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder="Sua senha forte"
+                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Confirmar Senha</label>
+                                        <input
+                                            required
+                                            type="password"
+                                            name="confirmPassword"
+                                            value={formData.confirmPassword}
+                                            onChange={handleChange}
+                                            placeholder="Repita a senha"
+                                            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Box Endereço */}

@@ -7,7 +7,7 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const { planId, planPrice, frequency, customer, creditCard, schoolId } = req.body;
+        const { planId, planPrice, frequency, customer, creditCard, schoolId, password } = req.body;
 
         const API_KEY = process.env.ASAAS_API_KEY;
         if (!API_KEY) {
@@ -96,22 +96,70 @@ export default async function handler(req: any, res: any) {
 
         const subscriptionId = createSubData.id;
 
-        // 4. Salvar o ID da assinatura no Supabase (se o schoolId for fornecido)
-        if (schoolId) {
-            const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-            const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_KEY || '';
+        // 4. Salvar o ID da assinatura no Supabase e/ou Criar a Conta
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_KEY || '';
 
-            if (supabaseUrl && supabaseKey) {
-                const supabase = createClient(supabaseUrl, supabaseKey);
-                // Idealmente, procuraríamos o ID numérico/UUID da escola, mas aqui usamos o campo schoolId q vem do front
-                // Dependendo de como o DB tá estruturado, isso pode ser um 'eq("id", schoolId)'
+        if (supabaseUrl && supabaseKey) {
+            const supabase = createClient(supabaseUrl, supabaseKey);
+
+            if (schoolId) {
+                // Usuário já logado, apenas atualiza
                 await supabase
                     .from('schools')
                     .update({
                         subscription_id: subscriptionId,
-                        subscription_status: 'active' // podemos considerar active se o cartão passar direto
+                        subscription_status: 'active'
                     })
-                    .eq('id', schoolId); // Assumindo q schoolId = UUID da tabela schools
+                    .eq('id', schoolId);
+            } else if (password) {
+                // Novo assinante, cria a escola e o perfil de admin!
+                const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+                    email: customer.email,
+                    password: password,
+                    email_confirm: true,
+                    user_metadata: {
+                        full_name: customer.name,
+                        user_type: 'school_admin'
+                    }
+                });
+
+                if (authError) {
+                    console.error('Erro ao criar usuário Auth no Supabase:', authError);
+                } else if (authData.user) {
+                    const newUserId = authData.user.id;
+                    const cleanName = customer.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+                    // Insere a nova escola no BD
+                    const { data: schoolData, error: schoolError } = await supabase.from('schools').insert({
+                        name: customer.name,
+                        slug: cleanName || `escola-${Date.now()}`,
+                        city: customer.addressComplement || "Online",
+                        subscription_status: 'active',
+                        subscription_id: subscriptionId
+                    }).select().single();
+
+                    if (schoolData && !schoolError) {
+                        const schoolUUID = schoolData.id;
+
+                        // Atualiza meta do usuário
+                        await supabase.auth.admin.updateUserById(newUserId, {
+                            user_metadata: { school_id: schoolUUID }
+                        });
+
+                        // Cria o Perfil
+                        await supabase.from('profiles').upsert({
+                            id: newUserId,
+                            school_id: schoolUUID,
+                            role: 'school_admin',
+                            full_name: customer.name,
+                            email: customer.email,
+                            status: 'active'
+                        });
+                    } else {
+                        console.error('Erro ao inserir escola no Supabase:', schoolError);
+                    }
+                }
             }
         }
 
