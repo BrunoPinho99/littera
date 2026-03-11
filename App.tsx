@@ -170,7 +170,7 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 transition-colors">
         <CheckoutForm
-          plan={checkoutPlan || { id: 'pro_mensal', name: 'Premium', price: 'R$ 0,01', frequency: 1, color: 'bg-primary', features: [] }} // Fallback
+          plan={checkoutPlan || { id: 'pro_mensal', name: 'Premium', price: 'R$ 5,00', frequency: 1, color: 'bg-primary', features: [] }} // Fallback
           schoolId={session?.user?.user_metadata?.school_id || session?.user?.id}
           onBack={() => {
             setCheckoutPlan(null);
