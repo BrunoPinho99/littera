@@ -19,7 +19,8 @@ export default async function handler(req: any, res: any) {
             'access_token': API_KEY
         };
 
-        const ASAAS_URL = API_KEY.includes('hmlg') ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3';
+        // Forçando o ambiente de Sandbox (Homologação) conforme solicitado
+        const ASAAS_URL = 'https://sandbox.asaas.com/api/v3';
 
         // 1. Procurar ou Criar Cliente no Asaas
         let asaasCustomerId = '';

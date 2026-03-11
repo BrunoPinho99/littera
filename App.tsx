@@ -57,8 +57,19 @@ const App: React.FC = () => {
   // Checkout State
   const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
 
-  // 1. Initialize Session
+  // 1. Initialize Session and Routing
   useEffect(() => {
+    // Basic routing
+    const path = window.location.pathname;
+    if (path === '/checkout') {
+      setCurrentView('checkout');
+      // Tenta recuperar o plano do localStorage caso tenha vindo do redirect
+      const savedPlan = localStorage.getItem('littera_checkout_plan');
+      if (savedPlan) {
+        setCheckoutPlan(JSON.parse(savedPlan));
+      }
+    }
+
     const init = async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -159,15 +170,18 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 transition-colors">
         <CheckoutForm
-          plan={checkoutPlan}
+          plan={checkoutPlan || { id: 'pro_mensal', name: 'Premium', price: 'R$ 29,90', frequency: 1, color: 'bg-primary', features: [] }} // Fallback
+          schoolId={session?.user?.user_metadata?.school_id || session?.user?.id}
           onBack={() => {
             setCheckoutPlan(null);
-            setCurrentView(getDefaultView(userType));
+            localStorage.removeItem('littera_checkout_plan');
+            window.location.href = '/';
           }}
           onSuccess={() => {
             alert('Assinatura ativada com sucesso!');
             setCheckoutPlan(null);
-            setCurrentView(getDefaultView(userType));
+            localStorage.removeItem('littera_checkout_plan');
+            window.location.href = '/';
           }}
         />
       </div>
@@ -199,7 +213,8 @@ const App: React.FC = () => {
         }}
         onCheckout={(plan) => {
           setCheckoutPlan(plan);
-          setCurrentView('checkout');
+          localStorage.setItem('littera_checkout_plan', JSON.stringify(plan));
+          window.location.href = '/checkout';
         }}
       />
     );

@@ -9,11 +9,12 @@ interface Plan {
 
 interface CheckoutFormProps {
     plan: Plan;
+    schoolId?: string;
     onBack: () => void;
     onSuccess: () => void;
 }
 
-const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack, onSuccess }) => {
+const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, schoolId, onBack, onSuccess }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
@@ -54,6 +55,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack, onSuccess }) 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    schoolId: schoolId,
                     planId: plan.id,
                     planPrice: numericPrice,
                     frequency: plan.frequency,
@@ -349,4 +351,6 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack, onSuccess }) 
     );
 };
 
+
 export default CheckoutForm;
+

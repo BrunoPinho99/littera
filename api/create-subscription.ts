@@ -17,9 +17,8 @@ export default async function handler(req: any, res: any) {
 
         // Configuração do Asaas
         const asaasToken = process.env.ASAAS_API_KEY || process.env.VITE_ASAAS_API_KEY || '';
-        const asaasUrl = asaasToken.includes('hmlg') || asaasToken.includes('sandbox')
-            ? 'https://sandbox.asaas.com/api/v3'
-            : 'https://api.asaas.com/v3';
+        // Forçando o ambiente de Sandbox (Homologação) conforme solicitado
+        const asaasUrl = 'https://sandbox.asaas.com/api/v3';
 
         // 1. Criar Link de Pagamento no Asaas
         const billingCycle = frequency === 12 ? 'YEARLY' : (frequency === 6 ? 'SEMIANNUALLY' : 'MONTHLY');

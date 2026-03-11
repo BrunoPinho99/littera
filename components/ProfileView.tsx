@@ -37,12 +37,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
     }
   };
 
-  const handleResetSystem = () => {
-    if (confirm("Deseja realmente zerar todos os dados locais (tarefas e notificações)? Isso não afetará o banco de dados principal, apenas o cache deste navegador.")) {
-      localStorage.clear();
-      window.location.reload();
-    }
-  };
+
 
   const handleEdit = () => setIsEditing(true);
 
@@ -95,12 +90,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
         </div>
         {!isEditing ? (
           <div className="flex gap-3">
-            <button
-              onClick={handleResetSystem}
-              className="flex items-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-600 border border-rose-100 rounded-xl font-bold hover:bg-rose-100 transition-all active:scale-95"
-            >
-              <span className="material-icons-outlined text-[20px]">delete_sweep</span> Zerar Cache
-            </button>
+
             <button
               onClick={handleEdit}
               className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all active:scale-95"
