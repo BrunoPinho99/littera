@@ -14,7 +14,7 @@ const plans: Plan[] = [
   {
     id: 'pro_mensal',
     name: 'Pro Mensal',
-    price: 'R$ 29,90',
+    price: 'R$ 0,01',
     color: 'bg-gray-500',
     frequency: 1,
     features: ['Correções ilimitadas', 'Análise detalhada', 'Feedback instantâneo da IA']
