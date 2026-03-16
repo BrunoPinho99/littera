@@ -63,7 +63,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
             const { error: schoolError } = await supabase.from('schools').insert({
               id: schoolId,
               name: name,
-              slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+              slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+              subscription_status: 'inactive'
             });
 
             if (schoolError) {

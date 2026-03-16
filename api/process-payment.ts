@@ -63,7 +63,7 @@ export default async function handler(req: any, res: any) {
         const today = new Date();
         const nextDueDate = today.toISOString().split('T')[0];
 
-        const subscriptionPayload = {
+        const subscriptionPayload: any = {
             customer: asaasCustomerId,
             billingType: 'CREDIT_CARD',
             value: planPrice,
@@ -71,7 +71,13 @@ export default async function handler(req: any, res: any) {
             cycle: cycle,
             description: `Assinatura Littera - Plano ${planId}`,
             creditCard: creditCard,
-            creditCardHolderInfo: {
+        };
+
+        if (schoolId) {
+            subscriptionPayload.externalReference = schoolId;
+        }
+
+        subscriptionPayload.creditCardHolderInfo = {
                 name: customer.name,
                 email: customer.email,
                 cpfCnpj: customer.cpfCnpj,
@@ -79,7 +85,6 @@ export default async function handler(req: any, res: any) {
                 addressNumber: customer.addressNumber,
                 addressComplement: customer.addressComplement,
                 phone: customer.phone
-            }
         };
 
         const createSubRes = await fetch(`${ASAAS_URL}/subscriptions`, {
@@ -97,11 +102,16 @@ export default async function handler(req: any, res: any) {
         const subscriptionId = createSubData.id;
 
         // 4. Salvar o ID da assinatura no Supabase e/ou Criar a Conta
-        const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_KEY || '';
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-        if (supabaseUrl && supabaseKey) {
-            const supabase = createClient(supabaseUrl, supabaseKey);
+        if (!supabaseServiceKey) {
+            console.error('ALERTA CRÍTICO: Variável SUPABASE_SERVICE_ROLE_KEY ausente no ambiente do servidor.');
+            throw new Error('Configuração de servidor incompleta. Contate o suporte técnico.');
+        }
+
+        if (supabaseUrl && supabaseServiceKey) {
+            const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
             if (schoolId) {
                 // Usuário já logado, apenas atualiza

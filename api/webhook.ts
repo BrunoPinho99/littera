@@ -11,14 +11,21 @@ export default async function handler(req: any, res: any) {
 
         const subscriptionId = payment?.subscription;
         const paymentLinkId = payment?.paymentLink;
+        const schoolIdToUpdate = payment?.externalReference; // ID da escola enviado na criação
 
         if (!subscriptionId) {
             return res.status(200).json({ message: 'Ignored: Not a subscription payment' });
         }
 
-        const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_KEY || '';
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+        const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+        if (!supabaseServiceKey) {
+            console.error('ALERTA CRÍTICO: SUPABASE_SERVICE_ROLE_KEY ausente no webhook. As de atualizações de banco de dados falharão (RLS).');
+            return res.status(500).json({ message: 'Server configuration error: missing service role key' });
+        }
+
+        const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
         let nsStatus = 'active';
 
@@ -40,11 +47,16 @@ export default async function handler(req: any, res: any) {
                 return res.status(200).json({ message: 'Ignored event' });
         }
 
-        // Atualiza a escola no Supabase (procura pelo subscriptionId ou paymentLinkId)
-        const { data: schools, error: searchError } = await supabase
-            .from('schools')
-            .select('id, subscription_id, payment_link_id')
-            .or(`subscription_id.eq.${subscriptionId},payment_link_id.eq.${paymentLinkId || 'null'}`);
+        // Atualiza a escola no Supabase (procura primeiro pelo externalReference, depois pelos IDs)
+        let query = supabase.from('schools').select('id, subscription_id, payment_link_id');
+
+        if (schoolIdToUpdate) {
+            query = query.eq('id', schoolIdToUpdate);
+        } else {
+            query = query.or(`subscription_id.eq.${subscriptionId},payment_link_id.eq.${paymentLinkId || 'null'}`);
+        }
+
+        const { data: schools, error: searchError } = await query;
 
         if (searchError || !schools || schools.length === 0) {
             console.error('School not found for this payment in Supabase', searchError);

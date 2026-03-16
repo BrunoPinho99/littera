@@ -71,7 +71,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 onClick={() => onDemoClick('student')}
                                 className="bg-primary hover:bg-violet-700 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all shadow-lg hover:shadow-primary/30"
                             >
-                                Agendar Demo
+                                Demonstração
                             </button>
                         </div>
                     </div>
@@ -97,7 +97,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                             onClick={() => onDemoClick('student')}
                             className="bg-primary hover:bg-violet-700 text-white px-8 py-4 rounded-full text-base font-semibold transition-all shadow-xl hover:shadow-primary/40 flex items-center justify-center gap-2"
                         >
-                            Agendar Demonstração
+                            Demonstração
                             <span className="material-icons text-sm">arrow_forward</span>
                         </button>
                         <button

@@ -27,6 +27,8 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   const [elapsedTime, setElapsedTime] = useState("00:00");
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Controla se foi finalizado (não deve mostrar banner ao desmontar por submit/cancel)
+  const finishedRef = useRef(false);
 
   const wordCount = text.trim().split(/\s+/).filter(w => w.length > 0).length;
 
@@ -37,6 +39,18 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
     if (savedDraft) {
       setText(savedDraft);
     }
+
+    // Marca redação em andamento
+    localStorage.setItem('littera_essay_in_progress', JSON.stringify({
+      topicTitle,
+      startTime,
+      savedAt: Date.now()
+    }));
+
+    return () => {
+      // Ao desmontar: remove a marca de progresso (seja por cancel ou submit)
+      localStorage.removeItem('littera_essay_in_progress');
+    };
   }, [topicTitle]);
 
   // Auto-save com Debounce
@@ -119,6 +133,8 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   };
 
   const handleSubmit = () => {
+    // Limpa o rascunho ao enviar
+    localStorage.removeItem(`draft_${topicTitle}`);
     if (mode === 'text') {
       onSubmit({ type: 'text', content: text });
     } else {
