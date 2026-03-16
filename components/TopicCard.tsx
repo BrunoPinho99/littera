@@ -52,36 +52,36 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
           )}
 
-          <div className="p-10 md:p-14 flex flex-col items-center text-center relative z-20">
+          {/* Top Bar with actions */}
+          <div className="absolute top-6 right-8 flex justify-end z-30">
+            <button
+              onClick={onRefresh}
+              disabled={isLoading}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-slate-800 rounded-full shadow-sm border border-gray-100 dark:border-white/5 text-primary hover:bg-primary hover:text-white transition-all duration-300 group/badge"
+            >
+              <span className={`material-icons-outlined text-sm transition-transform duration-700 ${isLoading ? 'animate-spin' : 'group-hover/badge:rotate-180'}`}>autorenew</span>
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Gerar Novo Tema</span>
+            </button>
+          </div>
 
-            {/* Badge Flutuante */}
-            <div className="mb-8 animate-float">
-              <button
-                onClick={onRefresh}
-                disabled={isLoading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-800 rounded-full shadow-lg shadow-purple-500/10 border border-purple-100 dark:border-purple-900/30 text-primary hover:bg-primary hover:text-white transition-all duration-300 group/badge"
-              >
-                <span className={`material-icons-outlined text-sm transition-transform duration-700 ${isLoading ? 'animate-spin' : 'group-hover/badge:rotate-180'}`}>autorenew</span>
-                <span className="text-[11px] font-black uppercase tracking-widest">Gerar Novo Tema</span>
-              </button>
-            </div>
+          <div className="p-8 md:p-10 flex flex-col items-center text-center relative z-20">
 
             {/* Título Hero */}
-            <h2 className={`max-w-4xl text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white leading-[1.1] mb-8 tracking-tight transition-all duration-500 ${isLoading ? 'opacity-30 blur-sm scale-95' : 'opacity-100 scale-100'}`}>
+            <h2 className={`max-w-4xl text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white leading-[1.15] mb-6 mt-4 tracking-tight transition-all duration-500 ${isLoading ? 'opacity-30 blur-sm scale-95' : 'opacity-100 scale-100'}`}>
               {topic.title}
             </h2>
 
-            <div className="w-20 h-1.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent rounded-full mb-12"></div>
+            <div className="w-16 h-1.5 bg-gradient-to-r from-transparent via-primary/30 to-transparent rounded-full mb-6"></div>
 
             {/* Seção de Apoio - Cards Modernos */}
-            <div className="w-full max-w-5xl mb-12">
-              <div className="flex items-center justify-center gap-3 mb-6 opacity-60">
-                <div className="h-px w-12 bg-gray-300 dark:bg-slate-700"></div>
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Contexto & Apoio</span>
-                <div className="h-px w-12 bg-gray-300 dark:bg-slate-700"></div>
+            <div className="w-full max-w-5xl mb-6">
+              <div className="flex items-center justify-center gap-3 mb-4 opacity-50">
+                <div className="h-px w-8 bg-gray-300 dark:bg-slate-700"></div>
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Contexto & Apoio</span>
+                <div className="h-px w-8 bg-gray-300 dark:bg-slate-700"></div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {topic.supportTexts.slice(0, 2).map((text) => (
                   <div
                     key={text.id}
@@ -109,11 +109,11 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
 
             {/* Ações Principais (CTAs) */}
-            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto relative z-30">
               <button
                 onClick={handleWriteClick}
                 disabled={isLoading}
-                className="group relative px-8 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-sm transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-slate-900/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3 overflow-hidden"
+                className="group relative px-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-slate-900/20 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 overflow-hidden"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                 <span className="material-icons-outlined text-xl group-hover:rotate-12 transition-transform">edit_note</span>
@@ -123,9 +123,9 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
               <button
                 onClick={onUpload}
                 disabled={isLoading}
-                className="px-8 py-5 bg-white dark:bg-slate-800 border-2 border-gray-100 dark:border-white/10 text-slate-700 dark:text-white rounded-2xl font-black text-sm transition-all hover:border-primary/50 hover:bg-gray-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                className="px-6 py-4 bg-white dark:bg-slate-800 border-2 border-gray-100 dark:border-white/10 text-slate-700 dark:text-white rounded-2xl font-black text-xs transition-all hover:border-primary/50 hover:bg-gray-50 dark:hover:bg-slate-700 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                <span className="material-icons-outlined text-xl">add_a_photo</span>
+                <span className="material-icons-outlined text-lg">add_a_photo</span>
                 <span>Enviar Foto</span>
               </button>
             </div>

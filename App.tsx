@@ -365,7 +365,7 @@ const App: React.FC = () => {
         </div>
       )}
 
-      <main className="pt-28 px-6 pb-12 max-w-[1400px] mx-auto">
+      <main className="pt-20 lg:pt-24 px-6 pb-12 max-w-[1400px] mx-auto">
         {/* Views de Aluno */}
         {!['school_admin', 'teacher'].includes(userType) && (
           <>
