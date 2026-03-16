@@ -52,19 +52,19 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
           )}
 
-          {/* Top Bar with actions */}
-          <div className="absolute top-6 right-8 flex justify-end z-30">
-            <button
-              onClick={onRefresh}
-              disabled={isLoading}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-slate-800 rounded-full shadow-sm border border-gray-100 dark:border-white/5 text-primary hover:bg-primary hover:text-white transition-all duration-300 group/badge"
-            >
-              <span className={`material-icons-outlined text-sm transition-transform duration-700 ${isLoading ? 'animate-spin' : 'group-hover/badge:rotate-180'}`}>autorenew</span>
-              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Gerar Novo Tema</span>
-            </button>
-          </div>
+          <div className="p-6 md:p-8 flex flex-col items-center text-center relative z-20">
 
-          <div className="p-8 md:p-10 flex flex-col items-center text-center relative z-20">
+            {/* Badge Flutuante (Botão de recarregar menorzinho ao centro) */}
+            <div className="mb-3 animate-float">
+              <button
+                onClick={onRefresh}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800 rounded-full shadow-sm border border-gray-100 dark:border-white/5 text-primary hover:bg-primary hover:text-white transition-all duration-300 group/badge"
+              >
+                <span className={`material-icons-outlined text-[13px] transition-transform duration-700 ${isLoading ? 'animate-spin' : 'group-hover/badge:rotate-180'}`}>autorenew</span>
+                <span className="text-[9px] font-black uppercase tracking-widest">Gerar Novo Tema</span>
+              </button>
+            </div>
 
             {/* Título Hero */}
             <h2 className={`max-w-4xl text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white leading-[1.15] mb-6 mt-4 tracking-tight transition-all duration-500 ${isLoading ? 'opacity-30 blur-sm scale-95' : 'opacity-100 scale-100'}`}>
