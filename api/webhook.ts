@@ -41,6 +41,8 @@ export default async function handler(req: any, res: any) {
                 break;
             case 'PAYMENT_DELETED':
             case 'PAYMENT_REFUNDED':
+            case 'PAYMENT_CHARGEBACK_REQUESTED':
+            case 'PAYMENT_CHARGEBACK_DISPUTE':
                 nsStatus = 'canceled';
                 break;
             default:
