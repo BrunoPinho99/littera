@@ -86,23 +86,20 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
                   <div
                     key={text.id}
                     onClick={() => setSelectedText(text)}
-                    className="text-left bg-gray-50/80 dark:bg-slate-800/50 p-6 rounded-3xl border border-gray-100 dark:border-white/5 hover:border-primary/20 hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg transition-all duration-300 group/card cursor-pointer"
+                    className="flex text-left bg-gray-50/80 dark:bg-slate-800/50 p-4 lg:p-5 rounded-[1.5rem] border border-gray-100 dark:border-white/5 hover:border-primary/20 hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg transition-all duration-300 group/card cursor-pointer items-center justify-between"
                   >
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 shadow-sm flex items-center justify-center text-primary group-hover/card:bg-primary group-hover/card:text-white transition-colors">
-                        <span className="material-icons-outlined text-lg">{text.icon === 'article' ? 'description' : text.icon}</span>
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="shrink-0 w-10 h-10 rounded-xl bg-white dark:bg-slate-700 shadow-sm flex items-center justify-center text-primary group-hover/card:bg-primary group-hover/card:text-white transition-colors">
+                        <span className="material-icons-outlined text-xl">{text.icon === 'article' ? 'description' : text.icon}</span>
                       </div>
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 line-clamp-1">{text.title}</h4>
+                      <div className="truncate">
+                        <h4 className="font-bold text-[13px] md:text-sm text-slate-800 dark:text-slate-200 truncate">{text.title}</h4>
+                        <span className="text-primary font-bold text-[9px] uppercase tracking-widest flex items-center gap-1 group-hover/card:underline mt-0.5">
+                          Abrir leitura
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2 pl-11">
-                      {text.content}
-                    </p>
-                    <div className="pl-11 mt-3">
-                      <span className="text-primary font-bold text-[10px] uppercase tracking-widest flex items-center gap-1 group-hover/card:underline">
-                        Expandir leitura
-                        <span className="material-icons-outlined text-[12px] group-hover/card:translate-x-1 transition-transform">add_circle_outline</span>
-                      </span>
-                    </div>
+                    <span className="shrink-0 material-icons-outlined text-gray-400 group-hover/card:text-primary transition-colors group-hover/card:translate-x-1 duration-300">chevron_right</span>
                   </div>
                 ))}
               </div>
