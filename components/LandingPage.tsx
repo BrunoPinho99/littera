@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SubscriptionView from './SubscriptionView';
 
 interface LandingPageProps {
@@ -8,475 +8,531 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, onCheckout }) => {
+    useEffect(() => {
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.15
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                }
+            });
+        }, observerOptions);
+
+        const revealElements = document.querySelectorAll('.reveal');
+        revealElements.forEach(el => observer.observe(el));
+
+        return () => observer.disconnect();
+    }, []);
+
     return (
-        <div className="font-display bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark antialiased transition-colors duration-300">
+        <div className="font-display mesh-bg text-text-light dark:text-text-dark antialiased transition-colors duration-300 min-h-screen">
             <style>{`
-        .glass-panel {
-            background-color: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .bg-glass {
+            background-color: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(24px) saturate(150%);
+            -webkit-backdrop-filter: blur(24px) saturate(150%);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         }
-        .hero-gradient {
-            background: linear-gradient(135deg, #8648ED 0%, #8B5CF6 50%, #A78BFA 100%);
+        .dark .bg-glass {
+            background-color: rgba(15, 23, 42, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
         }
-        .feature-icon {
-            background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%);
+        .text-gradient {
+            background: linear-gradient(135deg, #126DFB 0%, #0284C7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .dark .feature-icon {
-            background: linear-gradient(135deg, #4c1d95 0%, #5b21b6 100%);
+        .dark .text-gradient {
+            background: linear-gradient(135deg, #60A5FA 0%, #38BDF8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .material-symbols-outlined {
-            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        .mesh-bg {
+            background-color: #f8fafc;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(217,100%,75%,0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(217,100%,75%,0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(217,100%,75%,0.1) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(217,100%,75%,0.05) 0px, transparent 50%);
         }
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .dark .mesh-bg {
+            background-color: #020617;
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(217,100%,60%,0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, hsla(217,100%,60%,0.05) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, hsla(217,100%,60%,0.05) 0px, transparent 50%),
+                radial-gradient(at 0% 100%, hsla(217,100%,60%,0.02) 0px, transparent 50%);
         }
-        .animate-fade-in-up {
-            animation: fadeInUp 0.8s ease-out forwards;
+        .feature-card {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 32px;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .delay-100 { animation-delay: 100ms; }
-        .delay-200 { animation-delay: 200ms; }
-        .delay-300 { animation-delay: 300ms; }
-        .delay-500 { animation-delay: 500ms; }
+        .dark .feature-card {
+            background: rgba(30, 41, 59, 0.3);
+            border-color: rgba(255, 255, 255, 0.05);
+        }
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(18, 109, 251, 0.3);
+            box-shadow: 0 30px 60px -20px rgba(18, 109, 251, 0.15);
+        }
+        .btn-primary {
+            background: #126DFB;
+            color: white;
+            padding: 14px 28px;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px 0 rgba(18, 109, 251, 0.39);
+        }
+        .btn-primary:hover {
+            background: #0D59D1;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(18, 109, 251, 0.23);
+        }
+        .avatar-group { display: flex; align-items: center; }
+        .avatar-group img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid white; margin-left: -12px; }
+        .dark .avatar-group img { border-color: #0f172a; }
+        .avatar-group img:first-child { margin-left: 0; }
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px) scale(0.96);
+            filter: blur(8px);
+            transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            transition-delay: 100ms;
+            will-change: transform, opacity, filter;
+        }
+        .reveal.revealed {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+        }
+        .reveal-delay-100 { transition-delay: 200ms; }
+        .reveal-delay-200 { transition-delay: 300ms; }
+        .reveal-delay-300 { transition-delay: 400ms; }
       `}</style>
 
-            <nav className="fixed w-full z-50 top-0 transition-all duration-300 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-gray-100 dark:border-slate-800">
+            <nav className="fixed w-full z-50 top-0 transition-all duration-300 bg-glass border-b-0 border-transparent">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
                         <div className="flex items-center gap-2">
-                            <span className="material-icons text-primary text-3xl">auto_stories</span>
-                            <span className="font-bold text-xl text-gray-900 dark:text-white">Littera</span>
+                            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/30">
+                                <span className="material-icons text-xl">auto_stories</span>
+                            </div>
+                            <span className="font-extrabold text-xl tracking-tighter text-gray-900 dark:text-white">Littera</span>
                         </div>
-                        <div className="hidden md:flex space-x-8 text-sm font-medium text-gray-600 dark:text-gray-300">
-                            <a className="hover:text-primary transition-colors" href="#features">Funcionalidades</a>
-                            <a className="hover:text-primary transition-colors" href="#solutions">Soluções</a>
-                            <a className="hover:text-primary transition-colors" href="#pricing">Preços</a>
-                            <a className="hover:text-primary transition-colors" href="#resources">Recursos</a>
+                        <div className="hidden md:flex space-x-10 text-[13px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                            <a className="hover:text-primary transition-colors" href="#features">Recursos</a>
+                            <a className="hover:text-primary transition-colors" href="#solutions">Impacto</a>
+                            <a className="hover:text-primary transition-colors" href="#pricing">Planos</a>
                         </div>
                         <div className="flex items-center space-x-4">
                             <button
                                 onClick={onLoginClick}
-                                className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary"
+                                className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-primary transition-colors px-4 py-2"
                             >
                                 Login
                             </button>
                             <button
                                 onClick={() => onDemoClick('student')}
-                                className="bg-primary hover:bg-violet-700 text-white px-5 py-2.5 rounded-full text-sm font-medium transition-all shadow-lg hover:shadow-primary/30"
+                                className="bg-gray-900 text-white dark:bg-white dark:text-gray-900 px-6 py-2.5 rounded-full text-sm font-bold shadow-xl hover:scale-105 transition-transform"
                             >
-                                Demonstração
+                                Iniciar
                             </button>
                         </div>
                     </div>
                 </div>
             </nav>
 
-            <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-violet-100/50 via-purple-50/30 to-transparent dark:from-violet-900/20 dark:via-slate-900/0 dark:to-transparent -z-10"></div>
+            <section className="relative pt-40 pb-20 lg:pt-56 lg:pb-32 overflow-hidden">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-primary text-xs font-semibold mb-6 border border-violet-200 dark:border-violet-800 opacity-0 animate-fade-in-up">
-                        <span className="flex h-2 w-2 rounded-full bg-primary"></span>
-                        Versão 2.0 com IA Generativa
+                    <div className="inline-flex items-center gap-3 px-2 py-1.5 pr-4 rounded-full bg-glass mb-10 reveal hover:scale-105 transition-transform cursor-pointer shadow-sm">
+                        <div className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md">Novo</div>
+                        <span className="text-gray-800 dark:text-gray-200 text-xs md:text-sm font-semibold tracking-tight">Plataforma Educacional Escalonável</span>
+                        <span className="material-icons text-sm text-gray-400">arrow_forward</span>
                     </div>
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 text-gray-900 dark:text-white leading-tight max-w-4xl mx-auto opacity-0 animate-fade-in-up delay-100">
-                        Sua escola com aprovação máxima no ENEM <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-600">através da redação</span>
+                    
+                    <h1 className="text-6xl md:text-8xl lg:text-[7.5rem] font-extrabold tracking-tighter mb-8 text-gray-900 dark:text-white leading-[0.95] max-w-5xl mx-auto reveal reveal-delay-100">
+                        Padrão Enem <br />
+                        <span className="text-gradient">em Escala</span>
                     </h1>
-                    <p className="mt-4 text-xl text-muted-light dark:text-muted-dark max-w-2xl mx-auto mb-10 opacity-0 animate-fade-in-up delay-200">
-                        Littera é a plataforma completa baseada em nuvem para gerenciar correções de redações, feedback instantâneo e evolução pedagógica — de forma segura e perfeita.
+                    
+                    <p className="text-lg md:text-2xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-14 leading-relaxed tracking-tight font-medium reveal reveal-delay-200">
+                        Liberte seus professores da burocracia. Devolutivas precisas em segundos. Potencialize o desempenho dos seus alunos com tecnologia educacional de ponta. 
                     </p>
-                    <div className="flex flex-col sm:flex-row justify-center gap-4 mb-16 opacity-0 animate-fade-in-up delay-300">
+                    
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-24 reveal reveal-delay-300">
                         <button
                             onClick={() => onDemoClick('student')}
-                            className="bg-primary hover:bg-violet-700 text-white px-8 py-4 rounded-full text-base font-semibold transition-all shadow-xl hover:shadow-primary/40 flex items-center justify-center gap-2"
+                            className="btn-primary text-base px-10 py-4 shadow-2xl shadow-primary/30 w-full sm:w-auto"
                         >
-                            Demonstração
-                            <span className="material-icons text-sm">arrow_forward</span>
+                            Começar Gratuitamente
                         </button>
                         <button
                             onClick={() => onDemoClick('student')}
-                            className="bg-white dark:bg-slate-800 text-gray-700 dark:text-white border border-gray-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary px-8 py-4 rounded-full text-base font-semibold transition-all flex items-center justify-center"
+                            className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md border border-gray-200 dark:border-slate-700/50 text-gray-900 dark:text-white font-semibold hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 px-10 py-4 rounded-full w-full sm:w-auto shadow-sm"
                         >
-                            Ver Como Funciona
+                            Ver demonstração
                         </button>
                     </div>
 
-                    <div className="relative mx-auto max-w-5xl opacity-0 animate-fade-in-up delay-500">
-                        <div className="absolute -top-12 -left-12 w-24 h-24 bg-yellow-400 rounded-full blur-3xl opacity-20 animate-pulse"></div>
-                        <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-primary rounded-full blur-3xl opacity-20"></div>
-
-                        <div className="relative bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-slate-700">
-                            <div className="bg-gray-50 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center gap-2">
-                                <div className="flex gap-1.5">
-                                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                                    <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                                </div>
-                                <div className="ml-4 bg-white dark:bg-slate-800 px-3 py-1 rounded text-xs text-muted-light dark:text-muted-dark flex-1 max-w-sm text-center">littera.education/dashboard</div>
-                            </div>
-
-                            <div className="relative aspect-[16/10] w-full bg-gray-50 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700 overflow-hidden">
+                    <div className="relative mx-auto max-w-5xl reveal reveal-delay-300">
+                        <div className="relative bg-glass rounded-[2.5rem] shadow-2xl overflow-hidden p-3 transform hover:scale-[1.01] transition-transform duration-700 border border-white/40 dark:border-white/10">
+                            <div className="bg-[#f1f5f9] dark:bg-[#020617] rounded-[2rem] overflow-hidden aspect-[16/10] w-full shadow-inner relative group border border-gray-200 dark:border-gray-800">
                                 <img
                                     src="/dashboard-student.png"
-                                    alt="Littera Student Dashboard"
-                                    className="w-full h-full object-cover object-top"
+                                    alt="Littera Dashboard"
+                                    className="w-full h-full object-cover object-top opacity-90 mix-blend-luminosity group-hover:mix-blend-normal transition-all duration-700"
                                 />
+                                <div className="absolute inset-0 bg-gradient-to-t from-[#f1f5f9] dark:from-[#020617] via-transparent to-transparent opacity-60"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-20 bg-white dark:bg-slate-900" id="features">
+            <section className="py-32 relative z-10" id="features">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center max-w-3xl mx-auto mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Recursos Inteligentes para Simplificar seu Trabalho</h2>
-                        <p className="text-lg text-muted-light dark:text-muted-dark">
-                            Desbloqueie todo o potencial da sua escola com nossas ferramentas SaaS inteligentes, eficientes e fáceis de usar, economizando horas todos os dias.
+                    <div className="text-center max-w-3xl mx-auto mb-20 reveal">
+                        <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tighter">Recursos que <span className="text-gradient">elevam o padrão</span></h2>
+                        <p className="text-lg md:text-xl font-medium text-gray-600 dark:text-gray-400 leading-relaxed tracking-tight">
+                            Desbloqueie todo o potencial da sua escola com ferramentas projetadas para 
+                            maximizar a eficiência e o engajamento através de análises preditivas.
                         </p>
                     </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-8 transition-all hover:shadow-soft border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
-                            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm mb-6 flex items-center gap-4">
-                                <div className="relative w-16 h-16 flex-shrink-0">
-                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                                        <path className="text-gray-100 dark:text-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4"></path>
-                                        <path className="text-yellow-400" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="40, 100" strokeWidth="4"></path>
-                                        <path className="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="25, 100" strokeDashoffset="-40" strokeWidth="4"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div className="text-xs text-muted-light dark:text-muted-dark mb-1">Análise de Competências</div>
-                                </div>
-                                <div className="ml-auto">
-                                    <div className="h-8 w-1 bg-primary/20 rounded-full mx-0.5 inline-block"></div>
-                                    <div className="h-12 w-1 bg-primary/40 rounded-full mx-0.5 inline-block"></div>
-                                    <div className="h-6 w-1 bg-primary/20 rounded-full mx-0.5 inline-block"></div>
-                                    <div className="h-10 w-1 bg-primary rounded-full mx-0.5 inline-block"></div>
-                                    <div className="h-7 w-1 bg-primary/30 rounded-full mx-0.5 inline-block"></div>
-                                </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
+                        {/* Grande Card - Feedback IA */}
+                        <div className="feature-card p-10 md:p-14 md:col-span-4 flex flex-col justify-between reveal relative overflow-hidden group min-h-[400px]">
+                            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 group-hover:bg-blue-500/20 transition-colors duration-700"></div>
+                            
+                            <div className="relative z-10 w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-primary mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
+                                <span className="material-icons text-3xl">fact_check</span>
                             </div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Correção em Larga Escala</h3>
-                            <p className="text-muted-light dark:text-muted-dark text-sm mb-4">
-                                A automação não precisa ser complicada. Nossa plataforma permite que você corrija milhares de redações mantendo a precisão pedagógica.
-                            </p>
-
+                            <div className="relative z-10 max-w-md">
+                                <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">Correção Automatizada</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-base leading-relaxed font-medium">
+                                    Redações avaliadas em segundos com critérios rigorosos do ENEM. Análise profunda de coesão, coerência e proposta de intervenção com padronização impecável.
+                                </p>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-6 transition-all hover:shadow-soft border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
-                                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm mb-4 w-fit">
-                                    <span className="material-icons text-primary">psychology</span>
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Feedback IA Instantâneo</h3>
-                                <p className="text-muted-light dark:text-muted-dark text-xs mb-3">
-                                    Alunos recebem devolutivas imediatas baseadas nos critérios oficiais do ENEM.
-                                </p>
-                                <a className="text-primary text-xs font-medium hover:underline" href="#">Explorar</a>
+
+                        {/* Card Pequeno - Conformidade */}
+                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-2 reveal reveal-delay-100 min-h-[400px]">
+                            <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-700 dark:text-slate-300 mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
+                                <span className="material-icons text-3xl">verified_user</span>
                             </div>
-                            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-6 transition-all hover:shadow-soft border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
-                                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm mb-4 w-fit">
-                                    <span className="material-icons text-primary">security</span>
-                                </div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Segurança de Dados</h3>
-                                <p className="text-muted-light dark:text-muted-dark text-xs mb-3">
-                                    Proteção de nível empresarial para os dados dos seus alunos e da sua escola.
+                            <div>
+                                <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">Segurança Total</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed font-medium">
+                                    Proteção de nível empresarial. Dados dos alunos criptografados e total conformidade com a LGPD e regulamentações educacionais.
                                 </p>
-                                <a className="text-primary text-xs font-medium hover:underline" href="#">Detalhes</a>
                             </div>
-                            <div className="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-6 col-span-1 sm:col-span-2 flex flex-col sm:flex-row gap-6 items-center transition-all hover:shadow-soft border border-transparent hover:border-gray-200 dark:hover:border-slate-700">
-                                <div className="flex-1">
-                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Escalável e Customizável</h3>
-                                    <p className="text-muted-light dark:text-muted-dark text-xs mb-3">
-                                        Adapte os critérios de correção conforme a metodologia da sua escola para garantir a melhor preparação.
-                                    </p>
-                                    <a className="bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-violet-700 transition-colors" href="#pricing">Ver Plano</a>
-                                </div>
-                                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm w-full sm:w-1/2">
-                                    <div className="space-y-2">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                            <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded w-2/3"></div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                            <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded w-3/4"></div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-                                            <div className="h-2 bg-gray-100 dark:bg-slate-700 rounded w-1/2"></div>
-                                        </div>
-                                    </div>
-                                </div>
+                        </div>
+
+                        {/* Card Pequeno - Performance */}
+                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-3 reveal reveal-delay-200 min-h-[350px]">
+                            <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-500 mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
+                                <span className="material-icons text-3xl">insights</span>
+                            </div>
+                            <div>
+                                <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">Análise de Performance</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed font-medium">
+                                    Dashboards preditivos para professores e coordenadores mapearem instantaneamente os pontos fortes e os gargalos das turmas.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Card Pequeno - Anti-plagio (Novo) */}
+                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-3 reveal reveal-delay-300 min-h-[350px] relative overflow-hidden group">
+                            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 dark:bg-blue-600/5 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4 group-hover:bg-blue-500/10 transition-colors duration-700"></div>
+                            <div className="relative z-10 w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-700 dark:text-slate-300 mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
+                                <span className="material-icons text-3xl">plagiarism</span>
+                            </div>
+                            <div className="relative z-10">
+                                <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">Motor Anti-fraude</h3>
+                                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed font-medium">
+                                    Identificação automática de cópias e textos fora do escopo, garantindo a integridade do processo avaliativo.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-20 bg-gray-50 dark:bg-slate-900/50 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-violet-100/50 to-transparent dark:from-violet-900/10 dark:to-transparent pointer-events-none"></div>
+            <section className="py-32 bg-gray-50 dark:bg-slate-900/50 relative overflow-hidden reveal">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-                        <div className="lg:col-span-5">
-                            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-6">A Visão do Futuro da Automação Educacional</h2>
-                            <p className="text-lg text-muted-light dark:text-muted-dark mb-8">
-                                Professores perdem até 40% do seu tempo corrigindo pilhas de papel. Isso gera burnout, atraso no feedback para o aluno e perda de qualidade no ensino.
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                        <div>
+                            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight leading-tight">A visão do futuro da <br /><span className="text-primary">educação de elite</span></h2>
+                            <p className="text-lg text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
+                                Professores perdem até 40% do seu tempo com burocracia. Nossa missão é 
+                                devolver esse tempo para o que realmente importa: o ensino.
                             </p>
-                            <div className="space-y-6">
-                                <div className="flex items-start gap-4">
-                                    <div className="feature-icon p-2 rounded-lg text-primary mt-1">
-                                        <span className="material-icons text-xl">timer_off</span>
+                            <div className="space-y-8">
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 flex items-center justify-center text-primary shrink-0">
+                                        <span className="material-icons">timer_off</span>
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white">Correção Lenta</h4>
-                                        <p className="text-sm text-muted-light dark:text-muted-dark">Semanas para devolver uma redação atrasam o ciclo de aprendizado.</p>
+                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">Fim da Correção Lenta</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Reduza o tempo de devolutiva de semanas para segundos.</p>
                                     </div>
                                 </div>
-                                <div className="flex items-start gap-4">
-                                    <div className="feature-icon p-2 rounded-lg text-primary mt-1">
-                                        <span className="material-icons text-xl">rule</span>
+                                <div className="flex items-start gap-5">
+                                    <div className="w-12 h-12 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-800 flex items-center justify-center text-primary shrink-0">
+                                        <span className="material-icons">architecture</span>
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white">Subjetividade</h4>
-                                        <p className="text-sm text-muted-light dark:text-muted-dark">Critérios inconsistentes geram insegurança nos alunos para o ENEM.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-4">
-                                    <div className="feature-icon p-2 rounded-lg text-primary mt-1">
-                                        <span className="material-icons text-xl">sentiment_dissatisfied</span>
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 dark:text-white">Falta de Indicadores</h4>
-                                        <p className="text-sm text-muted-light dark:text-muted-dark">Dificuldade em mapear quais competências a escola precisa reforçar.</p>
+                                        <h4 className="font-bold text-gray-900 dark:text-white mb-1">Padronização de Critérios</h4>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">Elimine a subjetividade e garanta notas precisas no modelo ENEM.</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="lg:col-span-7 grid grid-cols-2 gap-4">
-                            <img alt="Professores colaborando" className="rounded-2xl shadow-lg w-full h-64 object-cover col-span-2" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvQL6RxfJc0fyRjvVPdRDxAsfkiDNkeBybBZQqDQkWsYhOKbMHS9NVDu3Pz3PWTjqNN8_V4G6Rdvosb1RmHgKr8QpjgmXozWuZgKA1jAaGq-imlSH6I35QP5IAqb2vgbHvLRSO3xftITw4cj962RuMIuRU57buN5K7NJfsKOPfp1XN6bHCVVUoRCsz3U-TXHmJHh2X9D793AR8KCbgzIzHCQp2-JCZM1jIuvzfcPM4YeFiq49N01WsvHBjfrS9SnAfaj6zGaoQLYM" />
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-md text-center">
-                                <span className="block text-3xl font-bold text-primary mb-1">2M+</span>
-                                <span className="text-sm text-muted-light dark:text-muted-dark">Redações Corrigidas</span>
-                            </div>
-                            <div className="bg-primary p-6 rounded-2xl shadow-md text-center text-white">
-                                <span className="block text-3xl font-bold mb-1">50+</span>
-                                <span className="text-sm opacity-90">Escolas Parceiras</span>
+                        <div className="relative">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 text-center col-span-2">
+                                    <span className="block text-5xl font-extrabold text-primary mb-2">2M+</span>
+                                    <span className="text-gray-500 dark:text-gray-400 font-semibold tracking-tight uppercase text-xs">Redações Processadas</span>
+                                </div>
+                                <div className="bg-primary p-8 rounded-3xl shadow-lg shadow-primary/20 text-center text-white">
+                                    <span className="block text-4xl font-extrabold mb-1">98%</span>
+                                    <span className="text-white/80 text-xs font-medium uppercase tracking-wider">Acurácia vs Humanos</span>
+                                </div>
+                                <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 text-center">
+                                    <span className="block text-4xl font-extrabold text-gray-900 dark:text-white mb-1">50+</span>
+                                    <span className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider">Escolas Parceiras</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-12 bg-primary dark:bg-violet-900">
+            <section className="py-20 bg-white dark:bg-slate-950 border-y border-gray-100 dark:border-slate-900 overflow-hidden">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-wrap justify-center gap-8 md:gap-16 items-center opacity-70 text-white font-bold text-xl">
-                        <span className="flex items-center gap-2"><span className="material-icons">school</span> EduTech</span>
-                        <span className="flex items-center gap-2"><span className="material-icons">menu_book</span> Colégio Alpha</span>
-                        <span className="flex items-center gap-2"><span className="material-icons">edit_note</span> Redação1000</span>
-                        <span className="flex items-center gap-2"><span className="material-icons">auto_awesome</span> FutureLearn</span>
-                        <span className="flex items-center gap-2"><span className="material-icons">public</span> GlobalSchool</span>
+                    <p className="text-center text-gray-400 dark:text-gray-500 text-sm font-semibold uppercase tracking-[0.2em] mb-12">Nossos Parceiros de Tecnologia</p>
+                    <div className="flex flex-wrap justify-center gap-10 md:gap-20 items-center grayscale opacity-100 dark:invert">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" className="h-8 md:h-10" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-8 md:h-10" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" alt="Slack" className="h-8 md:h-10" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-8 md:h-10" />
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg" alt="Notion" className="h-8 md:h-10" />
                     </div>
                 </div>
             </section>
 
-            <section className="py-20 bg-white dark:bg-slate-900" id="solutions">
+            <section className="py-32 relative z-10 reveal" id="solutions">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center mb-24">
+                        <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tighter">Decisões baseadas em <span className="text-gradient">dados em tempo real</span></h2>
+                        <p className="text-lg md:text-xl font-medium text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed tracking-tight">
+                            Esqueça o achismo. Tenha indicadores absolutos de proficiência por competência, 
+                            mapas preditivos de evolução e intervenções direcionadas.
+                        </p>
+                    </div>
+                    <div className="bg-glass rounded-[40px] p-8 md:p-14 border border-white/50 dark:border-white/10 shadow-2xl overflow-hidden relative group">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-600/5 rounded-full blur-[120px] pointer-events-none transition-colors duration-1000 group-hover:bg-blue-500/10"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-center relative z-10">
+                            <div className="space-y-6 md:col-span-1">
+                                <div className="feature-card p-6 reveal shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex items-center gap-5">
+                                        <div className="bg-green-100 dark:bg-green-500/20 p-3 rounded-2xl text-green-600 dark:text-green-400 shadow-inner">
+                                            <span className="material-icons">check_circle</span>
+                                        </div>
+                                        <div>
+                                            <div className="font-extrabold text-gray-900 dark:text-white text-base tracking-tight">Verificação Avançada</div>
+                                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Garantia absoluta de originalidade</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="feature-card p-6 reveal reveal-delay-100 shadow-sm hover:shadow-md transition-shadow">
+                                    <div className="flex items-center gap-5">
+                                        <div className="bg-blue-100 dark:bg-blue-500/20 p-3 rounded-2xl text-blue-600 dark:text-blue-400 shadow-inner">
+                                            <span className="material-icons">timeline</span>
+                                        </div>
+                                        <div>
+                                            <div className="font-extrabold text-gray-900 dark:text-white text-base tracking-tight">Evolução Preditiva</div>
+                                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-1">Trajetória e projeções por aluno</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white dark:bg-slate-800/80 rounded-[2rem] p-10 shadow-sm border border-gray-100 dark:border-slate-700/50 text-center relative reveal reveal-delay-200 md:col-span-1 min-h-[300px] flex flex-col justify-center items-center">
+                                <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6">Média Preditiva ENEM</h4>
+                                <div className="relative w-44 h-44 mx-auto flex items-center justify-center">
+                                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                                        <circle className="text-gray-100 dark:text-slate-700" cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="6"></circle>
+                                        <circle className="text-primary transition-all duration-1000 ease-out" cx="50" cy="50" r="44" fill="none" stroke="url(#gradient)" strokeDasharray="243.3, 276.5" strokeLinecap="round" strokeWidth="6"></circle>
+                                        <defs>
+                                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stopColor="#126DFB" />
+                                                <stop offset="100%" stopColor="#0284C7" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                    <div className="flex flex-col items-center justify-center relative z-10 mt-1">
+                                        <span className="text-5xl font-black tracking-tighter text-gray-900 dark:text-white">880</span>
+                                    </div>
+                                </div>
+                                <div className="mt-6 inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 dark:bg-green-500/10 text-green-600 dark:text-green-400 text-sm font-bold rounded-full">
+                                    <span className="material-icons text-[16px]">trending_up</span>
+                                    +18% Projeção
+                                </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-800/80 rounded-[2rem] p-10 shadow-sm border border-gray-100 dark:border-slate-700/50 md:col-span-1 min-h-[300px] flex flex-col justify-center reveal reveal-delay-300">
+                                <h4 className="font-extrabold text-gray-900 dark:text-white mb-8 text-xl tracking-tight">Competências Críticas</h4>
+                                <div className="space-y-8">
+                                    <div className="group">
+                                        <div className="flex justify-between text-sm font-bold mb-3 tracking-tight">
+                                            <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">C1: Norma Culta</span>
+                                            <span className="text-primary font-black">92%</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                                            <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 w-[92%] rounded-full transition-colors"></div>
+                                        </div>
+                                    </div>
+                                    <div className="group">
+                                        <div className="flex justify-between text-sm font-bold mb-3 tracking-tight">
+                                            <span className="text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">C5: Proposta</span>
+                                            <span className="text-slate-600 dark:text-slate-400 font-black">68%</span>
+                                        </div>
+                                        <div className="h-2 w-full bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden shadow-inner">
+                                            <div className="h-full bg-slate-400 dark:bg-slate-500 w-[68%] rounded-full transition-colors"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="py-32 relative z-10 reveal" id="pricing">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center mb-16">
-                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">Insights Mais Inteligentes, Melhores Decisões</h2>
-                        <p className="text-muted-light dark:text-muted-dark max-w-2xl mx-auto">
-                            Acompanhe o desempenho de turmas inteiras ou foque na dificuldade individual de cada aluno para garantir a nota 1000.
-                        </p>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-glass mb-6">
+                            <span className="text-primary text-[11px] font-black uppercase tracking-widest px-2 py-0.5">Planos B2B</span>
+                        </div>
+                        <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-gray-900 dark:text-white mb-6">Pronto para <span className="text-gradient">evoluir?</span></h2>
+                        <p className="text-lg md:text-xl font-medium text-gray-600 dark:text-gray-400 max-w-2xl mx-auto tracking-tight leading-relaxed">Assuma a vanguarda educacional com uma plataforma SaaS definitiva que se adapta ao tamanho da sua instituição.</p>
                     </div>
-                    <div className="bg-gray-50 dark:bg-slate-800/50 rounded-3xl p-8 border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
-                            <div className="space-y-6">
-                                <div className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-gray-100 dark:border-slate-700">
-                                    <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded text-green-600 dark:text-green-400">
-                                        <span className="material-icons">check_circle</span>
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-gray-900 dark:text-white">Anti-plágio Integrado</div>
-                                        <div className="text-xs text-muted-light dark:text-muted-dark">Segurança no processo</div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-gray-100 dark:border-slate-700">
-                                    <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded text-blue-600 dark:text-blue-400">
-                                        <span className="material-icons">auto_graph</span>
-                                    </div>
-                                    <div>
-                                        <div className="font-bold text-gray-900 dark:text-white">Evolução Histórica</div>
-                                        <div className="text-xs text-muted-light dark:text-muted-dark">Rumo à aprovação máxima</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-md text-center relative">
-                                <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">Média Geral da Escola (ENEM)</h4>
-                                <div className="relative w-48 h-48 mx-auto">
-                                    <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                                        <path className="text-gray-100 dark:text-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3"></path>
-                                        <path className="text-primary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeDasharray="76, 100" strokeLinecap="round" strokeWidth="3"></path>
-                                    </svg>
-                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                        <span className="text-4xl font-bold text-gray-900 dark:text-white">760</span>
-                                        <span className="text-xs text-green-500 font-medium">+15% vs mês anterior</span>
-                                    </div>
-                                </div>
-                                <div className="mt-4 flex justify-center gap-4 text-xs">
-                                    <div className="flex items-center gap-1"><span className="w-2 h-2 bg-primary rounded-full"></span> Média</div>
-                                    <div className="flex items-center gap-1"><span className="w-2 h-2 bg-gray-300 dark:bg-slate-600 rounded-full"></span> Meta</div>
-                                </div>
-                            </div>
-                            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-slate-700">
-                                <h4 className="font-bold text-gray-900 dark:text-white mb-4">Competências Críticas</h4>
-                                <div className="space-y-4">
-                                    <div>
-                                        <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-gray-600 dark:text-gray-300">Norma Culta</span>
-                                            <span className="font-medium text-gray-900 dark:text-white">82% alunos</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-gray-100 dark:bg-slate-700 rounded-full">
-                                            <div className="h-full bg-red-400 w-[82%] rounded-full"></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-gray-600 dark:text-gray-300">Proposta Intervenção</span>
-                                            <span className="font-medium text-gray-900 dark:text-white">65% alunos</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-gray-100 dark:bg-slate-700 rounded-full">
-                                            <div className="h-full bg-orange-400 w-[65%] rounded-full"></div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="flex justify-between text-xs mb-1">
-                                            <span className="text-gray-600 dark:text-gray-300">Repertório Sociocult.</span>
-                                            <span className="font-medium text-gray-900 dark:text-white">45% alunos</span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-gray-100 dark:bg-slate-700 rounded-full">
-                                            <div className="h-full bg-yellow-400 w-[45%] rounded-full"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+
+                    {/* Renderiza o componente de assinatura real com Asaas, envelopado na estética Glass */}
+                    <div className="bg-glass rounded-[2.5rem] p-2 md:p-6 shadow-2xl border border-white/50 dark:border-white/10 mx-auto max-w-5xl relative overflow-hidden group">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
+                        <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100 dark:border-slate-800">
+                            <SubscriptionView
+                                onPlanSelected={() => { }}
+                                onCancel={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }) }}
+                                onCheckout={onCheckout}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="mt-16 flex flex-wrap items-center justify-center gap-6 md:gap-12 opacity-50 dark:opacity-40 hover:opacity-100 dark:hover:opacity-100 transition-opacity duration-500">
+                        <div className="flex items-center gap-2.5 bg-gray-100 dark:bg-slate-800 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-700">
+                            <span className="material-icons text-[16px] text-emerald-600">lock</span> 
+                            <span className="text-xs font-extrabold tracking-widest text-gray-900 dark:text-white uppercase">Infra de Elite</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 bg-gray-100 dark:bg-slate-800 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-700">
+                            <span className="material-icons text-[16px] text-blue-600">verified_user</span> 
+                            <span className="text-xs font-extrabold tracking-widest text-gray-900 dark:text-white uppercase">Pronto para LGPD</span>
+                        </div>
+                        <div className="flex items-center gap-2.5 bg-gray-100 dark:bg-slate-800 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-700">
+                            <span className="material-icons text-[16px] text-slate-600 dark:text-slate-400">stars</span> 
+                            <span className="text-xs font-extrabold tracking-widest text-gray-900 dark:text-white uppercase">SLA Garantido</span>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-24 bg-gray-50 dark:bg-slate-900/50" id="pricing">
+            <section className="py-32 relative z-10 reveal" id="testimonials">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-8">
-                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">Planos para sua Instituição</h2>
-                        <p className="text-xl text-muted-light dark:text-muted-dark max-w-2xl mx-auto">Transforme o desempenho pedagógico da sua escola com uma solução completa e personalizada.</p>
-                    </div>
-
-                    {/* Renderiza o componente de assinatura real com Asaas */}
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-slate-700">
-                        <SubscriptionView
-                            onPlanSelected={() => { }}
-                            onCancel={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }) }}
-                            onCheckout={onCheckout}
-                        />
-                    </div>
-
-                    <div className="mt-12 flex items-center justify-center gap-8 opacity-60">
-                        <div className="flex items-center gap-2"><span className="material-icons text-sm">lock</span> <span className="text-xs uppercase font-bold tracking-widest">Seguro & Confiável</span></div>
-                        <div className="flex items-center gap-2"><span className="material-icons text-sm">verified_user</span> <span className="text-xs uppercase font-bold tracking-widest">LGPD Compliance</span></div>
-                        <div className="flex items-center gap-2"><span className="material-icons text-sm">stars</span> <span className="text-xs uppercase font-bold tracking-widest">Premium Support</span></div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="py-20 bg-white dark:bg-slate-900">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-12">O que nossos parceiros dizem</h2>
+                    <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter text-center text-gray-900 dark:text-white mb-16">As melhores escolas <span className="text-gradient">já usam</span></h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="p-6 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex gap-4">
-                            <img alt="Avatar" className="w-12 h-12 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATe7SyQZvXE7OD2j-0mGvt2UAQxhFMAcTQz0H38ugOtm0B53JHQhjklJl0_5vTy6sz8CA8c6JzTfmX4YzU-nBk-RwrZSp2vTFGIzGoPMPTk0PAxTkl9BaTnXwgwn-eKiRPNdsZtjHPdsuuiIJa00uUkgMa5WwPMLmBnIbje7rhqko_n9FH7sfdHSnPzoPTAUGtswllgBhDVV3kum2XXzMCkv7D4GI_S3ysXwgqNsgKPE_0sQUBuerprKBMZzSxEpZ2sL4ESH2QfOU" />
+                        <div className="feature-card p-10 flex gap-6 items-start group hover:scale-[1.02]">
+                            <img alt="Avatar" className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white dark:border-slate-800 shadow-lg group-hover:border-primary transition-colors" src="https://i.pravatar.cc/150?u=11" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 italic mb-2">"A Littera transformou a forma como damos feedback. Nossas notas no ENEM subiram 15% após o primeiro semestre de uso."</p>
-                                <p className="text-xs font-bold text-gray-900 dark:text-white">Mariana Costa</p>
-                                <p className="text-[10px] text-muted-light dark:text-muted-dark">Coordenadora Pedagógica, Colégio Saber</p>
+                                <p className="text-gray-700 dark:text-gray-300 font-medium italic mb-6 leading-relaxed text-lg tracking-tight">"A Littera transformou a forma como damos feedback. Nossas notas no ENEM subiram 15% após o primeiro semestre de uso. Incomparável."</p>
+                                <p className="font-extrabold text-gray-900 dark:text-white tracking-tight">Mariana Costa</p>
+                                <p className="text-sm font-semibold text-primary uppercase tracking-widest mt-1">Colégio Saber</p>
                             </div>
                         </div>
-                        <div className="p-6 rounded-xl border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-800/50 flex gap-4">
-                            <img alt="Avatar" className="w-12 h-12 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCasF0HdOnlMMCIDNPtpI0BqpCvBOzHCXEePrM2YXVbPtgDLZI1ugIteNIHF05VnW2LL4G0H1ktWInjGG6mNQ1Q6JscHZBoKOD7p3E7QDAAa3op1EiwkuDZdnhbumL4jo5zz7AduZTdYRjjvxAW3saBNblsiEQ94AKAFeGJ7evAD9PwCVqRpbJYj30qojYvwdBjlUYMXOoyealjnQ2YYGfH8xwtMDnUT_ZGNWCZrqaGw6b6csnPm88emvr5V3l0xPkSp0tLLBJxFS0" />
+                        <div className="feature-card p-10 flex gap-6 items-start group hover:scale-[1.02]">
+                            <img alt="Avatar" className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white dark:border-slate-800 shadow-lg group-hover:border-slate-400 transition-colors" src="https://i.pravatar.cc/150?u=12" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-300 italic mb-2">"A precisão da IA no modelo ENEM é impressionante. É o suporte que nossos professores precisavam para escalar a correção."</p>
-                                <p className="text-xs font-bold text-gray-900 dark:text-white">Carlos Mendes</p>
-                                <p className="text-[10px] text-muted-light dark:text-muted-dark">Diretor Acadêmico</p>
+                                <p className="text-gray-700 dark:text-gray-300 font-medium italic mb-6 leading-relaxed text-lg tracking-tight">"A precisão do sistema no modelo ENEM é impressionante. É o suporte de elite que nossos coordenadores precisavam para escalar a correção."</p>
+                                <p className="font-extrabold text-gray-900 dark:text-white tracking-tight">Carlos Mendes</p>
+                                <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">Instituto Futuro</p>
+
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Diretor Acadêmico</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <footer className="bg-gray-50 dark:bg-slate-900 pt-16 pb-8 border-t border-gray-200 dark:border-slate-800">
+            <footer className="bg-white dark:bg-slate-950 pt-20 pb-10 border-t border-gray-100 dark:border-slate-900">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="bg-primary/5 dark:bg-primary/10 rounded-3xl p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 mb-16">
-                        <div>
-                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pronto para elevar a média da sua escola?</h3>
-                            <p className="text-muted-light dark:text-muted-dark">Junte-se a dezenas de escolas que já usam IA para garantir aprovação.</p>
-                        </div>
-                        <div className="flex gap-4">
-                            <input className="px-4 py-3 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm focus:ring-2 focus:ring-primary outline-none" placeholder="E-mail corporativo" type="email" />
-                            <button
-                                onClick={() => { }}
-                                className="bg-primary hover:bg-violet-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-                            >
-                                Começar Agora
-                            </button>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-20">
                         <div className="col-span-2 md:col-span-1">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="material-icons text-primary">auto_stories</span>
-                                <span className="font-bold text-lg text-gray-900 dark:text-white">Littera</span>
+                            <div className="flex items-center gap-2 mb-6">
+                                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white shrink-0">
+                                    <span className="material-icons text-lg">auto_stories</span>
+                                </div>
+                                <span className="font-bold text-xl text-gray-900 dark:text-white tracking-tight">Littera</span>
                             </div>
-                            <p className="text-sm text-muted-light dark:text-muted-dark">
-                                Transformando a correção de redações com inteligência artificial ética e focada em resultados reais.
-                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">A plataforma definitiva para instituições de ensino que buscam excelência em escrita e performance.</p>
+                            <div className="flex gap-4">
+                                <a href="#" className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 flex items-center justify-center text-gray-400 hover:text-primary transition-colors"><span className="material-icons text-sm">facebook</span></a>
+                                <a href="#" className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-800 flex items-center justify-center text-gray-400 hover:text-primary transition-colors"><span className="material-icons text-sm">alternate_email</span></a>
+                            </div>
                         </div>
                         <div>
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Produto</h4>
-                            <ul className="space-y-2 text-sm text-muted-light dark:text-muted-dark">
-                                <li><a className="hover:text-primary" href="#">Funcionalidades</a></li>
-                                <li><a className="hover:text-primary" href="#">Correção ENEM</a></li>
-                                <li><a className="hover:text-primary" href="#pricing">Preços</a></li>
-                                <li><a className="hover:text-primary" href="#">Integrações</a></li>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-6">Produto</h4>
+                            <ul className="space-y-4 text-sm text-gray-500 dark:text-gray-400">
+                                <li><a href="#" className="hover:text-primary transition-colors">Funcionalidades</a></li>
+                                <li><a href="#" className="hover:text-primary transition-colors">Soluções</a></li>
+                                <li><a href="#" className="hover:text-primary transition-colors">Preços</a></li>
                             </ul>
                         </div>
                         <div>
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Empresa</h4>
-                            <ul className="space-y-2 text-sm text-muted-light dark:text-muted-dark">
-                                <li><a className="hover:text-primary" href="#">Sobre Nós</a></li>
-                                <li><a className="hover:text-primary" href="#">Cases de Sucesso</a></li>
-                                <li><a className="hover:text-primary" href="#">Blog</a></li>
-                                <li><a className="hover:text-primary" href="#">Contato</a></li>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-6">Empresa</h4>
+                            <ul className="space-y-4 text-sm text-gray-500 dark:text-gray-400">
+                                <li><a href="#" className="hover:text-primary transition-colors">Sobre Nós</a></li>
+                                <li><a href="#" className="hover:text-primary transition-colors">Carreiras</a></li>
+                                <li><a href="#" className="hover:text-primary transition-colors">Blog</a></li>
                             </ul>
                         </div>
                         <div>
-                            <h4 className="font-bold text-gray-900 dark:text-white mb-4 text-sm">Legal</h4>
-                            <ul className="space-y-2 text-sm text-muted-light dark:text-muted-dark">
-                                <li><a className="hover:text-primary" href="#">Privacidade</a></li>
-                                <li><a className="hover:text-primary" href="#">Termos de Uso</a></li>
-                                <li><a className="hover:text-primary" href="#">Segurança</a></li>
+                            <h4 className="font-bold text-gray-900 dark:text-white mb-6">Legal</h4>
+                            <ul className="space-y-4 text-sm text-gray-500 dark:text-gray-400">
+                                <li><a href="#" className="hover:text-primary transition-colors">Privacidade</a></li>
+                                <li><a href="#" className="hover:text-primary transition-colors">Termos</a></li>
+                                <li><a href="#" className="hover:text-primary transition-colors">LGPD</a></li>
                             </ul>
                         </div>
                     </div>
-                    <div className="border-t border-gray-200 dark:border-slate-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                        <p className="text-xs text-muted-light dark:text-muted-dark">© 2023 Littera Education. Todos os direitos reservados.</p>
-                        <div className="flex gap-4">
-                            <a className="text-muted-light dark:text-muted-dark hover:text-primary" href="#"><span className="sr-only">Twitter</span><svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"></path></svg></a>
-                            <a className="text-muted-light dark:text-muted-dark hover:text-primary" href="#"><span className="sr-only">LinkedIn</span><svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path clipRule="evenodd" d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" fillRule="evenodd"></path></svg></a>
+                    <div className="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-gray-100 dark:border-slate-900 gap-4">
+                        <p className="text-xs text-gray-400">© 2026 Littera Education. Todos os direitos reservados.</p>
+                        <div className="flex gap-8 text-xs text-gray-400">
+                            <a href="#" className="hover:text-primary">Status</a>
+                            <a href="#" className="hover:text-primary">Ajuda</a>
                         </div>
                     </div>
                 </div>

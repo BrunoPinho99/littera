@@ -175,7 +175,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
            <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                  <span className="material-icons-outlined text-purple-400">auto_awesome</span>
-                 <h3 className="text-sm font-black uppercase tracking-widest text-purple-200">Insight da IA</h3>
+                 <h3 className="text-sm font-black uppercase tracking-widest text-blue-200">Insight Direcionado</h3>
               </div>
               <p className="text-lg font-medium leading-relaxed text-slate-200 max-w-md">
                  {hasData 

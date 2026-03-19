@@ -17,7 +17,7 @@ const plans: Plan[] = [
     price: 'R$ 5,00',
     color: 'bg-gray-500',
     frequency: 1,
-    features: ['Correções ilimitadas', 'Análise detalhada', 'Feedback instantâneo da IA']
+    features: ['Correções ilimitadas', 'Análise detalhada', 'Feedback instantâneo p/ Aluno']
   },
   {
     id: 'pro_semestral',
