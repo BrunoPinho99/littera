@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import SubscriptionView from './SubscriptionView';
 
 interface LandingPageProps {
@@ -11,8 +11,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
     useEffect(() => {
         const observerOptions = {
             root: null,
-            rootMargin: '0px',
-            threshold: 0.15
+            rootMargin: '0px 0px -60px 0px',
+            threshold: 0.1
         };
 
         const observer = new IntersectionObserver((entries) => {
@@ -23,7 +23,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
             });
         }, observerOptions);
 
-        const revealElements = document.querySelectorAll('.reveal');
+        const revealElements = document.querySelectorAll('.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-fade');
         revealElements.forEach(el => observer.observe(el));
 
         return () => observer.disconnect();
@@ -48,15 +48,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
             background: linear-gradient(135deg, #126DFB 0%, #0284C7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .dark .text-gradient {
             background: linear-gradient(135deg, #60A5FA 0%, #38BDF8 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .mesh-bg {
             background-color: #f8fafc;
-            background-image: 
+            background-image:
                 radial-gradient(at 0% 0%, hsla(217,100%,75%,0.15) 0px, transparent 50%),
                 radial-gradient(at 100% 0%, hsla(217,100%,75%,0.1) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, hsla(217,100%,75%,0.1) 0px, transparent 50%),
@@ -64,7 +66,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
         }
         .dark .mesh-bg {
             background-color: #020617;
-            background-image: 
+            background-image:
                 radial-gradient(at 0% 0%, hsla(217,100%,60%,0.08) 0px, transparent 50%),
                 radial-gradient(at 100% 0%, hsla(217,100%,60%,0.05) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, hsla(217,100%,60%,0.05) 0px, transparent 50%),
@@ -101,28 +103,81 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(18, 109, 251, 0.23);
         }
-        .avatar-group { display: flex; align-items: center; }
-        .avatar-group img { width: 32px; height: 32px; border-radius: 50%; border: 2px solid white; margin-left: -12px; }
-        .dark .avatar-group img { border-color: #0f172a; }
-        .avatar-group img:first-child { margin-left: 0; }
+        /* === MOTION DESIGN === */
         .reveal {
             opacity: 0;
-            transform: translateY(40px) scale(0.96);
-            filter: blur(8px);
-            transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-            transition-delay: 100ms;
-            will-change: transform, opacity, filter;
+            transform: translateY(32px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            will-change: transform, opacity;
         }
         .reveal.revealed {
             opacity: 1;
-            transform: translateY(0) scale(1);
-            filter: blur(0);
+            transform: translateY(0);
         }
-        .reveal-delay-100 { transition-delay: 200ms; }
-        .reveal-delay-200 { transition-delay: 300ms; }
-        .reveal-delay-300 { transition-delay: 400ms; }
+        .reveal-fade {
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+        .reveal-fade.revealed {
+            opacity: 1;
+        }
+        .reveal-left {
+            opacity: 0;
+            transform: translateX(-32px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-left.revealed {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .reveal-right {
+            opacity: 0;
+            transform: translateX(32px);
+            transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-right.revealed {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.94);
+            transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reveal-scale.revealed {
+            opacity: 1;
+            transform: scale(1);
+        }
+        .reveal-d1 { transition-delay: 100ms; }
+        .reveal-d2 { transition-delay: 200ms; }
+        .reveal-d3 { transition-delay: 300ms; }
+        .reveal-d4 { transition-delay: 400ms; }
+        .reveal-d5 { transition-delay: 500ms; }
+        /* === MARQUEE === */
+        .marquee-track {
+            display: flex;
+            width: max-content;
+            animation: marquee-scroll 28s linear infinite;
+        }
+        .marquee-track:hover {
+            animation-play-state: paused;
+        }
+        @keyframes marquee-scroll {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+        .marquee-wrapper {
+            overflow: hidden;
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%);
+        }
       `}</style>
 
+            {/* NAVBAR */}
             <nav className="fixed w-full z-50 top-0 transition-all duration-300 bg-glass border-b-0 border-transparent">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
@@ -155,39 +210,47 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                 </div>
             </nav>
 
+            {/* HERO SECTION */}
             <section className="relative pt-40 pb-20 lg:pt-56 lg:pb-32 overflow-hidden">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
-                    <div className="inline-flex items-center gap-3 px-2 py-1.5 pr-4 rounded-full bg-glass mb-10 reveal hover:scale-105 transition-transform cursor-pointer shadow-sm">
-                        <div className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md">Novo</div>
-                        <span className="text-gray-800 dark:text-gray-200 text-xs md:text-sm font-semibold tracking-tight">Plataforma Educacional Escalonável</span>
-                        <span className="material-icons text-sm text-gray-400">arrow_forward</span>
+                    {/* Badge */}
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-glass mb-10 reveal hover:scale-105 transition-transform cursor-pointer shadow-sm">
+                        <span className="material-icons text-sm text-primary">arrow_forward</span>
+                        <span className="text-gray-700 dark:text-gray-200 text-xs md:text-sm font-semibold tracking-widest uppercase">IA para Correção de Redação</span>
                     </div>
-                    
-                    <h1 className="text-6xl md:text-8xl lg:text-[7.5rem] font-extrabold tracking-tighter mb-8 text-gray-900 dark:text-white leading-[0.95] max-w-5xl mx-auto reveal reveal-delay-100">
-                        Padrão Enem <br />
-                        <span className="text-gradient">em Escala</span>
+
+                    {/* Heading */}
+                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black uppercase tracking-tighter mb-8 text-gray-900 dark:text-white leading-[0.95] max-w-5xl mx-auto reveal reveal-d1">
+                        I.A que corrige{' '}
+                        <span className="text-gradient">Redações</span>{' '}
+                        para{' '}
+                        <span className="text-gradient">ENEM</span>{' '}
+                        em Segundos
                     </h1>
-                    
-                    <p className="text-lg md:text-2xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-14 leading-relaxed tracking-tight font-medium reveal reveal-delay-200">
-                        Liberte seus professores da burocracia. Devolutivas precisas em segundos. Potencialize o desempenho dos seus alunos com tecnologia educacional de ponta. 
+
+                    {/* Subtitle */}
+                    <p className="text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-xl mx-auto mb-12 leading-relaxed font-medium reveal reveal-d2">
+                        Treinado rigorosamente nas 5 competências do ENEM. Entregue feedback detalhado e instantâneo para os seus alunos.
                     </p>
-                    
-                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-24 reveal reveal-delay-300">
+
+                    {/* CTAs */}
+                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-24 reveal reveal-d3">
                         <button
                             onClick={() => onDemoClick('student')}
                             className="btn-primary text-base px-10 py-4 shadow-2xl shadow-primary/30 w-full sm:w-auto"
                         >
-                            Começar Gratuitamente
+                            Quero tentar de graça
                         </button>
                         <button
                             onClick={() => onDemoClick('student')}
                             className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-md border border-gray-200 dark:border-slate-700/50 text-gray-900 dark:text-white font-semibold hover:bg-white dark:hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 px-10 py-4 rounded-full w-full sm:w-auto shadow-sm"
                         >
-                            Ver demonstração
+                            Demonstração
                         </button>
                     </div>
 
-                    <div className="relative mx-auto max-w-5xl reveal reveal-delay-300">
+                    {/* Dashboard Image */}
+                    <div className="relative mx-auto max-w-5xl reveal-scale revealed">
                         <div className="relative bg-glass rounded-[2.5rem] shadow-2xl overflow-hidden p-3 transform hover:scale-[1.01] transition-transform duration-700 border border-white/40 dark:border-white/10">
                             <div className="bg-[#f1f5f9] dark:bg-[#020617] rounded-[2rem] overflow-hidden aspect-[16/10] w-full shadow-inner relative group border border-gray-200 dark:border-gray-800">
                                 <img
@@ -202,21 +265,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                 </div>
             </section>
 
+            {/* FEATURES SECTION */}
             <section className="py-32 relative z-10" id="features">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="text-center max-w-3xl mx-auto mb-20 reveal">
-                        <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tighter">Recursos que <span className="text-gradient">elevam o padrão</span></h2>
+                        <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tighter">
+                            Recursos que <span className="text-gradient">elevam o padrão</span>
+                        </h2>
                         <p className="text-lg md:text-xl font-medium text-gray-600 dark:text-gray-400 leading-relaxed tracking-tight">
-                            Desbloqueie todo o potencial da sua escola com ferramentas projetadas para 
+                            Desbloqueie todo o potencial da sua escola com ferramentas projetadas para
                             maximizar a eficiência e o engajamento através de análises preditivas.
                         </p>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
-                        {/* Grande Card - Feedback IA */}
+                        {/* Grande Card */}
                         <div className="feature-card p-10 md:p-14 md:col-span-4 flex flex-col justify-between reveal relative overflow-hidden group min-h-[400px]">
                             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/10 dark:bg-blue-600/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 group-hover:bg-blue-500/20 transition-colors duration-700"></div>
-                            
                             <div className="relative z-10 w-16 h-16 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-primary mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
                                 <span className="material-icons text-3xl">fact_check</span>
                             </div>
@@ -228,8 +293,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                             </div>
                         </div>
 
-                        {/* Card Pequeno - Conformidade */}
-                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-2 reveal reveal-delay-100 min-h-[400px]">
+                        {/* Card Pequeno - Segurança */}
+                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-2 reveal reveal-d1 min-h-[400px]">
                             <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-700 dark:text-slate-300 mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
                                 <span className="material-icons text-3xl">verified_user</span>
                             </div>
@@ -242,7 +307,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                         </div>
 
                         {/* Card Pequeno - Performance */}
-                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-3 reveal reveal-delay-200 min-h-[350px]">
+                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-3 reveal reveal-d2 min-h-[350px]">
                             <div className="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-500 mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
                                 <span className="material-icons text-3xl">insights</span>
                             </div>
@@ -254,8 +319,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                             </div>
                         </div>
 
-                        {/* Card Pequeno - Anti-plagio (Novo) */}
-                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-3 reveal reveal-delay-300 min-h-[350px] relative overflow-hidden group">
+                        {/* Card Pequeno - Anti-fraude */}
+                        <div className="feature-card p-10 flex flex-col justify-between md:col-span-3 reveal reveal-d3 min-h-[350px] relative overflow-hidden group">
                             <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-500/5 dark:bg-blue-600/5 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4 group-hover:bg-blue-500/10 transition-colors duration-700"></div>
                             <div className="relative z-10 w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center text-slate-700 dark:text-slate-300 mb-8 shadow-sm border border-gray-100 dark:border-slate-700">
                                 <span className="material-icons text-3xl">plagiarism</span>
@@ -271,13 +336,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                 </div>
             </section>
 
-            <section className="py-32 bg-gray-50 dark:bg-slate-900/50 relative overflow-hidden reveal">
+            {/* VISION SECTION */}
+            <section className="py-32 bg-gray-50 dark:bg-slate-900/50 relative overflow-hidden">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                        <div>
-                            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight leading-tight">A visão do futuro da <br /><span className="text-primary">educação de elite</span></h2>
+                        <div className="reveal-left">
+                            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-8 tracking-tight leading-tight">
+                                A visão do futuro da <br /><span className="text-primary">educação de elite</span>
+                            </h2>
                             <p className="text-lg text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
-                                Professores perdem até 40% do seu tempo com burocracia. Nossa missão é 
+                                Professores perdem até 40% do seu tempo com burocracia. Nossa missão é
                                 devolver esse tempo para o que realmente importa: o ensino.
                             </p>
                             <div className="space-y-8">
@@ -301,7 +369,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 </div>
                             </div>
                         </div>
-                        <div className="relative">
+                        <div className="relative reveal-right">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-800 text-center col-span-2">
                                     <span className="block text-5xl font-extrabold text-primary mb-2">2M+</span>
@@ -321,29 +389,50 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                 </div>
             </section>
 
+            {/* PARTNERS SECTION — auto-scroll marquee */}
             <section className="py-20 bg-white dark:bg-slate-950 border-y border-gray-100 dark:border-slate-900 overflow-hidden">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <p className="text-center text-gray-400 dark:text-gray-500 text-sm font-semibold uppercase tracking-[0.2em] mb-12">Nossos Parceiros de Tecnologia</p>
-                    <div className="flex flex-wrap justify-center gap-10 md:gap-20 items-center grayscale opacity-100 dark:invert">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" className="h-8 md:h-10" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-8 md:h-10" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" alt="Slack" className="h-8 md:h-10" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-8 md:h-10" />
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg" alt="Notion" className="h-8 md:h-10" />
+                <p className="text-center text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-[0.25em] mb-12 reveal">
+                    Escola que confiam no nosso trabalho
+                </p>
+                <div className="marquee-wrapper">
+                    <div className="marquee-track grayscale opacity-60 dark:invert items-center">
+                        {/* Set A */}
+                        <div className="flex items-center gap-16 px-8">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" className="h-7 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-8 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" alt="Slack" className="h-8 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-7 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg" alt="Notion" className="h-8 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" className="h-7 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-8 shrink-0" />
+                        </div>
+                        {/* Set B — exact duplicate for seamless loop */}
+                        <div className="flex items-center gap-16 px-8">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" className="h-7 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-8 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/Slack_icon_2019.svg" alt="Slack" className="h-8 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" className="h-7 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg" alt="Notion" className="h-8 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" className="h-7 shrink-0" />
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-8 shrink-0" />
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-32 relative z-10 reveal" id="solutions">
+            {/* SOLUTIONS SECTION */}
+            <section className="py-32 relative z-10" id="solutions">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-24">
-                        <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tighter">Decisões baseadas em <span className="text-gradient">dados em tempo real</span></h2>
+                    <div className="text-center mb-24 reveal">
+                        <h2 className="text-4xl md:text-6xl font-extrabold text-gray-900 dark:text-white mb-6 tracking-tighter">
+                            Decisões baseadas em <span className="text-gradient">dados em tempo real</span>
+                        </h2>
                         <p className="text-lg md:text-xl font-medium text-gray-600 dark:text-gray-400 max-w-2xl mx-auto leading-relaxed tracking-tight">
-                            Esqueça o achismo. Tenha indicadores absolutos de proficiência por competência, 
+                            Esqueça o achismo. Tenha indicadores absolutos de proficiência por competência,
                             mapas preditivos de evolução e intervenções direcionadas.
                         </p>
                     </div>
-                    <div className="bg-glass rounded-[40px] p-8 md:p-14 border border-white/50 dark:border-white/10 shadow-2xl overflow-hidden relative group">
+                    <div className="bg-glass rounded-[40px] p-8 md:p-14 border border-white/50 dark:border-white/10 shadow-2xl overflow-hidden relative group reveal-scale">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-500/5 dark:bg-blue-600/5 rounded-full blur-[120px] pointer-events-none transition-colors duration-1000 group-hover:bg-blue-500/10"></div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-center relative z-10">
                             <div className="space-y-6 md:col-span-1">
@@ -358,7 +447,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                         </div>
                                     </div>
                                 </div>
-                                <div className="feature-card p-6 reveal reveal-delay-100 shadow-sm hover:shadow-md transition-shadow">
+                                <div className="feature-card p-6 reveal reveal-d1 shadow-sm hover:shadow-md transition-shadow">
                                     <div className="flex items-center gap-5">
                                         <div className="bg-blue-100 dark:bg-blue-500/20 p-3 rounded-2xl text-blue-600 dark:text-blue-400 shadow-inner">
                                             <span className="material-icons">timeline</span>
@@ -370,8 +459,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                     </div>
                                 </div>
                             </div>
-                            
-                            <div className="bg-white dark:bg-slate-800/80 rounded-[2rem] p-10 shadow-sm border border-gray-100 dark:border-slate-700/50 text-center relative reveal reveal-delay-200 md:col-span-1 min-h-[300px] flex flex-col justify-center items-center">
+
+                            <div className="bg-white dark:bg-slate-800/80 rounded-[2rem] p-10 shadow-sm border border-gray-100 dark:border-slate-700/50 text-center relative reveal reveal-d2 md:col-span-1 min-h-[300px] flex flex-col justify-center items-center">
                                 <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-6">Média Preditiva ENEM</h4>
                                 <div className="relative w-44 h-44 mx-auto flex items-center justify-center">
                                     <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -394,7 +483,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 </div>
                             </div>
 
-                            <div className="bg-white dark:bg-slate-800/80 rounded-[2rem] p-10 shadow-sm border border-gray-100 dark:border-slate-700/50 md:col-span-1 min-h-[300px] flex flex-col justify-center reveal reveal-delay-300">
+                            <div className="bg-white dark:bg-slate-800/80 rounded-[2rem] p-10 shadow-sm border border-gray-100 dark:border-slate-700/50 md:col-span-1 min-h-[300px] flex flex-col justify-center reveal reveal-d3">
                                 <h4 className="font-extrabold text-gray-900 dark:text-white mb-8 text-xl tracking-tight">Competências Críticas</h4>
                                 <div className="space-y-8">
                                     <div className="group">
@@ -422,18 +511,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                 </div>
             </section>
 
-            <section className="py-32 relative z-10 reveal" id="pricing">
+            {/* PRICING SECTION */}
+            <section className="py-32 relative z-10" id="pricing">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-glass mb-6">
-                            <span className="text-primary text-[11px] font-black uppercase tracking-widest px-2 py-0.5">Planos B2B</span>
-                        </div>
-                        <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-gray-900 dark:text-white mb-6">Pronto para <span className="text-gradient">evoluir?</span></h2>
-                        <p className="text-lg md:text-xl font-medium text-gray-600 dark:text-gray-400 max-w-2xl mx-auto tracking-tight leading-relaxed">Assuma a vanguarda educacional com uma plataforma SaaS definitiva que se adapta ao tamanho da sua instituição.</p>
+                    <div className="text-center mb-16 reveal">
+                        <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter text-gray-900 dark:text-white mb-6">
+                            Pronto para <span className="text-gradient">evoluir?</span>
+                        </h2>
+                        <p className="text-lg md:text-xl font-medium text-gray-600 dark:text-gray-400 max-w-2xl mx-auto tracking-tight leading-relaxed">
+                            Assuma a vanguarda educacional com uma plataforma SaaS definitiva que se adapta ao tamanho da sua instituição.
+                        </p>
                     </div>
 
-                    {/* Renderiza o componente de assinatura real com Asaas, envelopado na estética Glass */}
-                    <div className="bg-glass rounded-[2.5rem] p-2 md:p-6 shadow-2xl border border-white/50 dark:border-white/10 mx-auto max-w-5xl relative overflow-hidden group">
+                    <div className="bg-glass rounded-[2.5rem] p-2 md:p-6 shadow-2xl border border-white/50 dark:border-white/10 mx-auto max-w-5xl relative overflow-hidden group reveal-scale">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-[2.5rem] blur opacity-10 group-hover:opacity-20 transition duration-1000"></div>
                         <div className="relative bg-white dark:bg-slate-900 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100 dark:border-slate-800">
                             <SubscriptionView
@@ -444,49 +534,56 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                         </div>
                     </div>
 
-                    <div className="mt-16 flex flex-wrap items-center justify-center gap-6 md:gap-12 opacity-50 dark:opacity-40 hover:opacity-100 dark:hover:opacity-100 transition-opacity duration-500">
+                    <div className="mt-16 flex flex-wrap items-center justify-center gap-6 md:gap-12 opacity-50 dark:opacity-40 hover:opacity-100 dark:hover:opacity-100 transition-opacity duration-500 reveal reveal-d2">
                         <div className="flex items-center gap-2.5 bg-gray-100 dark:bg-slate-800 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-700">
-                            <span className="material-icons text-[16px] text-emerald-600">lock</span> 
+                            <span className="material-icons text-[16px] text-emerald-600">lock</span>
                             <span className="text-xs font-extrabold tracking-widest text-gray-900 dark:text-white uppercase">Infra de Elite</span>
                         </div>
                         <div className="flex items-center gap-2.5 bg-gray-100 dark:bg-slate-800 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-700">
-                            <span className="material-icons text-[16px] text-blue-600">verified_user</span> 
+                            <span className="material-icons text-[16px] text-blue-600">verified_user</span>
                             <span className="text-xs font-extrabold tracking-widest text-gray-900 dark:text-white uppercase">Pronto para LGPD</span>
                         </div>
                         <div className="flex items-center gap-2.5 bg-gray-100 dark:bg-slate-800 px-4 py-2 rounded-full border border-gray-200 dark:border-slate-700">
-                            <span className="material-icons text-[16px] text-slate-600 dark:text-slate-400">stars</span> 
+                            <span className="material-icons text-[16px] text-slate-600 dark:text-slate-400">stars</span>
                             <span className="text-xs font-extrabold tracking-widest text-gray-900 dark:text-white uppercase">SLA Garantido</span>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section className="py-32 relative z-10 reveal" id="testimonials">
+            {/* TESTIMONIALS SECTION */}
+            <section className="py-32 relative z-10" id="testimonials">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter text-center text-gray-900 dark:text-white mb-16">As melhores escolas <span className="text-gradient">já usam</span></h2>
+                    <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter text-center text-gray-900 dark:text-white mb-16 reveal">
+                        O que os <span className="text-gradient">professores estão dizendo</span>
+                    </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="feature-card p-10 flex gap-6 items-start group hover:scale-[1.02]">
-                            <img alt="Avatar" className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white dark:border-slate-800 shadow-lg group-hover:border-primary transition-colors" src="https://i.pravatar.cc/150?u=11" />
+                        <div className="feature-card p-10 flex gap-6 items-start group hover:scale-[1.02] reveal reveal-d1">
+                            <img alt="Mariana Costa" className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white dark:border-slate-800 shadow-lg group-hover:border-primary transition-colors" src="https://i.pravatar.cc/150?u=11" />
                             <div>
-                                <p className="text-gray-700 dark:text-gray-300 font-medium italic mb-6 leading-relaxed text-lg tracking-tight">"A Littera transformou a forma como damos feedback. Nossas notas no ENEM subiram 15% após o primeiro semestre de uso. Incomparável."</p>
+                                <p className="text-gray-700 dark:text-gray-300 font-medium italic mb-6 leading-relaxed text-lg tracking-tight">
+                                    "A Littera transformou a forma como damos feedback. Nossas notas no ENEM subiram 15% após o primeiro semestre de uso. Incomparável."
+                                </p>
                                 <p className="font-extrabold text-gray-900 dark:text-white tracking-tight">Mariana Costa</p>
                                 <p className="text-sm font-semibold text-primary uppercase tracking-widest mt-1">Colégio Saber</p>
                             </div>
                         </div>
-                        <div className="feature-card p-10 flex gap-6 items-start group hover:scale-[1.02]">
-                            <img alt="Avatar" className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white dark:border-slate-800 shadow-lg group-hover:border-slate-400 transition-colors" src="https://i.pravatar.cc/150?u=12" />
+                        <div className="feature-card p-10 flex gap-6 items-start group hover:scale-[1.02] reveal reveal-d2">
+                            <img alt="Carlos Mendes" className="w-16 h-16 rounded-full object-cover shrink-0 border-2 border-white dark:border-slate-800 shadow-lg group-hover:border-slate-400 transition-colors" src="https://i.pravatar.cc/150?u=12" />
                             <div>
-                                <p className="text-gray-700 dark:text-gray-300 font-medium italic mb-6 leading-relaxed text-lg tracking-tight">"A precisão do sistema no modelo ENEM é impressionante. É o suporte de elite que nossos coordenadores precisavam para escalar a correção."</p>
+                                <p className="text-gray-700 dark:text-gray-300 font-medium italic mb-6 leading-relaxed text-lg tracking-tight">
+                                    "A precisão do sistema no modelo ENEM é impressionante. É o suporte de elite que nossos coordenadores precisavam para escalar a correção."
+                                </p>
                                 <p className="font-extrabold text-gray-900 dark:text-white tracking-tight">Carlos Mendes</p>
                                 <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-widest mt-1">Instituto Futuro</p>
-
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Diretor Acadêmico</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Diretor Acadêmico</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
+            {/* FOOTER */}
             <footer className="bg-white dark:bg-slate-950 pt-20 pb-10 border-t border-gray-100 dark:border-slate-900">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-12 mb-20">
