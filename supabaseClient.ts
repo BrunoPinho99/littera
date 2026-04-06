@@ -6,7 +6,10 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Verificação de segurança para te avisar se faltar a chave
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Faltam as variáveis de ambiente do Supabase. Verifique o arquivo .env.local');
+  console.warn('⚠️ Variáveis de ambiente do Supabase não encontradas no arquivo .env.local. A funcionalidade de login real estará indisponível, mas você poderá usar o Modo Demo.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder-project.supabase.co', 
+  supabaseKey || 'placeholder-key'
+);

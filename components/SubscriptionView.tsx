@@ -38,9 +38,10 @@ const plans: Plan[] = [
 interface SubscriptionViewProps {
   onPlanSelected: (planId: string) => void;
   onCancel: () => void;
+  onCheckout?: (plan: any) => void;
 }
 
-const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onCancel }) => {
+const SubscriptionView: React.FC<SubscriptionViewProps> = ({ onPlanSelected, onCancel, onCheckout }) => {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
