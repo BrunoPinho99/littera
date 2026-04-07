@@ -63,7 +63,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
             const { error: schoolError } = await supabase.from('schools').insert({
               id: schoolId,
               name: name,
-              slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+              slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+              subscription_status: 'inactive'
             });
 
             if (schoolError) {
@@ -172,6 +173,16 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
     }
   };
 
+  const checkConnection = async () => {
+    try {
+      const { error } = await supabase.from('schools').select('count', { count: 'exact', head: true });
+      if (error) throw error;
+      alert("Conexão com Supabase OK!");
+    } catch (e: any) {
+      alert("Erro de conexão: " + (e.message || JSON.stringify(e)));
+    }
+  };
+
   return (
     <div className="h-screen w-full flex bg-background-light dark:bg-background-dark overflow-hidden font-sans">
       {/* Lado Esquerdo - Branding Imersivo */}
@@ -181,7 +192,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
 
         <div className="relative z-10 text-white max-w-xl text-left">
           <div className="flex items-center gap-4 mb-16 animate-fade-in">
-            <div className="w-16 h-16 bg-white rounded-card flex items-center justify-center shadow-2xl">
+            <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center shadow-2xl">
               <div className="flex flex-col items-center translate-y-[2px]">
                 <span className="text-primary font-black text-4xl leading-none tracking-tighter">L</span>
                 <div className="w-7 h-[6px] bg-primary mt-[1px] rounded-full"></div>
@@ -208,13 +219,13 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
       {/* Lado Direito - Formulário Glassmorphism */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-grid">
         <div className="w-full max-w-md animate-fade-in-up">
-          <div className="bg-surface-container-lowest rounded-card p-8 shadow-ambient ghost-border relative overflow-hidden">
+          <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
 
             <div className="mb-6 text-center">
-              <h2 className="text-4xl font-black text-on-surface mb-2 tracking-tighter">
+              <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter">
                 {isLogin ? 'Bem-vindo' : 'Ativar Conta'}
               </h2>
-              <p className="text-on-surface-variant font-bold text-[10px] uppercase tracking-[0.3em]">
+              <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em]">
                 {isLogin ? 'Acesse seu painel exclusivo' : 'Defina sua senha de acesso'}
               </p>
             </div>
@@ -228,7 +239,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                   onClick={() => setUserType(type)}
                   className={`flex-1 py-3.5 text-[9px] font-black uppercase tracking-widest rounded-[1.4rem] transition-all duration-300 ${userType === type
                     ? 'bg-white dark:bg-white/10 text-primary shadow-lg scale-100'
-                    : 'text-on-surface-variant hover:text-gray-600 dark:hover:text-gray-200'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
                     }`}
                 >
                   {type === 'student' ? 'ALUNO' : type === 'teacher' ? 'DOCENTE' : 'ESCOLA'}
@@ -251,7 +262,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               {/* Nome só é necessário para Escolas novas. Alunos/Profs já têm nome no convite. */}
               {!isLogin && userType === 'school_admin' && (
                 <div className="space-y-2 group">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">
                     NOME DA INSTITUIÇÃO
                   </label>
                   <input
@@ -260,45 +271,45 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ex: Colégio Anglo"
-                  className="w-full px-5 py-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                   />
                 </div>
               )}
 
               <div className="space-y-2 group">
-                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">E-MAIL</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">E-MAIL</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={!isLogin && userType !== 'school_admin' ? "Email onde recebeu o convite" : "exemplo@littera.com"}
-                  className="w-full px-5 py-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                  className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                 />
               </div>
 
               <div className="space-y-2 group">
-                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">SENHA</label>
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">SENHA</label>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full px-5 py-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                  className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                 />
               </div>
 
               {!isLogin && (
                 <div className="space-y-2 group">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">CONFIRMAR SENHA</label>
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">CONFIRMAR SENHA</label>
                   <input
                     type="password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-5 py-3.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                   />
                 </div>
               )}
@@ -321,17 +332,24 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
             <div className="mt-6 pt-4 border-t border-gray-50 dark:border-white/5 text-center space-y-2">
               <button
                 type="button"
+                onClick={checkConnection}
+                className="opacity-0 hover:opacity-20 text-[8px] uppercase tracking-widest absolute bottom-2 left-2"
+              >
+                Debug Conexão
+              </button>
+              <button
+                type="button"
                 onClick={() => onEnterDemo(userType)}
                 className="text-[10px] font-black text-primary hover:text-primary-dark uppercase tracking-[0.2em] transition-colors"
               >
                 Acesso Demonstrativo ({userType === 'student' ? 'Aluno' : userType === 'teacher' ? 'Docente' : 'Escola'})
               </button>
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
                 {isLogin ? 'Foi convidado pela escola?' : 'Já tem cadastro?'}
                 <button
                   type="button"
                   onClick={() => { setIsLogin(!isLogin); setErrorMessage(null); }}
-                  className="ml-2 text-on-surface hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4"
+                  className="ml-2 text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4"
                 >
                   {isLogin ? 'Resgatar Convite' : 'Fazer Login'}
                 </button>

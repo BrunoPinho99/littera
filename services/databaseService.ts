@@ -15,7 +15,12 @@ const generateUUID = () => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
   }
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  // Fallback para UUID v4 válido
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };
 
 export const calculateUserRank = (essayCount: number) => {
@@ -79,8 +84,14 @@ export const saveEssayToDatabase = async (topicTitle: string, input: EssayInput,
   }
 };
 
-export const getSchoolData = async (schoolId?: string): Promise<School | null> => {
-  if (!schoolId || schoolId === 'demo-school') return { id: 'demo', name: "Escola Exemplo", city: "Demonstração" };
+export const getSchoolData = async (schoolId?: string | null): Promise<School | null> => {
+  // Modo demo explícito
+  if (!schoolId || schoolId === 'demo-school') {
+    if (schoolId === 'demo-school') {
+      return { id: 'demo', name: "Escola Exemplo", city: "Demonstração" };
+    }
+    return null; // Sem school_id real, retorna null sem entrar em demo
+  }
 
   const { data, error } = await supabase
     .from('schools')
@@ -205,7 +216,7 @@ export const createStudent = async (studentData: { name: string; email: string; 
       role: 'student',
       school_id: studentData.school_id,
       class_id: studentData.class_id,
-      registration_number: studentData.registration_number,
+      // registration_number: studentData.registration_number, // Coluna ainda não existe no banco
       status: 'invited'
     }])
     .select()
@@ -305,7 +316,7 @@ export const getStudentsByContext = async (schoolId: string, classId?: string): 
     averageScore: s.average_score || 0,
     essaysSubmitted: s.essays_count || 0,
     lastActivity: "Recente",
-    status: (s.average_score || 0) < 500 ? 'risk' : 'active',
+    status: s.status === 'invited' ? 'invited' : ((s.average_score || 0) < 500 ? 'risk' : 'active'),
     class_id: s.class_id,
     school_id: s.school_id,
     birth_date: s.birth_date,
@@ -331,11 +342,16 @@ export const getProfessorsBySchool = async (schoolId: string) => {
 export const getAllInstitutionalEssays = async (schoolId: string, classId?: string) => {
   if (schoolId === 'demo-school') return [];
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('redacoes')
     .select('*')
-    .eq('school_id', schoolId)
-    .order('data_envio', { ascending: false });
+    .eq('school_id', schoolId);
+
+  if (classId && classId !== 'Todas') {
+    query = query.eq('class_id', classId);
+  }
+
+  const { data, error } = await query.order('data_envio', { ascending: false });
 
   if (error) throw error;
 

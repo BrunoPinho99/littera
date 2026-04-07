@@ -1,15 +1,14 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // No Vite, usamos import.meta.env para ler as variáveis
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Verificação de segurança para te avisar se faltar a chave
+// Verificação de segurança para te avisar se faltar a chave (não-fatal)
 if (!supabaseUrl || !supabaseKey) {
-  console.warn('⚠️ Variáveis de ambiente do Supabase não encontradas no arquivo .env.local. A funcionalidade de login real estará indisponível, mas você poderá usar o Modo Demo.');
+  console.warn('[Supabase] Variáveis de ambiente não encontradas (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY). Funcionalidades de banco de dados estarão desativadas. Crie um arquivo .env.local com as credenciais do Supabase.');
 }
 
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-project.supabase.co', 
-  supabaseKey || 'placeholder-key'
-);
+export const supabase: SupabaseClient = supabaseUrl && supabaseKey
+  ? createClient(supabaseUrl, supabaseKey)
+  : createClient('https://placeholder.supabase.co', 'placeholder-key');

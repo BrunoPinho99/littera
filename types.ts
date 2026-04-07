@@ -28,7 +28,7 @@ export interface CorrectionResult {
   aiJustification?: string;
 }
 
-export type EssayInput = 
+export type EssayInput =
   | { type: 'text'; content: string }
   | { type: 'image'; base64: string; mimeType: string };
 
@@ -81,6 +81,8 @@ export interface School {
   id: string;
   name: string;
   city: string;
+  subscription_status?: string;
+  subscription_id?: string;
 }
 
 export interface UserProfile {
@@ -102,7 +104,7 @@ export interface StudentDetail {
   averageScore: number;
   essaysSubmitted: number;
   lastActivity: string;
-  status: 'active' | 'risk' | 'inactive';
+  status: 'active' | 'risk' | 'inactive' | 'invited';
   class_id?: string;
   school_id?: string;
   birth_date?: string;
