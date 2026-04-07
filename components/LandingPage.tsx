@@ -1,5 +1,4 @@
-import React, { useEffect } from 'react';
-import SubscriptionView from './SubscriptionView';
+import React, { useEffect, useState } from 'react';
 
 interface LandingPageProps {
     onLoginClick: () => void;
@@ -7,564 +6,518 @@ interface LandingPageProps {
     onCheckout?: (plan: any) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, onCheckout }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) => {
+    const [scrolled, setScrolled] = useState(false);
+
     useEffect(() => {
-        const observerOptions = {
-            root: null,
-            rootMargin: '0px',
-            threshold: 0.1
-        };
+        const handleScroll = () => setScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('revealed');
-                }
-            });
-        }, observerOptions);
+        const observer = new IntersectionObserver(
+            (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('sl-revealed'); }),
+            { threshold: 0.08 }
+        );
+        document.querySelectorAll('.sl-reveal').forEach(el => observer.observe(el));
 
-        const revealElements = document.querySelectorAll('.reveal');
-        revealElements.forEach(el => observer.observe(el));
-
-        return () => observer.disconnect();
+        return () => { window.removeEventListener('scroll', handleScroll); observer.disconnect(); };
     }, []);
 
     return (
-        <div className="font-sans bg-[#F9FAFB] min-h-screen text-slate-900 selection:bg-blue-100 selection:text-blue-900 overflow-x-hidden">
+        <div style={{ fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif", background: '#faf8ff', minHeight: '100vh', color: '#131b2e', overflowX: 'hidden' }}>
+
+            {/* ─── GLOBAL INLINE CSS ─── */}
             <style>{`
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-                .font-sans {
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                }
-                .text-gradient {
-                    background: linear-gradient(135deg, #2563EB 0%, #60A5FA 100%);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                }
-                .reveal {
+                @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+
+                .sl-reveal {
                     opacity: 0;
-                    transform: translateY(30px);
-                    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+                    transform: translateY(28px);
+                    transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1);
                 }
-                .reveal.revealed {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-                .delay-100 { transition-delay: 100ms; }
-                .delay-200 { transition-delay: 200ms; }
-                .delay-300 { transition-delay: 300ms; }
-                
-                .glass-card {
-                    background: #ffffff;
-                    border: 1px solid #E5E7EB;
-                    border-radius: 24px;
-                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-                }
-                .nav-glass {
-                    background: rgba(249, 250, 251, 0.85);
-                    backdrop-filter: blur(12px);
-                    -webkit-backdrop-filter: blur(12px);
-                    border-bottom: 1px solid rgba(229, 231, 235, 0.5);
-                }
-                .btn-primary {
-                    background-color: #2563EB;
-                    color: white;
-                    transition: all 0.2s ease;
-                    font-weight: 500;
-                    padding: 10px 20px;
-                    border-radius: 9999px;
-                    font-size: 15px;
-                }
-                .btn-primary:hover {
-                    background-color: #1D4ED8;
-                    transform: translateY(-1px);
-                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
-                }
-                .btn-secondary {
-                    background-color: white;
-                    color: #0F172A;
-                    border: 1px solid #E2E8F0;
-                    transition: all 0.2s ease;
-                    font-weight: 500;
-                    padding: 10px 20px;
-                    border-radius: 9999px;
-                    font-size: 15px;
-                }
-                .btn-secondary:hover {
-                    background-color: #F1F5F9;
-                    border-color: #CBD5E1;
-                }
-                
-                /* Float animation for decorative elements */
-                @keyframes float {
-                    0% { transform: translateY(0px); }
-                    50% { transform: translateY(-12px); }
-                    100% { transform: translateY(0px); }
-                }
-                .float-anim {
-                    animation: float 3.5s ease-in-out infinite;
-                }
-                .float-anim-delay {
-                    animation: float 4.5s ease-in-out infinite;
-                    animation-delay: 2s;
+                .sl-reveal.sl-revealed { opacity: 1; transform: none; }
+                .sl-d1 { transition-delay: 100ms; }
+                .sl-d2 { transition-delay: 200ms; }
+                .sl-d3 { transition-delay: 300ms; }
+                .sl-d4 { transition-delay: 400ms; }
+                .sl-d5 { transition-delay: 500ms; }
+
+                @keyframes slFloat {
+                    0%, 100% { transform: translateY(0px); }
+                    50% { transform: translateY(-10px); }
                 }
 
-                .soft-shadow {
-                    box-shadow: 0 20px 40px -15px rgba(0,0,0,0.05);
+                .sl-nav-scrolled {
+                    background: rgba(255,255,255,0.88) !important;
+                    backdrop-filter: blur(20px) saturate(180%);
+                    box-shadow: 0 1px 0 rgba(0,0,0,0.04);
                 }
-                
-                .hero-bg {
-                    background: radial-gradient(circle at 50% 0%, rgba(219, 234, 254, 0.5) 0%, rgba(249, 250, 251, 0) 70%);
+
+                .sl-btn-primary {
+                    background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);
+                    color: #fff;
+                    border: none;
+                    border-radius: 9999px;
+                    font-weight: 700;
+                    font-size: 16px;
+                    cursor: pointer;
+                    transition: all 0.25s ease;
+                    letter-spacing: -0.01em;
+                }
+                .sl-btn-primary:hover {
+                    box-shadow: 0 0 28px rgba(0,74,198,0.3);
+                    transform: translateY(-1px);
+                }
+
+                .sl-btn-secondary {
+                    background: transparent;
+                    color: #49454f;
+                    border: none;
+                    font-weight: 600;
+                    font-size: 15px;
+                    cursor: pointer;
+                    transition: color 0.2s;
+                    padding: 14px 20px;
+                }
+                .sl-btn-secondary:hover { color: #004ac6; }
+
+                .sl-card {
+                    background: #ffffff;
+                    border-radius: 1.5rem;
+                    box-shadow: 0px 20px 40px rgba(19, 27, 46, 0.06);
+                }
+
+                .sl-intelligence-card {
+                    background: linear-gradient(135deg, rgba(91,107,125,0.04) 0%, rgba(0,74,198,0.06) 100%);
+                    backdrop-filter: blur(8px);
+                    border: 1px solid rgba(199,197,208,0.15);
+                    border-radius: 1.5rem;
+                }
+
+                .sl-float-card {
+                    background: #ffffff;
+                    border-radius: 1rem;
+                    padding: 12px 18px;
+                    box-shadow: 0 10px 32px rgba(19,27,46,0.07);
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    animation: slFloat 4s ease-in-out infinite;
+                }
+
+                .sl-headline {
+                    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+                    letter-spacing: -0.02em;
+                    line-height: 1.08;
+                }
+
+                .sl-section-gap {
+                    padding-top: 8rem;
+                    padding-bottom: 8rem;
+                }
+
+                .sl-stat-number {
+                    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+                    font-weight: 900;
+                    letter-spacing: -0.03em;
+                    line-height: 1;
                 }
             `}</style>
 
-            {/* Navbar */}
-            <nav className="fixed w-full z-50 top-0 transition-all duration-300 nav-glass">
-                <div className="max-w-[1200px] mx-auto px-6">
-                    <div className="flex justify-between items-center h-[72px]">
-                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0,0)}>
-                            <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center text-white">
-                                <span className="material-icons text-lg">school</span>
-                            </div>
-                            <span className="font-bold text-xl tracking-tight text-slate-900">Littera</span>
-                        </div>
-                        <div className="hidden md:flex space-x-8 text-[15px] font-medium text-slate-600">
-                            <a className="hover:text-slate-900 transition-colors" href="#features">Recursos</a>
-                            <a className="hover:text-slate-900 transition-colors" href="#impact">Impacto</a>
-                            <a className="hover:text-slate-900 transition-colors" href="#pricing">Planos</a>
-                        </div>
-                        <div className="flex items-center space-x-3">
-                            <button
-                                onClick={onLoginClick}
-                                className="text-[15px] font-medium text-slate-600 hover:text-slate-900 transition-colors px-4 py-2"
-                            >
-                                Entrar
-                            </button>
-                            <button
-                                onClick={() => onDemoClick('teacher')}
-                                className="btn-primary"
-                            >
-                                Começar
-                            </button>
-                        </div>
+            {/* ═══════════════════════════════════════════════════════════════════
+                NAV — Glassmorphism, minimal
+            ═══════════════════════════════════════════════════════════════════ */}
+            <nav className={scrolled ? 'sl-nav-scrolled' : ''} style={{
+                position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+                transition: 'all 0.4s ease',
+            }}>
+                <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span className="sl-headline" style={{ fontSize: 24, fontWeight: 900, color: '#131b2e', cursor: 'pointer' }}>
+                        Littera<span style={{ color: 'rgba(0,74,198,0.3)' }}>.</span>
+                    </span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button className="sl-btn-secondary" onClick={onLoginClick}>Entrar</button>
+                        <button className="sl-btn-primary" onClick={() => onDemoClick('teacher')} style={{ padding: '10px 24px', fontSize: 14 }}>
+                            Agendar demo
+                        </button>
                     </div>
                 </div>
             </nav>
 
-            {/* Hero Section */}
-            <section className="relative pt-[160px] pb-20 lg:pt-[180px] lg:pb-32 hero-bg">
-                <div className="max-w-[1000px] mx-auto px-6 relative text-center">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 mb-8 reveal hover:-translate-y-0.5 transition-transform cursor-pointer shadow-sm relative z-20">
-                        <span className="bg-blue-100 text-blue-700 text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">Novo</span>
-                        <span className="text-slate-600 text-sm font-medium">Correção Padrão ENEM com IA</span>
-                        <span className="material-icons text-sm text-slate-400">arrow_forward</span>
-                    </div>
+            {/* ═══════════════════════════════════════════════════════════════════
+                HERO — Clareza e Proposta
+                display-lg headline · High-Low contrast · Floating stat cards
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section style={{
+                paddingTop: 160, paddingBottom: 100, minHeight: '100vh',
+                display: 'flex', alignItems: 'center',
+                background: '#ffffff',
+                backgroundSize: '64px 64px',
+                backgroundImage: 'linear-gradient(to right, rgba(0,74,198,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,74,198,0.03) 1px, transparent 1px)',
+            }}>
+                <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '0 32px', width: '100%' }}>
 
-                    {/* 4 Floating Elements Around Title */}
-                    <div className="hidden md:flex absolute top-4 -left-4 lg:-left-10 xl:-left-20 bg-white px-3 py-2 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 items-center gap-3 float-anim z-10">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-                            <span className="material-icons text-blue-600 text-sm">spellcheck</span>
+                    {/* Floating cards — hidden on small screens */}
+                    <div className="hidden md:flex sl-float-card" style={{ position: 'absolute', top: -20, left: -10, animationDelay: '0s' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="material-icons-outlined" style={{ color: '#3b82f6', fontSize: 18 }}>spellcheck</span>
                         </div>
-                        <div className="text-left pr-2">
-                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Norma Culta</div>
-                            <div className="text-[13px] font-bold text-slate-800">200 pts</div>
-                        </div>
-                    </div>
-
-                    <div className="hidden md:flex absolute -top-2 -right-4 lg:-right-10 xl:-right-20 bg-white px-3 py-2 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 items-center gap-3 float-anim-delay z-10">
-                        <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
-                            <span className="material-icons text-emerald-500 text-sm">trending_up</span>
-                        </div>
-                        <div className="text-left pr-2">
-                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Evolução</div>
-                            <div className="text-[13px] font-bold text-slate-800">+15% Desempenho</div>
+                        <div>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#131b2e', lineHeight: 1.2 }}>Norma Culta</p>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: '#10b981' }}>200/200 pts</p>
                         </div>
                     </div>
 
-                    <div className="hidden md:flex absolute top-40 -left-6 lg:-left-16 xl:-left-24 bg-white px-3 py-2 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 items-center gap-3 float-anim z-10" style={{ animationDelay: '0.8s' }}>
-                        <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
-                            <span className="material-icons text-indigo-500 text-sm">lightbulb</span>
+                    <div className="hidden md:flex sl-float-card" style={{ position: 'absolute', top: 0, right: 0, animationDelay: '0.6s' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#faf5ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="material-icons-outlined" style={{ color: '#8b5cf6', fontSize: 18 }}>trending_up</span>
                         </div>
-                        <div className="text-left pr-2">
-                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Proposta (C5)</div>
-                            <div className="text-[13px] font-bold text-slate-800">200 pts</div>
+                        <div>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#131b2e', lineHeight: 1.2 }}>Evolução</p>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6' }}>+120 pts/mês</p>
                         </div>
                     </div>
 
-                    <div className="hidden md:flex absolute top-44 -right-6 lg:-right-16 xl:-right-24 bg-white px-3 py-2 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100 items-center gap-3 float-anim-delay z-10" style={{ animationDelay: '2.5s' }}>
-                        <div className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center">
-                            <span className="material-icons text-amber-500 text-sm">military_tech</span>
+                    <div className="hidden md:flex sl-float-card" style={{ position: 'absolute', bottom: -30, left: 20, animationDelay: '1.2s' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#fefce8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="material-icons-outlined" style={{ color: '#eab308', fontSize: 18 }}>lightbulb</span>
                         </div>
-                        <div className="text-left pr-2">
-                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Média Geral</div>
-                            <div className="text-[13px] font-bold text-slate-800">880 pts</div>
-                        </div>
-                    </div>
-                    
-                    <h1 className="text-[56px] lg:text-[72px] font-extrabold tracking-tight mb-6 text-slate-900 leading-[1.05] reveal delay-100 relative z-20">
-                        Padrão ENEM <br />
-                        <span className="text-gradient">em Escala</span>
-                    </h1>
-                    
-                    <p className="text-[19px] lg:text-[21px] text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed font-normal reveal delay-200">
-                        Liberte seus professores da burocracia. Devolutivas precisas em segundos. Potencialize o desempenho dos seus alunos com tecnologia educacional.
-                    </p>
-                    
-                    <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-20 reveal delay-300">
-                        <button
-                            onClick={() => onDemoClick('teacher')}
-                            className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium px-8 py-3.5 rounded-full transition-all shadow-lg hover:shadow-xl w-full sm:w-auto text-[16px]"
-                        >
-                            Começar Gratuitamente
-                        </button>
-                        <button
-                            onClick={() => onDemoClick('student')}
-                            className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-medium px-8 py-3.5 rounded-full transition-all shadow-sm w-full sm:w-auto text-[16px]"
-                        >
-                            Ver demonstração
-                        </button>
-                    </div>
-
-                    {/* Dashboard Mockup - Alytics style */}
-                    <div className="relative mx-auto max-w-[900px] reveal delay-300">
-                        {/* Floating elements */}
-                        <div className="absolute -left-12 top-20 bg-white p-3 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 float-anim z-20">
-                            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
-                                <span className="material-icons text-red-500">trending_down</span>
-                            </div>
-                            <div className="text-left">
-                                <div className="text-[12px] text-slate-500 font-medium">Abaixo da média</div>
-                                <div className="text-[15px] font-bold text-slate-800">12%</div>
-                            </div>
-                        </div>
-
-                        <div className="absolute -right-8 top-40 bg-white p-3 rounded-2xl shadow-lg border border-slate-100 flex items-center gap-3 float-anim-delay z-20">
-                            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
-                                <span className="material-icons text-emerald-500">trending_up</span>
-                            </div>
-                            <div className="text-left">
-                                <div className="text-[12px] text-slate-500 font-medium">C1: Norma Culta</div>
-                                <div className="text-[15px] font-bold text-slate-800">920 pts</div>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-[24px] p-2 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] border border-slate-200/60 w-full relative z-10">
-                            <div className="bg-slate-50 rounded-[18px] overflow-hidden aspect-[16/9] w-full border border-slate-100 relative">
-                                <img
-                                    src="/dashboard-student.png"
-                                    alt="Littera Dashboard"
-                                    className="w-full h-full object-cover object-top opacity-95 transition-all duration-700 hover:scale-[1.02]"
-                                />
-                            </div>
+                        <div>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#131b2e', lineHeight: 1.2 }}>Proposta (C5)</p>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: '#eab308' }}>180/200 pts</p>
                         </div>
                     </div>
-                </div>
-                
-                {/* Stats Bar */}
-                <div className="max-w-[1000px] mx-auto px-6 mt-32 reveal">
-                    <div className="pt-10 border-t border-slate-200">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center divide-y md:divide-y-0 md:divide-x divide-slate-200">
-                            <div className="py-2">
-                                <div className="text-[40px] font-bold text-slate-900 tracking-tight">2M+</div>
-                                <div className="text-[15px] text-slate-500 mt-1 font-medium">Redações Processadas</div>
-                            </div>
-                            <div className="py-2">
-                                <div className="text-[40px] font-bold text-slate-900 tracking-tight">98%</div>
-                                <div className="text-[15px] text-slate-500 mt-1 font-medium">Acurácia vs Humanos</div>
-                            </div>
-                            <div className="py-2">
-                                <div className="text-[40px] font-bold text-slate-900 tracking-tight">50+</div>
-                                <div className="text-[15px] text-slate-500 mt-1 font-medium">Escolas Parceiras</div>
-                            </div>
+
+                    <div className="hidden md:flex sl-float-card" style={{ position: 'absolute', bottom: -10, right: 40, animationDelay: '1.8s' }}>
+                        <div style={{ width: 38, height: 38, borderRadius: 10, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="material-icons-outlined" style={{ color: '#10b981', fontSize: 18 }}>emoji_events</span>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: '#131b2e', lineHeight: 1.2 }}>Média Geral</p>
+                            <p style={{ fontSize: 11, fontWeight: 600, color: '#10b981' }}>842 / 1000</p>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            {/* Alytics Style Feature Cards Section */}
-            <section className="py-24 bg-white" id="features">
-                <div className="max-w-[1200px] mx-auto px-6">
-                    <div className="text-center mb-20 reveal">
-                        <h2 className="text-[40px] lg:text-[48px] font-bold tracking-tight text-slate-900 mb-5">Recursos que elevam o padrão</h2>
-                        <p className="text-[18px] text-slate-500 max-w-[600px] mx-auto">
-                            Desbloqueie o potencial da sua escola com ferramentas projetadas para maximizar a eficiência educacional.
+                    {/* Central content */}
+                    <div style={{ maxWidth: 820, margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+
+                        <div className="sl-reveal" style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 8,
+                            background: '#f2f3ff', borderRadius: 9999, padding: '8px 20px', marginBottom: 32,
+                            fontSize: 13, fontWeight: 600, color: '#49454f',
+                        }}>
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#004ac6' }}></span>
+                            Correção inteligente para escolas de excelência
+                        </div>
+
+                        <h1 className="sl-headline sl-reveal sl-d1" style={{
+                            fontSize: 'clamp(38px, 5.5vw, 64px)',
+                            fontWeight: 900, marginBottom: 28, color: '#131b2e',
+                        }}>
+                            A precisão de uma banca<br />de excelência. A velocidade<br />que o futuro exige.
+                        </h1>
+
+                        <p className="sl-reveal sl-d2" style={{
+                            fontSize: 18, color: '#49454f', lineHeight: 1.7,
+                            maxWidth: 600, margin: '0 auto 40px',
+                        }}>
+                            O Littera transforma a correção de redações do ENEM na sua escola, entregando análises profundas e padronizadas para cada aluno em segundos, não em semanas.
                         </p>
-                    </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                        {/* Feature 1: Correção Automatizada (Alytics Gauge Style) */}
-                        <div className="bg-[#F8FAFC] rounded-[32px] p-10 lg:p-12 border border-slate-100 overflow-hidden relative reveal min-h-[500px] flex flex-col">
-                            <div className="max-w-[340px] mb-10 z-10">
-                                <h3 className="text-[28px] font-bold text-slate-900 mb-4 tracking-tight">Correção Automatizada</h3>
-                                <p className="text-[16px] text-slate-500 leading-relaxed">
-                                    Redações avaliadas em segundos com critérios rigorosos do ENEM. Análise profunda de coesão, coerência e proposta de intervenção.
-                                </p>
-                            </div>
-                            
-                            {/* Visual representation - Gauge Graphic */}
-                            <div className="flex-1 relative flex items-end justify-center mt-10">
-                                <div className="absolute inset-0 bg-blue-50/50 rounded-t-[200px] transform scale-150 translate-y-20 blur-xl"></div>
-                                <div className="relative w-[300px] h-[150px] overflow-hidden">
-                                    {/* Semi-circle gauge */}
-                                    <div className="w-[300px] h-[300px] rounded-full border-[30px] border-blue-100 absolute bottom-0 left-0"></div>
-                                    <div className="w-[300px] h-[300px] rounded-full border-[30px] border-blue-500 absolute bottom-0 left-0 rotate-45 transform origin-center transition-transform duration-1000"></div>
-                                    
-                                    {/* Gauge needle */}
-                                    <div className="absolute bottom-0 left-[150px] w-2 h-[120px] bg-slate-800 rounded-full origin-bottom rotate-45 z-10 shadow-lg">
-                                        <div className="absolute -bottom-3 -left-2 w-6 h-6 bg-white border-4 border-slate-800 rounded-full"></div>
-                                    </div>
-                                </div>
-                                
-                                {/* Floating Tags */}
-                                <div className="absolute top-0 right-10 bg-white py-1.5 px-3 rounded-full shadow-sm border border-slate-100 text-[12px] font-bold flex items-center gap-1.5 float-anim">
-                                    <span className="text-slate-600">Alta Performance</span>
-                                    <span className="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px]">↑ 18%</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Feature 2: Análise de Performance (Alytics "Insights" Style) */}
-                        <div className="bg-[#F8FAFC] rounded-[32px] p-10 lg:p-12 border border-slate-100 overflow-hidden relative reveal delay-100 min-h-[500px] flex flex-col">
-                            <div className="max-w-[340px] mb-10 z-10">
-                                <h3 className="text-[28px] font-bold text-slate-900 mb-4 tracking-tight">Vire Insights em Ação</h3>
-                                <p className="text-[16px] text-slate-500 leading-relaxed">
-                                    Dashboards preditivos para professores mapearem instantaneamente os gargalos das turmas e agirem rápido.
-                                </p>
-                            </div>
-
-                            {/* Visual representation - Pills/Tags flowing */}
-                            <div className="flex-1 relative flex items-center justify-center">
-                                <div className="relative w-full h-full min-h-[250px] flex items-center justify-center">
-                                    <div className="absolute bg-white px-5 py-2.5 rounded-full shadow-md text-[14px] font-bold text-blue-600 border border-blue-100 -translate-y-12 -translate-x-16 rotate-[-5deg] z-20">
-                                        ⚡ Coesão
-                                    </div>
-                                    <div className="absolute bg-slate-800 px-5 py-2.5 rounded-full shadow-lg text-[14px] font-bold text-white translate-y-4 translate-x-20 rotate-[3deg] z-30">
-                                        Intervenção Direta
-                                    </div>
-                                    <div className="absolute bg-white px-4 py-2 rounded-full shadow text-[13px] font-medium text-slate-500 translate-y-16 -translate-x-10 rotate-[8deg] z-10">
-                                        Norma Culta
-                                    </div>
-                                    <div className="absolute bg-white px-4 py-2 rounded-full shadow text-[13px] font-medium text-slate-500 -translate-y-20 translate-x-24 rotate-[-12deg] z-10">
-                                        Proposta
-                                    </div>
-                                    <div className="w-64 h-64 bg-slate-100 rounded-full blur-[40px] absolute opacity-60"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Integrations Section */}
-            <section className="py-24 bg-white border-t border-slate-100 overflow-hidden" id="impact">
-                <div className="max-w-[1200px] mx-auto px-6">
-                    <div className="flex flex-col lg:flex-row items-center gap-16">
-                        <div className="lg:w-1/2 reveal">
-                            <h2 className="text-[40px] font-bold text-slate-900 mb-6 tracking-tight leading-[1.1]">Integrações <br/> Perfeitas</h2>
-                            <p className="text-[18px] text-slate-500 mb-8 leading-relaxed max-w-[450px]">
-                                Conecte a Littera com suas ferramentas favoritas e plataformas de LMS para manter a operação escolar rodando de forma fluida.
-                            </p>
-                            <button className="btn-primary">
-                                Ver integrações
+                        <div className="sl-reveal sl-d3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                            <button className="sl-btn-primary" onClick={() => onDemoClick('teacher')} style={{ padding: '16px 36px', fontSize: 16 }}>
+                                Conheça o Padrão Littera
+                            </button>
+                            <button className="sl-btn-secondary" onClick={onLoginClick}>
+                                Já tenho conta →
                             </button>
                         </div>
-                        
-                        <div className="lg:w-1/2 w-full reveal delay-100">
-                            <div className="relative">
-                                {/* Decorational background */}
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-slate-50 rounded-full blur-3xl -z-10"></div>
-                                
-                                <div className="space-y-4 max-w-[400px] mx-auto">
-                                    {/* Integration Card 1 */}
-                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:scale-105 transition-transform">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center">
-                                                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" className="h-5" />
-                                            </div>
-                                            <span className="font-bold text-slate-900">Google Workspace</span>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <span className="material-icons text-blue-600 text-[14px]">check</span>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Integration Card 2 */}
-                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between ml-8 hover:scale-105 transition-transform">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center">
-                                                <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" className="h-5" />
-                                            </div>
-                                            <span className="font-bold text-slate-900">Microsoft Teams</span>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <span className="material-icons text-blue-600 text-[14px]">check</span>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Integration Card 3 */}
-                                    <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between hover:scale-105 transition-transform">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center">
-                                                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e9/Notion-logo.svg" alt="Notion" className="h-6" />
-                                            </div>
-                                            <span className="font-bold text-slate-900">Notion for Education</span>
-                                        </div>
-                                        <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                                            <span className="material-icons text-blue-600 text-[14px]">check</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* Testimonials */}
-            <section className="py-32 bg-[#F8FAFC]" id="testimonials">
-                <div className="max-w-[1200px] mx-auto px-6 text-center">
-                    <div className="inline-block px-4 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-600 text-[13px] font-bold mb-6 reveal">
-                        Depoimentos
-                    </div>
-                    <h2 className="text-[40px] lg:text-[48px] font-bold tracking-tight text-slate-900 mb-6 reveal delay-100">
-                        Ouça o que as escolas<br/> dizem sobre nós
-                    </h2>
-                    <p className="text-[18px] text-slate-500 mb-16 max-w-[500px] mx-auto reveal delay-100">
-                        Veja o que coordenadores educacionais falam após adotar a nossa plataforma.
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                SOCIAL PROOF — Depoimento centralizado
+                surface_container_low background · no borders (No-Line Rule)
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section style={{ background: '#f2f3ff', padding: '72px 32px' }}>
+                <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }} className="sl-reveal">
+                    <p style={{
+                        fontSize: 'clamp(18px, 2.5vw, 22px)', fontStyle: 'italic', lineHeight: 1.7,
+                        color: '#131b2e', fontWeight: 500, marginBottom: 24,
+                    }}>
+                        "Com o Littera, conseguimos acompanhar a evolução de 400 alunos em tempo real. Nosso índice de aprovação em redação subiu 31 pontos percentuais em um semestre."
                     </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                        {/* Testimonial 1 */}
-                        <div className="bg-white p-10 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow reveal">
-                            <h1 className="text-5xl font-serif text-slate-300 mb-4 h-6">"</h1>
-                            <p className="text-[17px] text-slate-600 mb-10 leading-relaxed font-medium">
-                                A Littera transformou a forma como damos feedback. Nossas notas no ENEM subiram 15% após o primeiro semestre de uso. Incomparável a precisão do modelo perante alternativas antiquadas.
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <img src="https://i.pravatar.cc/150?u=11" alt="Mariana" className="w-12 h-12 rounded-full object-cover" />
-                                    <div>
-                                        <div className="font-bold text-slate-900 text-[15px]">Mariana Costa</div>
-                                        <div className="text-slate-500 text-[13px]">Coordenação Colégio Saber</div>
-                                    </div>
-                                </div>
-                                <div className="flex text-yellow-400 text-sm gap-0.5">
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                </div>
-                            </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 9999, background: '#e2e1ec', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <span className="material-icons-outlined" style={{ color: '#49454f', fontSize: 20 }}>person</span>
                         </div>
-
-                        {/* Testimonial 2 */}
-                        <div className="bg-white p-10 rounded-[24px] border border-slate-100 shadow-sm hover:shadow-md transition-shadow reveal delay-100">
-                            <h1 className="text-5xl font-serif text-slate-300 mb-4 h-6">"</h1>
-                            <p className="text-[17px] text-slate-600 mb-10 leading-relaxed font-medium">
-                                A precisão do sistema no modelo ENEM é impressionante. Não foi preciso acionar a equipe de TI: os professores já estavam usando e gerando relatórios em poucas horas na nossa rede.
-                            </p>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                    <img src="https://i.pravatar.cc/150?u=12" alt="Carlos" className="w-12 h-12 rounded-full object-cover" />
-                                    <div>
-                                        <div className="font-bold text-slate-900 text-[15px]">Carlos Mendes</div>
-                                        <div className="text-slate-500 text-[13px]">Instituto Futuro</div>
-                                    </div>
-                                </div>
-                                <div className="flex text-yellow-400 text-sm gap-0.5">
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                    <span className="material-icons">star</span>
-                                </div>
-                            </div>
+                        <div style={{ textAlign: 'left' }}>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: '#131b2e' }}>Prof.ª Maria Fernanda</p>
+                            <p style={{ fontSize: 13, color: '#49454f' }}>Coordenação Pedagógica — Colégio Dom Antônio</p>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Pricing Section */}
-            <section className="py-32 bg-white relative reveal" id="pricing">
-                <div className="max-w-[1200px] mx-auto px-6">
-                    <div className="text-center mb-16">
-                        <h2 className="text-[40px] lg:text-[48px] font-bold tracking-tight text-slate-900 mb-5">Pronto para evoluir?</h2>
-                        <p className="text-[18px] text-slate-500 max-w-[600px] mx-auto">
-                            Assuma a vanguarda educacional com uma plataforma definitiva que se adapta à sua instituição.
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                PROBLEMA vs. SOLUÇÃO — Quebra de objeção
+                No-Line Rule: left uses surface, right uses Intelligence Card
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section className="sl-section-gap" style={{ padding: '8rem 32px' }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                            O contraste é inevitável
                         </p>
+                        <h2 className="sl-headline" style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 900, color: '#131b2e' }}>
+                            Método tradicional vs.<br />Padrão Littera.
+                        </h2>
                     </div>
 
-                    <div className="bg-[#F8FAFC] rounded-[32px] p-2 md:p-6 border border-slate-100 mx-auto max-w-[1000px]">
-                        <div className="bg-white rounded-[24px] overflow-hidden border border-slate-100 shadow-sm relative z-10">
-                            <SubscriptionView
-                                onPlanSelected={() => { }}
-                                onCancel={() => { document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }) }}
-                                onCheckout={onCheckout}
-                            />
-                        </div>
-                    </div>
-                </div>
-            </section>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))', gap: 32 }}>
 
-            {/* CTA Section (Footer pre-cursor typical in SaaS) */}
-            <section className="py-24 bg-slate-900 text-center px-6">
-                <div className="max-w-[700px] mx-auto reveal">
-                    <h2 className="text-[36px] font-bold text-white mb-6 tracking-tight">Potencialize a educação decolando com a IA hoje.</h2>
-                    <p className="text-slate-400 text-[17px] mb-10">Não perca mais tempo com burocracia, entregue o ensino que seus alunos merecem com foco e precisão.</p>
-                    <button onClick={() => onDemoClick('teacher')} className="btn-primary px-10 py-4 text-[16px]">
-                        Começar gratuitamente
-                    </button>
-                </div>
-            </section>
-
-            {/* Footer */}
-            <footer className="bg-white pt-20 pb-10 border-t border-slate-100">
-                <div className="max-w-[1200px] mx-auto px-6">
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-10 mb-16">
-                        <div className="col-span-2">
-                            <div className="flex items-center gap-2 mb-6">
-                                <div className="w-8 h-8 bg-[#2563EB] rounded-lg flex items-center justify-center text-white shrink-0">
-                                    <span className="material-icons text-[18px]">school</span>
+                        {/* Left — Problema */}
+                        <div className="sl-card sl-reveal sl-d1" style={{ padding: '2.5rem', background: '#faf8ff' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
+                                <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span className="material-icons-outlined" style={{ color: '#ef4444', fontSize: 20 }}>schedule</span>
                                 </div>
-                                <span className="font-bold text-xl text-slate-900 tracking-tight">Littera</span>
+                                <p style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Método Tradicional</p>
                             </div>
-                            <p className="text-[14px] text-slate-500 leading-relaxed mb-6 max-w-[300px]">
-                                A plataforma definitiva para instituições de ensino que buscam eficiência, automação e sucesso nas padronizações do ENEM.
-                            </p>
+                            {[
+                                { icon: 'hourglass_top', text: 'Até 15 dias para devolver 30 redações corrigidas.' },
+                                { icon: 'psychology_alt', text: 'Critérios subjetivos: cada professor avalia de um jeito.' },
+                                { icon: 'visibility_off', text: 'Zero visibilidade de evolução para aluno ou coordenação.' },
+                                { icon: 'money_off', text: 'Custo alto com bancas externas ou horas extras docentes.' },
+                            ].map((item, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: i < 3 ? 20 : 0 }}>
+                                    <span className="material-icons-outlined" style={{ color: '#c7c5d0', fontSize: 20, marginTop: 2 }}>{item.icon}</span>
+                                    <p style={{ fontSize: 15, color: '#49454f', lineHeight: 1.6 }}>{item.text}</p>
+                                </div>
+                            ))}
                         </div>
-                        <div>
-                            <h4 className="font-bold text-slate-900 mb-5 text-[15px]">Produto</h4>
-                            <ul className="space-y-3 text-[14px] text-slate-500 font-medium">
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Funcionalidades</a></li>
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Soluções</a></li>
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Preços</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-900 mb-5 text-[15px]">Empresa</h4>
-                            <ul className="space-y-3 text-[14px] text-slate-500 font-medium">
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Sobre Nós</a></li>
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Carreiras</a></li>
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Blog</a></li>
-                            </ul>
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-900 mb-5 text-[15px]">Legal</h4>
-                            <ul className="space-y-3 text-[14px] text-slate-500 font-medium">
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Privacidade</a></li>
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">Termos</a></li>
-                                <li><a href="#" className="hover:text-blue-600 transition-colors">LGPD</a></li>
-                            </ul>
+
+                        {/* Right — Solução (Intelligence Card) */}
+                        <div className="sl-intelligence-card sl-reveal sl-d2" style={{ padding: '2.5rem', position: 'relative', overflow: 'hidden' }}>
+                            <div style={{ position: 'absolute', top: 0, right: 0, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,74,198,0.06) 0%, transparent 70%)', pointerEvents: 'none' }}></div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, position: 'relative' }}>
+                                <div style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #004ac6, #2563eb)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <span className="material-icons-outlined" style={{ color: '#fff', fontSize: 20 }}>auto_awesome</span>
+                                </div>
+                                <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Padrão Littera</p>
+                            </div>
+                            {[
+                                { icon: 'bolt', text: 'Correção completa em segundos — nas 5 competências do ENEM.', color: '#004ac6' },
+                                { icon: 'verified', text: 'Padronização absoluta: a mesma régua para 10 ou 10.000 alunos.', color: '#004ac6' },
+                                { icon: 'insights', text: 'Dashboard de evolução em tempo real para aluno, professor e escola.', color: '#004ac6' },
+                                { icon: 'school', text: 'Seu corpo docente foca no ensino. A IA foca na correção.', color: '#004ac6' },
+                            ].map((item, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: i < 3 ? 20 : 0, position: 'relative' }}>
+                                    <span className="material-icons-outlined" style={{ color: item.color, fontSize: 20, marginTop: 2 }}>{item.icon}</span>
+                                    <p style={{ fontSize: 15, color: '#131b2e', lineHeight: 1.6, fontWeight: 500 }}>{item.text}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
-                    <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-slate-100 gap-4">
-                        <p className="text-[13px] text-slate-400 font-medium">© 2026 Littera Education. Todos os direitos reservados.</p>
-                        <div className="flex gap-6 text-[13px] text-slate-400 font-medium">
-                            <a href="#" className="hover:text-blue-600">Status</a>
-                            <a href="#" className="hover:text-blue-600">Ajuda</a>
-                        </div>
+                </div>
+            </section>
+
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                RESULTADOS — As métricas que importam
+                surface_container_low bg · Cards with massive stat numbers
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section style={{ background: '#f2f3ff', padding: '8rem 32px' }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                            Resultados reais
+                        </p>
+                        <h2 className="sl-headline" style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 900, color: '#131b2e' }}>
+                            Os números que nenhuma<br />escola ignora.
+                        </h2>
                     </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 24 }}>
+                        {[
+                            { stat: '+31pp', label: 'de aumento médio na nota de redação em escolas parceiras no primeiro semestre.', icon: 'trending_up', color: '#10b981' },
+                            { stat: '3×', label: 'mais redações praticadas por aluno comparado à média nacional do ENEM.', icon: 'edit_note', color: '#004ac6' },
+                            { stat: '-60%', label: 'de redução na carga de correção manual do corpo docente.', icon: 'timer', color: '#8b5cf6' },
+                        ].map((item, i) => (
+                            <div key={i} className={`sl-card sl-reveal sl-d${i + 1}`} style={{ padding: '2.5rem', textAlign: 'center' }}>
+                                <div style={{ width: 52, height: 52, borderRadius: 16, background: `${item.color}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                                    <span className="material-icons-outlined" style={{ color: item.color, fontSize: 24 }}>{item.icon}</span>
+                                </div>
+                                <p className="sl-stat-number" style={{ fontSize: 'clamp(48px, 6vw, 72px)', color: item.color, marginBottom: 16 }}>
+                                    {item.stat}
+                                </p>
+                                <p style={{ fontSize: 15, color: '#49454f', lineHeight: 1.65, maxWidth: 280, margin: '0 auto' }}>
+                                    {item.label}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                COMPETÊNCIAS — O que o Littera analisa
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section className="sl-section-gap" style={{ padding: '8rem 32px' }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                            Análise nas 5 dimensões
+                        </p>
+                        <h2 className="sl-headline" style={{ fontSize: 'clamp(32px, 4vw, 48px)', fontWeight: 900, color: '#131b2e' }}>
+                            A mesma régua da<br />banca do ENEM.
+                        </h2>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 20 }}>
+                        {[
+                            { c: 'C1', title: 'Norma Culta', desc: 'Desvios gramaticais, regência, concordância e convenções da escrita formal.', color: '#3b82f6' },
+                            { c: 'C2', title: 'Compreensão do Tema', desc: 'Verificação se o aluno compreendeu o tema proposto e articulou repertório.', color: '#8b5cf6' },
+                            { c: 'C3', title: 'Argumentação', desc: 'Seleção, organização e interpretação de informações para defender um ponto de vista.', color: '#f59e0b' },
+                            { c: 'C4', title: 'Coesão Textual', desc: 'Uso de mecanismos linguísticos para articular ideias entre parágrafos e períodos.', color: '#10b981' },
+                            { c: 'C5', title: 'Proposta de Intervenção', desc: 'Elaboração de proposta detalhada com agente, ação, meio, efeito e detalhamento.', color: '#ef4444' },
+                        ].map((item, i) => (
+                            <div key={i} className={`sl-card sl-reveal sl-d${Math.min(i + 1, 5)}`} style={{ padding: '2rem 2.5rem', display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+                                <div style={{
+                                    width: 44, height: 44, borderRadius: 14, flexShrink: 0,
+                                    background: `${item.color}10`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 900, fontSize: 14, color: item.color,
+                                }}>
+                                    {item.c}
+                                </div>
+                                <div>
+                                    <p style={{ fontWeight: 700, fontSize: 16, color: '#131b2e', marginBottom: 6 }}>{item.title}</p>
+                                    <p style={{ fontSize: 14, color: '#49454f', lineHeight: 1.6 }}>{item.desc}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                ONBOARDING — Da assinatura ao primeiro texto
+                Minimal horizontal steps
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section style={{ background: '#f2f3ff', padding: '8rem 32px' }}>
+                <div style={{ maxWidth: 900, margin: '0 auto' }}>
+
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                            Implementação sem atrito
+                        </p>
+                        <h2 className="sl-headline" style={{ fontSize: 'clamp(28px, 3.5vw, 42px)', fontWeight: 900, color: '#131b2e' }}>
+                            Da assinatura ao primeiro texto<br />em menos de uma semana.
+                        </h2>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 32 }}>
+                        {[
+                            { step: '01', title: 'Contratação', desc: 'Flexível por volume de alunos. Sem surpresas.', icon: 'handshake' },
+                            { step: '02', title: 'Onboarding', desc: 'Cadastro da escola e importação de alunos em 1 dia.', icon: 'cloud_upload' },
+                            { step: '03', title: 'Ativação', desc: 'Professores e coordenadores treinados em 30 minutos.', icon: 'play_circle' },
+                            { step: '04', title: 'Resultados', desc: 'Primeira redação corrigida pela IA no mesmo dia.', icon: 'emoji_events' },
+                        ].map((item, i) => (
+                            <div key={i} className={`sl-reveal sl-d${i + 1}`} style={{ textAlign: 'center' }}>
+                                <div style={{
+                                    width: 64, height: 64, borderRadius: 20,
+                                    background: '#ffffff', boxShadow: '0px 20px 40px rgba(19,27,46,0.06)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 20px',
+                                }}>
+                                    <span className="material-icons-outlined" style={{ color: '#004ac6', fontSize: 28 }}>{item.icon}</span>
+                                </div>
+                                <p className="sl-headline" style={{ fontSize: 12, fontWeight: 800, color: '#004ac6', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                                    Passo {item.step}
+                                </p>
+                                <p style={{ fontSize: 16, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>{item.title}</p>
+                                <p style={{ fontSize: 14, color: '#49454f', lineHeight: 1.55 }}>{item.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                BOTTOM CTA — Dark section, urgency
+                Primary background, full break from the page
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section style={{
+                background: 'linear-gradient(135deg, #004ac6 0%, #1e3a8a 100%)',
+                padding: '8rem 32px',
+                textAlign: 'center',
+            }}>
+                <div style={{ maxWidth: 720, margin: '0 auto' }} className="sl-reveal">
+                    <p style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 20 }}>
+                        O momento é agora
+                    </p>
+                    <h2 className="sl-headline" style={{
+                        fontSize: 'clamp(32px, 4.5vw, 52px)',
+                        fontWeight: 900, color: '#ffffff', marginBottom: 24,
+                    }}>
+                        O espaço das escolas mais<br />inovadoras está sendo<br />preenchido agora.
+                    </h2>
+                    <p style={{ fontSize: 17, color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, marginBottom: 40, maxWidth: 520, margin: '0 auto 40px' }}>
+                        Enquanto você avalia, sua concorrente já aprovou. O Littera é a diferença entre perder matrículas e liderar rankings.
+                    </p>
+                    <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button onClick={() => onDemoClick('teacher')} style={{
+                            background: '#ffffff', color: '#004ac6', border: 'none', borderRadius: 9999,
+                            fontWeight: 800, fontSize: 16, padding: '16px 36px', cursor: 'pointer',
+                            transition: 'all 0.25s', boxShadow: '0 0 32px rgba(255,255,255,0.15)',
+                        }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 0 40px rgba(255,255,255,0.25)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 0 32px rgba(255,255,255,0.15)'; }}
+                        >
+                            Garantir minha demonstração →
+                        </button>
+                        <button className="sl-btn-secondary" onClick={onLoginClick} style={{ color: 'rgba(255,255,255,0.7)' }}>
+                            Já tenho conta
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                FOOTER — Minimal
+            ═══════════════════════════════════════════════════════════════════ */}
+            <footer style={{ background: '#131b2e', padding: '48px 32px', textAlign: 'center' }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+                    <span className="sl-headline" style={{ fontSize: 20, fontWeight: 900, color: '#ffffff' }}>
+                        Littera<span style={{ color: 'rgba(255,255,255,0.2)' }}>.</span>
+                    </span>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 12, lineHeight: 1.6 }}>
+                        Correção inteligente de redações do ENEM para escolas de excelência.
+                    </p>
+                    <div style={{ width: 40, height: 1, background: 'rgba(255,255,255,0.08)', margin: '24px auto' }}></div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: 28, flexWrap: 'wrap' }}>
+                        {['Termos de Uso', 'Política de Privacidade', 'Contato'].map(link => (
+                            <a key={link} href="#" style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)', textDecoration: 'none', transition: 'color 0.2s' }}
+                                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
+                                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}>
+                                {link}
+                            </a>
+                        ))}
+                    </div>
+                    <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', marginTop: 24 }}>
+                        © {new Date().getFullYear()} Littera. Todos os direitos reservados.
+                    </p>
                 </div>
             </footer>
         </div>

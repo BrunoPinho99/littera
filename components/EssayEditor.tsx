@@ -137,12 +137,12 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-surface-dark rounded-3xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-fade-in flex flex-col h-[calc(100vh-200px)] min-h-[600px] relative">
+    <div className="bg-surface-container-lowest rounded-3xl shadow-xl ghost-border overflow-hidden animate-fade-in flex flex-col h-[calc(100vh-200px)] min-h-[600px] relative">
       {/* Header */}
-      <div className="bg-gray-50 dark:bg-slate-800/50 px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
+      <div className="bg-surface-container-low/50 px-6 py-4 border-b ghost-border flex justify-between items-center">
         <div className="flex-1 min-w-0 mr-4">
           <div className="flex items-center gap-3 mb-1">
-            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Tema da Redação</h3>
+            <h3 className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Tema da Redação</h3>
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-md">
               <span className="material-icons-outlined text-xs text-primary">timer</span>
               <span className="text-xs font-black text-primary font-mono">{elapsedTime}</span>
@@ -158,21 +158,21 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               </span>
             </div>
           </div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1" title={topicTitle}>{topicTitle}</h2>
+          <h2 className="text-lg font-bold text-on-surface line-clamp-1" title={topicTitle}>{topicTitle}</h2>
         </div>
         
         <div className="flex bg-gray-200 dark:bg-slate-700 p-1 rounded-lg shrink-0">
           <button
             onClick={() => setMode('text')}
             disabled={isSubmitting}
-            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all ${mode === 'text' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
+            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all ${mode === 'text' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-on-surface-variant dark:text-on-surface-variant'}`}
           >
             Digitar
           </button>
           <button
             onClick={() => setMode('image')}
             disabled={isSubmitting}
-            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all ${mode === 'image' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
+            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all ${mode === 'image' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-on-surface-variant dark:text-on-surface-variant'}`}
           >
             Enviar Foto
           </button>
@@ -180,7 +180,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       </div>
 
       {/* Editor Area */}
-      <div className="flex-grow p-0 relative bg-white dark:bg-slate-900/30 overflow-hidden">
+      <div className="flex-grow p-0 relative bg-surface-container-lowest/30 overflow-hidden">
         {mode === 'text' ? (
           <div className="h-full relative overflow-auto">
             <div 
@@ -201,14 +201,14 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               spellCheck={false}
             />
              <div className="absolute bottom-4 right-4 text-right pointer-events-none z-20">
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full shadow-sm bg-white/90 dark:bg-black/40 backdrop-blur-sm border border-gray-100 dark:border-slate-800 ${wordCount < 100 ? 'text-amber-600' : 'text-green-600'}`}>
+              <span className={`text-xs font-bold px-3 py-1.5 rounded-full shadow-sm bg-surface/90 dark:bg-black/40 backdrop-blur-sm border border-gray-100 dark:border-slate-800 ${wordCount < 100 ? 'text-amber-600' : 'text-green-600'}`}>
                 {wordCount} palavras
               </span>
             </div>
           </div>
         ) : (
           <div className="h-full flex flex-col items-center justify-center p-6 bg-gray-50/30 dark:bg-slate-900/30">
-            <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 relative overflow-hidden">
+            <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-surface-container-lowest transition-all hover:border-primary/50 relative overflow-hidden">
                <input 
                   type="file" 
                   ref={fileInputRef}
@@ -238,9 +238,9 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
                     onClick={() => !isSubmitting && fileInputRef.current?.click()}
                     className={`flex flex-col items-center cursor-pointer p-10 text-center ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
                  >
-                   <span className="material-icons-outlined text-5xl text-gray-300 dark:text-slate-600 mb-4">add_a_photo</span>
-                   <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Clique para tirar uma foto da sua folha</p>
-                   <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Certifique-se de que o texto esteja legível e bem iluminado</p>
+                   <span className="material-icons-outlined text-5xl text-on-surface-variant dark:text-on-surface-variant mb-4">add_a_photo</span>
+                   <p className="text-on-surface-variant dark:text-on-surface-variant font-medium text-lg">Clique para tirar uma foto da sua folha</p>
+                   <p className="text-sm text-on-surface-variant dark:text-on-surface-variant mt-2">Certifique-se de que o texto esteja legível e bem iluminado</p>
                  </div>
                )}
             </div>
@@ -251,7 +251,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       {/* Loading Overlay */}
       {isSubmitting && (
         <div className="absolute inset-0 z-50 bg-white/95 dark:bg-surface-dark/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-300 p-6">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 p-8 relative overflow-hidden animate-fade-in text-center">
+          <div className="w-full max-w-md bg-surface-container-lowest rounded-3xl shadow-2xl ghost-border p-8 relative overflow-hidden animate-fade-in text-center">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 dark:bg-slate-700">
                <div 
                  className="h-full bg-gradient-to-r from-primary via-purple-400 to-blue-400 transition-all duration-300"
@@ -264,29 +264,29 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               <span className="material-icons-outlined text-primary absolute text-3xl">auto_fix_high</span>
             </div>
 
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Análise Inteligente</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6 font-medium">
+            <h3 className="text-2xl font-black text-on-surface mb-2">Análise Inteligente</h3>
+            <p className="text-on-surface-variant dark:text-on-surface-variant mb-6 font-medium">
               Extraindo insights e validando competências...
             </p>
 
-            <div className="space-y-4 text-left bg-gray-50 dark:bg-slate-900/50 p-6 rounded-2xl">
+            <div className="space-y-4 text-left bg-surface-container-low/50 p-6 rounded-2xl">
                <div className="flex items-center gap-3 text-sm">
-                  <span className={`material-icons-outlined text-lg ${progress > 15 ? 'text-green-500' : 'text-gray-300'}`}>
+                  <span className={`material-icons-outlined text-lg ${progress > 15 ? 'text-green-500' : 'text-on-surface-variant'}`}>
                     {progress > 15 ? 'check_circle' : 'circle'}
                   </span>
-                  <span className={progress > 15 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Análise forense ativa</span>
+                  <span className={progress > 15 ? 'text-gray-700 dark:text-white font-bold' : 'text-on-surface-variant'}>Análise forense ativa</span>
                </div>
                <div className="flex items-center gap-3 text-sm">
-                  <span className={`material-icons-outlined text-lg ${progress > 45 ? 'text-green-500' : 'text-gray-300'}`}>
+                  <span className={`material-icons-outlined text-lg ${progress > 45 ? 'text-green-500' : 'text-on-surface-variant'}`}>
                     {progress > 45 ? 'check_circle' : 'circle'}
                   </span>
-                  <span className={progress > 45 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Avaliação de repertório</span>
+                  <span className={progress > 45 ? 'text-gray-700 dark:text-white font-bold' : 'text-on-surface-variant'}>Avaliação de repertório</span>
                </div>
                <div className="flex items-center gap-3 text-sm">
-                  <span className={`material-icons-outlined text-lg ${progress > 80 ? 'text-green-500' : 'text-gray-300'}`}>
+                  <span className={`material-icons-outlined text-lg ${progress > 80 ? 'text-green-500' : 'text-on-surface-variant'}`}>
                     {progress > 80 ? 'check_circle' : 'circle'}
                   </span>
-                  <span className={progress > 80 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Finalizando relatório</span>
+                  <span className={progress > 80 ? 'text-gray-700 dark:text-white font-bold' : 'text-on-surface-variant'}>Finalizando relatório</span>
                </div>
             </div>
             
@@ -298,11 +298,11 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       )}
 
       {/* Footer Actions */}
-      <div className="p-6 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center">
+      <div className="p-6 bg-surface-container-low/50 border-t ghost-border flex justify-between items-center">
         <button
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-xl text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+          className="px-6 py-3 rounded-xl text-gray-600 dark:text-on-surface-variant font-medium hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
         >
           Cancelar
         </button>

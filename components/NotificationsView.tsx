@@ -33,7 +33,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ notifications, on
       case 'ranking': return { icon: 'emoji_events', color: 'text-amber-500 bg-amber-100 dark:bg-amber-900/30' };
       case 'system': return { icon: 'info', color: 'text-blue-500 bg-blue-100 dark:bg-blue-900/30' };
       case 'tip': return { icon: 'lightbulb', color: 'text-primary bg-violet-100 dark:bg-violet-900/30' };
-      default: return { icon: 'notifications', color: 'text-gray-500 bg-gray-100' };
+      default: return { icon: 'notifications', color: 'text-on-surface-variant bg-gray-100' };
     }
   };
 
@@ -41,20 +41,20 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ notifications, on
     <div className="animate-fade-in max-w-3xl mx-auto">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Notificações</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Fique por dentro das suas correções e novidades.</p>
+          <h1 className="text-3xl font-bold text-on-surface">Notificações</h1>
+          <p className="text-on-surface-variant dark:text-on-surface-variant mt-1">Fique por dentro das suas correções e novidades.</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
           <div className="flex flex-wrap gap-2">
              <button 
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'all' ? 'bg-primary text-white shadow-md' : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'all' ? 'bg-primary text-white shadow-md' : 'bg-gray-100 dark:bg-slate-700 text-on-surface-variant dark:text-on-surface-variant hover:bg-gray-200 dark:hover:bg-slate-600'}`}
             >
               Todas
             </button>
             <button 
               onClick={() => setFilter('unread')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'unread' ? 'bg-primary text-white shadow-md' : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-slate-600'}`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === 'unread' ? 'bg-primary text-white shadow-md' : 'bg-gray-100 dark:bg-slate-700 text-on-surface-variant dark:text-on-surface-variant hover:bg-gray-200 dark:hover:bg-slate-600'}`}
             >
               Não lidas
             </button>
@@ -70,7 +70,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ notifications, on
           
           <button 
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center text-gray-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all shadow-sm shrink-0"
+            className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all shadow-sm shrink-0"
             title="Fechar Notificações"
           >
             <span className="material-icons-outlined">close</span>
@@ -86,7 +86,7 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ notifications, on
               <div 
                 key={notification.id} 
                 onClick={() => handleNotificationClick(notification)}
-                className={`relative bg-white dark:bg-surface-dark p-5 rounded-2xl border transition-all duration-300 cursor-pointer group hover:shadow-lg active:scale-[0.98] ${notification.read ? 'border-gray-100 dark:border-slate-800 opacity-80' : 'border-primary/40 dark:border-primary/30 shadow-sm ring-1 ring-primary/5'}`}
+                className={`relative bg-surface-container-lowest p-5 rounded-2xl border transition-all duration-300 cursor-pointer group hover:shadow-lg active:scale-[0.98] ${notification.read ? 'border-gray-100 dark:border-slate-800 opacity-80' : 'border-primary/40 dark:border-primary/30 shadow-sm ring-1 ring-primary/5'}`}
               >
                 {!notification.read && (
                   <span className="absolute top-5 right-5 w-3 h-3 bg-primary rounded-full animate-pulse border-2 border-white shadow-sm"></span>
@@ -99,12 +99,12 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ notifications, on
                   
                   <div className="flex-1 pr-6">
                     <div className="flex justify-between items-start mb-1">
-                      <h4 className={`font-bold text-base transition-colors ${notification.read ? 'text-gray-700 dark:text-gray-300' : 'text-primary dark:text-primary-light'}`}>
+                      <h4 className={`font-bold text-base transition-colors ${notification.read ? 'text-gray-700 dark:text-on-surface-variant' : 'text-primary dark:text-primary-light'}`}>
                         {notification.title}
                       </h4>
-                      <span className="text-xs text-gray-400 whitespace-nowrap ml-2">{notification.timestamp}</span>
+                      <span className="text-xs text-on-surface-variant whitespace-nowrap ml-2">{notification.timestamp}</span>
                     </div>
-                    <p className={`text-sm leading-relaxed ${notification.read ? 'text-gray-500 dark:text-gray-500' : 'text-gray-700 dark:text-gray-200'}`}>
+                    <p className={`text-sm leading-relaxed ${notification.read ? 'text-on-surface-variant dark:text-on-surface-variant' : 'text-gray-700 dark:text-gray-200'}`}>
                       {notification.message}
                     </p>
                   </div>
@@ -116,12 +116,12 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ notifications, on
             );
           })
         ) : (
-          <div className="text-center py-24 flex flex-col items-center bg-gray-50 dark:bg-slate-800/20 rounded-[2.5rem] border border-dashed border-gray-200 dark:border-slate-800">
-             <div className="w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6 text-gray-300 dark:text-slate-600">
+          <div className="text-center py-24 flex flex-col items-center bg-surface-container-low/20 rounded-card border border-dashed border-gray-200 dark:border-slate-800">
+             <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6 text-on-surface-variant dark:text-on-surface-variant">
                 <span className="material-icons-outlined text-4xl">notifications_off</span>
              </div>
-             <p className="text-gray-500 dark:text-gray-400 font-bold text-lg">Silêncio por aqui...</p>
-             <p className="text-gray-400 text-sm">Você não tem notificações para o filtro selecionado.</p>
+             <p className="text-on-surface-variant dark:text-on-surface-variant font-bold text-lg">Silêncio por aqui...</p>
+             <p className="text-on-surface-variant text-sm">Você não tem notificações para o filtro selecionado.</p>
           </div>
         )}
       </div>

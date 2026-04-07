@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Littera App</title>
+    <title>Littera — A plataforma de redação que aprova no ENEM</title>
+    <meta name="description" content="Correção de redação com IA nas 5 competências do ENEM. Feedback imediato, evolução contínua e ranking." />
     
     <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
@@ -12,45 +13,179 @@
         darkMode: "class",
         theme: {
           extend: {
+            /* ─── SCHOLASTIC LUMINARY COLOR SYSTEM ─── */
             colors: {
-              primary: "#2563EB",
-              secondary: "#3B82F6",
-              "background-light": "#F9FAFB",
-              "background-dark": "#0B0F1A",
-              "card-light": "#FFFFFF",
-              "card-dark": "#161B22",
-              "text-light": "#111827",
-              "text-dark": "#F3F4F6",
-              "muted-light": "#4B5563",
-              "muted-dark": "#9CA3AF",
+              /* Primary */
+              primary:             "#004ac6",
+              "primary-container":  "#2563eb",
+              "on-primary":        "#ffffff",
+              "primary-fixed":     "#d3e4ff",
+
+              /* Secondary */
+              secondary:              "#5b6b7d",
+              "secondary-container":  "#dfe3ee",
+              "on-secondary-container":"#1a1e2b",
+
+              /* Tertiary */
+              tertiary:               "#6f5fa0",
+              "tertiary-container":   "#ece3ff",
+
+              /* Surface Hierarchy (The "Fine Paper" Stack) */
+              surface:                  "#faf8ff",
+              "surface-container-low":  "#f2f3ff",
+              "surface-container-lowest":"#ffffff",
+              "surface-container-high": "#e8e9f5",
+              "surface-variant":        "#e2e1ec",
+
+              /* On-Surface */
+              "on-surface":           "#131b2e",
+              "on-surface-variant":   "#49454f",
+
+              /* Outline */
+              "outline-variant":      "#c7c5d0",
+
+              /* Legacy compat */
+              "primary-dark":  "#003ba0",
+              "primary-light": "#93b4f5",
+              "surface-dark":  "#161B22",
             },
+
+            /* ─── TYPOGRAPHY ─── */
             fontFamily: {
-              display: ["Inter", "sans-serif"],
-              sans: ["Inter", "sans-serif"],
+              display: ['"Plus Jakarta Sans"', "Inter", "sans-serif"],
+              sans:    ["Inter", '"Plus Jakarta Sans"', "sans-serif"],
             },
+            fontSize: {
+              "display-lg": ["3.5rem", { lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "900" }],
+              "display-md": ["2.75rem", { lineHeight: "1.15", letterSpacing: "-0.02em", fontWeight: "900" }],
+              "display-sm": ["2.25rem", { lineHeight: "1.2", letterSpacing: "-0.015em", fontWeight: "800" }],
+              "headline-lg": ["2rem", { lineHeight: "1.25", letterSpacing: "-0.01em", fontWeight: "800" }],
+              "headline-md": ["1.75rem", { lineHeight: "1.3", fontWeight: "700" }],
+              "headline-sm": ["1.5rem", { lineHeight: "1.35", fontWeight: "700" }],
+              "title-lg":    ["1.25rem", { lineHeight: "1.4", fontWeight: "700" }],
+              "title-md":    ["1rem",   { lineHeight: "1.45", fontWeight: "600" }],
+              "body-lg":     ["1rem",   { lineHeight: "1.6", fontWeight: "400" }],
+              "body-md":     ["0.875rem", { lineHeight: "1.6", fontWeight: "400" }],
+              "body-sm":     ["0.8125rem", { lineHeight: "1.5", fontWeight: "400" }],
+              "label-lg":    ["0.875rem", { lineHeight: "1.4", fontWeight: "700", letterSpacing: "0.01em" }],
+              "label-md":    ["0.75rem",  { lineHeight: "1.4", fontWeight: "700", letterSpacing: "0.02em" }],
+              "label-sm":    ["0.6875rem",{ lineHeight: "1.35", fontWeight: "800", letterSpacing: "0.05em" }],
+            },
+
+            /* ─── BORDER RADIUS ─── */
             borderRadius: {
               DEFAULT: "0.75rem",
+              "card":  "1.5rem",
+              "pill":  "9999px",
+              "input": "0.75rem",
             },
+
+            /* ─── ELEVATION: Ambient Shadows ─── */
             boxShadow: {
-              'glow': '0 0 20px rgba(37, 99, 235, 0.5)',
-              'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
-            }
+              "ambient":    "0px 20px 40px rgba(19, 27, 46, 0.06)",
+              "ambient-lg": "0px 30px 60px rgba(19, 27, 46, 0.08)",
+              "glow":       "0 0 24px rgba(0, 74, 198, 0.25)",
+              "glow-sm":    "0 0 12px rgba(0, 74, 198, 0.15)",
+              "card":       "0 2px 12px rgba(19, 27, 46, 0.05)",
+              "inner":      "inset 0 2px 6px rgba(19, 27, 46, 0.04)",
+              "premium":    "0px 20px 40px rgba(19, 27, 46, 0.06)",
+              "none":       "none",
+            },
+
+            /* ─── ANIMATIONS ─── */
+            animation: {
+              "float":      "float 3s ease-in-out infinite",
+              "fade-in":    "fadeIn 0.4s ease-out",
+              "fade-in-up": "fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1)",
+              "shimmer":    "shimmer 2s linear infinite",
+              "spin-slow":  "spin 3s linear infinite",
+              "pulse-slow": "pulse 3s cubic-bezier(0.4,0,0.6,1) infinite",
+              "count-in":   "countIn 0.3s cubic-bezier(0.16,1,0.3,1)",
+            },
+            keyframes: {
+              float:     { "0%, 100%": { transform: "translateY(0px)" },  "50%": { transform: "translateY(-6px)" } },
+              fadeIn:    { from: { opacity: "0" }, to: { opacity: "1" } },
+              fadeInUp:  { from: { opacity: "0", transform: "translateY(16px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+              shimmer:   { "0%": { transform: "translateX(-100%)" }, "100%": { transform: "translateX(200%)" } },
+              countIn:   { from: { opacity: "0", transform: "scale(0.7)" }, to: { opacity: "1", transform: "scale(1)" } },
+            },
+
+            /* ─── SPACING ─── */
+            spacing: {
+              "section": "8rem",  /* 128px – distance between major sections */
+            },
           },
         },
       };
     </script>
-    
+
+    <!-- ─── GLOBAL STYLES: Scholastic Luminary ─── -->
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+      body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        color: #131b2e;                      /* on-surface */
+        background-color: #faf8ff;           /* surface */
+      }
+
+      /* Ghost Border utility */
+      .ghost-border {
+        border: 1px solid rgba(199, 197, 208, 0.15); /* outline-variant @ 15% */
+      }
+
+      /* Premium scrollbar */
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #c7c5d0; border-radius: 9999px; }
+      ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+      /* Selection */
+      ::selection { background: rgba(0, 74, 198, 0.12); color: inherit; }
+
+      /* Gradient button utility */
+      .btn-gradient {
+        background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);
+      }
+      .btn-gradient:hover {
+        box-shadow: 0 0 24px rgba(0, 74, 198, 0.3);
+      }
+
+      /* Intelligence card */
+      .intelligence-card {
+        background: linear-gradient(135deg, rgba(91, 107, 125, 0.05) 0%, rgba(0, 74, 198, 0.05) 100%);
+        backdrop-filter: blur(8px);
+      }
+
+      /* Ghost border on focus for inputs */
+      .input-littera {
+        border: 1px solid rgba(199, 197, 208, 0.15);
+        transition: all 0.2s ease;
+      }
+      .input-littera:focus {
+        border-color: #004ac6;
+        border-width: 2px;
+        box-shadow: 0 0 0 4px rgba(0, 74, 198, 0.08);
+      }
+
+      /* No-line rule: override any 1px solid borders in containers */
+      /* The "No-Line Rule" is enforced via component styles. */
+    </style>
+
     <!-- Fonts and Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    <script type="module" crossorigin src="/assets/index--9bw1489.js"></script>
+    <script type="module" crossorigin src="/assets/index-QwV0ngYE.js"></script>
   </head>
-  <body>
+  <body class="font-sans">
     <div id="root"></div>
   </body>
 </html>

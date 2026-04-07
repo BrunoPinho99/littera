@@ -397,7 +397,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-2">
             {userType === 'teacher' ? 'Área do Docente' : 'Painel de Controle'}
           </span>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter">
+          <h1 className="text-4xl md:text-5xl font-black text-on-surface tracking-tighter">
             {school?.name || "Minha Instituição"}
           </h1>
         </div>
@@ -424,7 +424,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             </button>
             <button
               onClick={() => setIsProfessorModalOpen(true)}
-              className="px-6 py-3 bg-white dark:bg-surface-dark text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5"
+              className="px-6 py-3 bg-surface-container-lowest text-on-surface border border-gray-200 dark:border-white/10 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5"
             >
               + Professor
             </button>
@@ -436,7 +436,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             </button>
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="w-12 py-3 bg-white dark:bg-surface-dark text-gray-600 dark:text-gray-300 rounded-2xl font-black border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-sm transition-all hover:bg-gray-50 hover:text-primary tooltip-container"
+              className="w-12 py-3 bg-surface-container-lowest text-gray-600 dark:text-on-surface-variant rounded-2xl font-black border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-sm transition-all hover:bg-gray-50 hover:text-primary tooltip-container"
               title="Importar CSV"
             >
               <span className="material-icons-outlined">upload_file</span>
@@ -448,26 +448,26 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {/* Grid de Métricas */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-surface-dark p-8 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 flex items-center gap-6">
+          <div key={i} className="bg-surface-container-lowest p-8 rounded-card shadow-sm ghost-border flex items-center gap-6">
             <div className={`w-14 h-14 rounded-2xl ${stat.color} flex items-center justify-center text-white shadow-lg`}>
               <span className="material-icons-outlined text-2xl">{stat.icon}</span>
             </div>
             <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
-              <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stat.value}</h3>
+              <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">{stat.label}</p>
+              <h3 className="text-3xl font-black text-on-surface">{stat.value}</h3>
             </div>
           </div>
         ))}
       </div>
 
       {/* Seção Principal de Abas */}
-      <div className="bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium border border-gray-100 dark:border-white/5 overflow-hidden">
-        <div className="flex border-b border-gray-50 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 p-2 overflow-x-auto">
+      <div className="bg-surface-container-lowest rounded-[3rem] shadow-ambient ghost-border overflow-hidden">
+        <div className="flex border-b border-gray-50 dark:border-white/5 bg-surface-container-low dark:bg-white/5 p-2 overflow-x-auto">
           {availableTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white dark:bg-surface-dark shadow-md text-primary' : 'text-gray-400 hover:text-gray-900'}`}
+              className={`flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-surface-container-lowest shadow-md text-primary' : 'text-on-surface-variant hover:text-gray-900'}`}
             >
               <span className="material-icons-outlined text-lg">{tab.icon}</span>
               {tab.label}
@@ -481,7 +481,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               <div className="overflow-x-auto mb-6">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] border-b border-gray-50 dark:border-white/5">
+                    <tr className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em] border-b border-gray-50 dark:border-white/5">
                       <th className="px-6 py-4">Nome do Aluno</th>
                       <th className="px-6 py-4">Média Geral</th>
                       <th className="px-6 py-4">Entregas</th>
@@ -491,9 +491,9 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   <tbody className="divide-y divide-gray-50 dark:divide-white/5">
                     {currentStudents.map(s => (
                       <tr key={s.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                        <td className="px-6 py-6 font-black text-sm text-gray-900 dark:text-white">{s.name}</td>
+                        <td className="px-6 py-6 font-black text-sm text-on-surface">{s.name}</td>
                         <td className="px-6 py-6 font-black text-primary">{s.averageScore}</td>
-                        <td className="px-6 py-6 text-sm font-bold text-gray-400">{s.essaysSubmitted}</td>
+                        <td className="px-6 py-6 text-sm font-bold text-on-surface-variant">{s.essaysSubmitted}</td>
                         <td className="px-6 py-6 text-right">
                           {s.essaysSubmitted === 0 ? (
                             <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
@@ -509,7 +509,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     ))}
                     {currentStudents.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-6 py-12 text-center text-gray-400 font-bold">Nenhum aluno encontrado para sua turma.</td>
+                        <td colSpan={4} className="px-6 py-12 text-center text-on-surface-variant font-bold">Nenhum aluno encontrado para sua turma.</td>
                       </tr>
                     )}
                   </tbody>
@@ -522,17 +522,17 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   <button
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-xl border hover:bg-gray-50 disabled:opacity-30 transition-all text-gray-500"
+                    className="p-2 rounded-xl border hover:bg-gray-50 disabled:opacity-30 transition-all text-on-surface-variant"
                   >
                     <span className="material-icons-outlined">chevron_left</span>
                   </button>
-                  <span className="text-xs font-bold text-gray-500">
+                  <span className="text-xs font-bold text-on-surface-variant">
                     Página {currentPage} de {studentTotalPages}
                   </span>
                   <button
                     onClick={() => setCurrentPage(p => Math.min(studentTotalPages, p + 1))}
                     disabled={currentPage === studentTotalPages}
-                    className="p-2 rounded-xl border hover:bg-gray-50 disabled:opacity-30 transition-all text-gray-500"
+                    className="p-2 rounded-xl border hover:bg-gray-50 disabled:opacity-30 transition-all text-on-surface-variant"
                   >
                     <span className="material-icons-outlined">chevron_right</span>
                   </button>
@@ -543,7 +543,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {activeTab === 'classes' && userType === 'school_admin' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {classes.map(cls => (
-                <div key={cls.id} className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group">
+                <div key={cls.id} className="bg-surface-container-lowest p-6 rounded-2xl ghost-border shadow-sm hover:shadow-md transition-all group">
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                       <span className="material-icons-outlined">class</span>
@@ -552,24 +552,24 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                       {cls.shift}
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{cls.name}</h3>
-                  <p className="text-sm text-gray-400 font-medium mb-4">{cls.grade}</p>
+                  <h3 className="text-xl font-bold text-on-surface mb-1">{cls.name}</h3>
+                  <p className="text-sm text-on-surface-variant font-medium mb-4">{cls.grade}</p>
 
                   <div className="flex justify-between items-center pt-4 border-t border-gray-50 dark:border-white/5">
                     <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Alunos</p>
-                      <p className="font-bold text-gray-900 dark:text-white">{cls.studentCount}</p>
+                      <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Alunos</p>
+                      <p className="font-bold text-on-surface">{cls.studentCount}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Média</p>
+                      <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest">Média</p>
                       <p className="font-bold text-primary">{cls.averageScore}</p>
                     </div>
                   </div>
                 </div>
               ))}
               {classes.length === 0 && (
-                <div className="col-span-full py-20 text-center text-gray-400 font-bold flex flex-col items-center">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                <div className="col-span-full py-20 text-center text-on-surface-variant font-bold flex flex-col items-center">
+                  <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center text-on-surface-variant mb-4">
                     <span className="material-icons-outlined text-2xl">layers_clear</span>
                   </div>
                   <p>Nenhuma turma cadastrada. Crie a primeira acima.</p>
@@ -581,14 +581,14 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {activeTab === 'essays' && (
             <div className="space-y-4">
               {essays.length > 0 ? essays.map(essay => (
-                <div key={essay.id} className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all flex justify-between items-center group cursor-pointer">
+                <div key={essay.id} className="bg-surface-container-lowest p-6 rounded-2xl ghost-border shadow-sm hover:shadow-md transition-all flex justify-between items-center group cursor-pointer">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white ${essay.score >= 800 ? 'bg-green-500' : essay.score >= 600 ? 'bg-primary' : 'bg-amber-500'}`}>
                       {essay.score}
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">{essay.tema}</h4>
-                      <p className="text-xs text-gray-500 font-medium mt-1">
+                      <h4 className="font-bold text-on-surface group-hover:text-primary transition-colors">{essay.tema}</h4>
+                      <p className="text-xs text-on-surface-variant font-medium mt-1">
                         {essay.student_name} • {new Date(essay.data_envio).toLocaleDateString()}
                       </p>
                     </div>
@@ -598,8 +598,8 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   </button>
                 </div>
               )) : (
-                <div className="text-center py-20 text-gray-400 font-bold flex flex-col items-center gap-4">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-gray-400">
+                <div className="text-center py-20 text-on-surface-variant font-bold flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-surface-container-high rounded-full flex items-center justify-center text-on-surface-variant">
                     <span className="material-icons-outlined text-2xl">assignment_late</span>
                   </div>
                   <p>Nenhuma redação corrigida encontrada no sistema.</p>
@@ -617,15 +617,15 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             onClick={() => setIsClassModalOpen(false)}
           ></div>
-          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-            <div className="p-8 border-b border-gray-100 dark:border-white/5">
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Turma</h3>
-              <p className="text-gray-500 text-sm mt-1">Defina os detalhes da classe para organizar seus alunos.</p>
+          <div className="relative bg-surface-container-lowest w-full max-w-lg rounded-card shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
+            <div className="p-8 border-b ghost-border">
+              <h3 className="text-2xl font-black text-on-surface tracking-tight">Nova Turma</h3>
+              <p className="text-on-surface-variant text-sm mt-1">Defina os detalhes da classe para organizar seus alunos.</p>
             </div>
 
             <form onSubmit={handleCreateClass} className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome da Turma</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nome da Turma</label>
                 <input
                   type="text"
                   value={newClass.name}
@@ -638,7 +638,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Série/Ano</label>
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Série/Ano</label>
                   <input
                     type="text"
                     value={newClass.grade}
@@ -649,7 +649,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Turno</label>
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Turno</label>
                   <select
                     value={newClass.shift}
                     onChange={e => setNewClass({ ...newClass, shift: e.target.value })}
@@ -667,7 +667,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 <button
                   type="button"
                   onClick={() => setIsClassModalOpen(false)}
-                  className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  className="flex-1 py-4 rounded-xl font-bold text-on-surface-variant hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -695,15 +695,15 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             onClick={() => setIsProfessorModalOpen(false)}
           ></div>
-          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-            <div className="p-8 border-b border-gray-100 dark:border-white/5">
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Novo Docente</h3>
-              <p className="text-gray-500 text-sm mt-1">Cadastre um professor e vincule-o a uma turma para iniciar.</p>
+          <div className="relative bg-surface-container-lowest w-full max-w-lg rounded-card shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
+            <div className="p-8 border-b ghost-border">
+              <h3 className="text-2xl font-black text-on-surface tracking-tight">Novo Docente</h3>
+              <p className="text-on-surface-variant text-sm mt-1">Cadastre um professor e vincule-o a uma turma para iniciar.</p>
             </div>
 
             <form onSubmit={handleCreateProfessor} className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome Completo</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nome Completo</label>
                 <input
                   type="text"
                   value={newProfessor.name}
@@ -715,7 +715,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">E-mail Profissional</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">E-mail Profissional</label>
                 <input
                   type="email"
                   value={newProfessor.email}
@@ -727,7 +727,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vincular Turma</label>
                 <select
                   value={newProfessor.class_id}
                   onChange={e => setNewProfessor({ ...newProfessor, class_id: e.target.value })}
@@ -748,7 +748,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 <button
                   type="button"
                   onClick={() => setIsProfessorModalOpen(false)}
-                  className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  className="flex-1 py-4 rounded-xl font-bold text-on-surface-variant hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -776,15 +776,15 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             onClick={() => setIsStudentModalOpen(false)}
           ></div>
-          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-            <div className="p-8 border-b border-gray-100 dark:border-white/5">
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Matrícula</h3>
-              <p className="text-gray-500 text-sm mt-1">Cadastre um aluno e vincule-o a uma turma ativa.</p>
+          <div className="relative bg-surface-container-lowest w-full max-w-lg rounded-card shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
+            <div className="p-8 border-b ghost-border">
+              <h3 className="text-2xl font-black text-on-surface tracking-tight">Nova Matrícula</h3>
+              <p className="text-on-surface-variant text-sm mt-1">Cadastre um aluno e vincule-o a uma turma ativa.</p>
             </div>
 
             <form onSubmit={handleCreateStudent} className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome Completo</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nome Completo</label>
                 <input
                   type="text"
                   value={newStudent.name}
@@ -796,7 +796,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">E-mail do Aluno</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">E-mail do Aluno</label>
                 <input
                   type="email"
                   value={newStudent.email}
@@ -808,7 +808,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nº Matrícula (Opcional)</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nº Matrícula (Opcional)</label>
                 <input
                   type="text"
                   value={newStudent.registration_number}
@@ -819,7 +819,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Vincular Turma</label>
                 <select
                   value={newStudent.class_id}
                   onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
@@ -840,7 +840,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 <button
                   type="button"
                   onClick={() => setIsStudentModalOpen(false)}
-                  className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  className="flex-1 py-4 rounded-xl font-bold text-on-surface-variant hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -868,10 +868,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             onClick={() => setIsBulkModalOpen(false)}
           ></div>
-          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-            <div className="p-8 border-b border-gray-100 dark:border-white/5">
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Importação em Massa</h3>
-              <p className="text-gray-500 text-sm mt-1">Cadastre múltiplos alunos de uma vez via arquivo CSV.</p>
+          <div className="relative bg-surface-container-lowest w-full max-w-lg rounded-card shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
+            <div className="p-8 border-b ghost-border">
+              <h3 className="text-2xl font-black text-on-surface tracking-tight">Importação em Massa</h3>
+              <p className="text-on-surface-variant text-sm mt-1">Cadastre múltiplos alunos de uma vez via arquivo CSV.</p>
             </div>
 
             <div className="p-8 space-y-6">
@@ -888,7 +888,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   </button>
                 </div>
                 <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">O arquivo deve conter cabeçalho e as colunas nesta ordem:</p>
-                <code className="block bg-white dark:bg-black/20 p-2 rounded-lg text-xs font-mono text-gray-600 dark:text-gray-300 break-all">
+                <code className="block bg-white dark:bg-black/20 p-2 rounded-lg text-xs font-mono text-gray-600 dark:text-on-surface-variant break-all">
                   Nome, Email, Nome da Turma, Matricula (opcional)
                 </code>
                 <p className="text-xs text-blue-500 dark:text-blue-400 mt-2 italic">Ex: Ana Silva, ana@email.com, 3º Ano A, 202401</p>
@@ -910,14 +910,14 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 {bulkFile ? (
                   <div className="flex flex-col items-center">
                     <span className="material-icons-outlined text-4xl text-emerald-500 mb-2">description</span>
-                    <p className="font-bold text-gray-900 dark:text-white">{bulkFile.name}</p>
-                    <p className="text-xs text-gray-400 mt-1">Clique para trocar</p>
+                    <p className="font-bold text-on-surface">{bulkFile.name}</p>
+                    <p className="text-xs text-on-surface-variant mt-1">Clique para trocar</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <span className="material-icons-outlined text-4xl text-gray-300 group-hover:text-primary mb-2 transition-colors">upload_file</span>
-                    <p className="font-bold text-gray-600 dark:text-gray-300">Clique para selecionar arquivo</p>
-                    <p className="text-xs text-gray-400 mt-1">Suporta apenas .csv</p>
+                    <span className="material-icons-outlined text-4xl text-on-surface-variant group-hover:text-primary mb-2 transition-colors">upload_file</span>
+                    <p className="font-bold text-gray-600 dark:text-on-surface-variant">Clique para selecionar arquivo</p>
+                    <p className="text-xs text-on-surface-variant mt-1">Suporta apenas .csv</p>
                   </div>
                 )}
               </div>
@@ -925,7 +925,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => setIsBulkModalOpen(false)}
-                  className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  className="flex-1 py-4 rounded-xl font-bold text-on-surface-variant hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -952,11 +952,11 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
             onClick={() => setIsAssignmentModalOpen(false)}
           ></div>
-          <div className="relative bg-white dark:bg-surface-dark w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10 max-h-[90vh] overflow-y-auto">
-            <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+          <div className="relative bg-surface-container-lowest w-full max-w-2xl rounded-card shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10 max-h-[90vh] overflow-y-auto">
+            <div className="p-8 border-b ghost-border flex justify-between items-center">
               <div>
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Atividade</h3>
-                <p className="text-gray-500 text-sm mt-1">Crie uma redação para seus alunos ou use a IA para gerar temas.</p>
+                <h3 className="text-2xl font-black text-on-surface tracking-tight">Nova Atividade</h3>
+                <p className="text-on-surface-variant text-sm mt-1">Crie uma redação para seus alunos ou use a IA para gerar temas.</p>
               </div>
               <button
                 onClick={handleGenerateAI}
@@ -974,7 +974,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
             <form onSubmit={handleCreateAssignment} className="p-8 space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título do Tema</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Título do Tema</label>
                 <input
                   type="text"
                   value={newAssignment.title}
@@ -986,7 +986,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Texto Base / Contexto</label>
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Texto Base / Contexto</label>
                 <textarea
                   value={newAssignment.baseText}
                   onChange={e => setNewAssignment({ ...newAssignment, baseText: e.target.value })}
@@ -997,7 +997,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Atribuir à Turma</label>
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Atribuir à Turma</label>
                   <select
                     value={newAssignment.class_id}
                     onChange={e => setNewAssignment({ ...newAssignment, class_id: e.target.value })}
@@ -1012,7 +1012,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Data de Entrega (Opcional)</label>
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Data de Entrega (Opcional)</label>
                   <input
                     type="date"
                     value={newAssignment.due_date}
@@ -1026,7 +1026,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 <button
                   type="button"
                   onClick={() => setIsAssignmentModalOpen(false)}
-                  className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  className="flex-1 py-4 rounded-xl font-bold text-on-surface-variant hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
                 >
                   Cancelar
                 </button>
