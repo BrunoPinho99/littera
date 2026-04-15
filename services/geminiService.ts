@@ -76,6 +76,45 @@ const generateWithRetry = async (
   }
 };
 
+const generateStreamWithRetry = async (
+  model: any,
+  request: any,
+  onStream: (text: string) => void,
+  maxRetries: number = 2
+): Promise<any> => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const result = await model.generateContentStream(request);
+      let fullText = "";
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        fullText += chunkText;
+        onStream(fullText);
+      }
+      return { response: await result.response };
+    } catch (error: any) {
+      const msg = error?.message || error?.toString() || "";
+      const is429 = msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota");
+
+      if (is429 && attempt < maxRetries) {
+        const waitTime = parseRetryDelay(msg);
+        console.warn(`[Littera] Quota excedida (Stream). Aguardando ${Math.round(waitTime / 1000)}s antes de tentar novamente... (tentativa ${attempt + 1}/${maxRetries})`);
+        await delay(waitTime);
+        continue;
+      }
+
+      if (is429) {
+        throw new Error(
+          "A API do Gemini está temporariamente indisponível (limite de requisições atingido). " +
+          "Aguarde 1-2 minutos e tente novamente."
+        );
+      }
+
+      throw error;
+    }
+  }
+};
+
 // --- GERAÇÃO DE TEMA ---
 export const generateCustomTopic = async (userInterest: string): Promise<Topic> => {
   const model = genAI.getGenerativeModel({
@@ -117,7 +156,8 @@ export const generateCustomTopic = async (userInterest: string): Promise<Topic> 
 // --- CORREÇÃO DE REDAÇÃO ---
 export const correctEssay = async (
   topicTitle: string,
-  input: EssayInput
+  input: EssayInput,
+  onStream?: (text: string) => void
 ): Promise<CorrectionResult> => {
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
@@ -128,13 +168,12 @@ export const correctEssay = async (
 Você é um corretor oficial do ENEM altamente especializado. Corrija a redação abaixo sobre o tema: "${topicTitle}".
 
 Avalie pelas 5 competências do ENEM (cada uma de 0 a 200, múltiplos de 40).
-Detecte se foi gerada por IA.
 
 Responda APENAS com JSON puro (sem markdown, sem texto antes ou depois):
 {
   "totalScore": <soma das 5 competências>,
-  "aiDetected": <true ou false>,
-  "aiJustification": "<justificativa se aiDetected for true, senão string vazia>",
+  "aiDetected": false,
+  "aiJustification": "",
   "generalComment": "<análise geral>",
   "competencies": [
     { "name": "Competência 1 – Domínio da norma culta", "score": <0-200>, "feedback": "..." },
@@ -167,7 +206,13 @@ Responda APENAS com JSON puro (sem markdown, sem texto antes ou depois):
       };
     }
 
-    const result = await generateWithRetry(model, requestContent);
+    let result;
+    if (onStream) {
+      result = await generateStreamWithRetry(model, requestContent, onStream);
+    } else {
+      result = await generateWithRetry(model, requestContent);
+    }
+
     const text = result.response.text();
 
     if (!text || text.trim().length === 0) {
@@ -175,6 +220,10 @@ Responda APENAS com JSON puro (sem markdown, sem texto antes ou depois):
     }
 
     const parsed = JSON.parse(extractJson(text)) as CorrectionResult;
+    
+    // Forçar a desativação da detecção de IA
+    parsed.aiDetected = false;
+    parsed.aiJustification = "";
 
     if (typeof parsed.totalScore !== "number" || !Array.isArray(parsed.competencies)) {
       throw new Error("Resposta da IA em formato inesperado. Tente novamente.");

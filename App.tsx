@@ -19,7 +19,7 @@ import PaymentSuccess from './components/PaymentSuccess';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification } from './types';
 import { correctEssay } from './services/geminiService';
-import { saveEssayToDatabase, getNotifications, getSchoolData } from './services/databaseService';
+import { saveEssayToDatabase, getNotifications, getSchoolData, checkEssayCache } from './services/databaseService';
 import { supabase } from './supabaseClient';
 import { exploreTopics } from './data/exploreTopics';
 import { notificationsData } from './data/notificationsData';
@@ -58,6 +58,7 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingText, setStreamingText] = useState('');
 
   // Checkout
   const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
@@ -177,10 +178,24 @@ const App: React.FC = () => {
 
   const handleEssaySubmit = async (input: EssayInput) => {
     setIsCorrecting(true);
+    setStreamingText('');
     try {
-      const result = await correctEssay(writingTopicTitle, input);
-      setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
       const userId = session?.user?.id || 'demo';
+
+      if (input.type === 'text') {
+        const cached = await checkEssayCache(userId, input.content);
+        if (cached) {
+          // Pequeno delay para UX
+          await new Promise(r => setTimeout(r, 1000));
+          setCorrectionResult({ ...cached, timeTaken: 'Cache', topicTitle: writingTopicTitle });
+          navigate('/app/result');
+          return;
+        }
+      }
+
+      const result = await correctEssay(writingTopicTitle, input, (t) => setStreamingText(t));
+      setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
+      
       await saveEssayToDatabase(writingTopicTitle, input, userId, result, session?.user?.user_metadata);
       navigate('/app/result');
     } catch (err: any) {
@@ -319,6 +334,7 @@ const App: React.FC = () => {
                   onSubmit={handleEssaySubmit}
                   isSubmitting={isCorrecting}
                   startTime={Date.now()}
+                  streamingText={streamingText}
                 />
               } />
               <Route path="result" element={

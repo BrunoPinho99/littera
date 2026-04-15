@@ -9,6 +9,7 @@ interface EssayEditorProps {
   isSubmitting: boolean;
   initialMode?: 'text' | 'image';
   startTime: number;
+  streamingText?: string;
 }
 
 const EssayEditor: React.FC<EssayEditorProps> = ({ 
@@ -17,7 +18,8 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   onSubmit, 
   isSubmitting, 
   initialMode = 'text',
-  startTime
+  startTime,
+  streamingText
 }) => {
   const [mode, setMode] = useState<'text' | 'image'>(initialMode);
   const [text, setText] = useState("");
@@ -285,26 +287,36 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               Extraindo insights e validando competências...
             </p>
 
-            <div className="space-y-4 text-left bg-gray-50 dark:bg-slate-900/50 p-6 rounded-2xl">
-               <div className="flex items-center gap-3 text-sm">
-                  <span className={`material-icons-outlined text-lg ${progress > 15 ? 'text-green-500' : 'text-gray-300'}`}>
-                    {progress > 15 ? 'check_circle' : 'circle'}
-                  </span>
-                  <span className={progress > 15 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Análise forense ativa</span>
-               </div>
-               <div className="flex items-center gap-3 text-sm">
-                  <span className={`material-icons-outlined text-lg ${progress > 45 ? 'text-green-500' : 'text-gray-300'}`}>
-                    {progress > 45 ? 'check_circle' : 'circle'}
-                  </span>
-                  <span className={progress > 45 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Avaliação de repertório</span>
-               </div>
-               <div className="flex items-center gap-3 text-sm">
-                  <span className={`material-icons-outlined text-lg ${progress > 80 ? 'text-green-500' : 'text-gray-300'}`}>
-                    {progress > 80 ? 'check_circle' : 'circle'}
-                  </span>
-                  <span className={progress > 80 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Finalizando relatório</span>
-               </div>
-            </div>
+            {streamingText ? (
+              <div 
+                className="w-full h-32 md:h-40 bg-[#0B0F19] text-[10px] md:text-xs font-mono text-emerald-400 p-4 rounded-2xl overflow-auto text-left whitespace-pre-wrap border border-white/5 shadow-inner"
+                ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}
+              >
+                {streamingText}
+                <span className="animate-pulse">_</span>
+              </div>
+            ) : (
+              <div className="space-y-4 text-left bg-gray-50 dark:bg-slate-900/50 p-6 rounded-2xl">
+                 <div className="flex items-center gap-3 text-sm">
+                    <span className={`material-icons-outlined text-lg ${progress > 15 ? 'text-green-500' : 'text-gray-300'}`}>
+                      {progress > 15 ? 'check_circle' : 'circle'}
+                    </span>
+                    <span className={progress > 15 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Análise forense ativa</span>
+                 </div>
+                 <div className="flex items-center gap-3 text-sm">
+                    <span className={`material-icons-outlined text-lg ${progress > 45 ? 'text-green-500' : 'text-gray-300'}`}>
+                      {progress > 45 ? 'check_circle' : 'circle'}
+                    </span>
+                    <span className={progress > 45 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Avaliação de repertório</span>
+                 </div>
+                 <div className="flex items-center gap-3 text-sm">
+                    <span className={`material-icons-outlined text-lg ${progress > 80 ? 'text-green-500' : 'text-gray-300'}`}>
+                      {progress > 80 ? 'check_circle' : 'circle'}
+                    </span>
+                    <span className={progress > 80 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Finalizando relatório</span>
+                 </div>
+              </div>
+            )}
             
             <p className="mt-8 text-[10px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">
               Rede Neural Flash Otimizada

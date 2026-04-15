@@ -213,15 +213,15 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         <h1 className="sl-headline sl-reveal sl-d1" style={{
                             fontSize: 'clamp(38px, 5.5vw, 64px)',
                             fontWeight: 900, marginBottom: 28, color: '#131b2e',
-                        }}>
-                            A precisão de uma banca<br />de excelência. A velocidade<br />que o futuro exige.
+                        }}>Eleve o nível das redações da sua escola com feedback em tempo real
+
                         </h1>
 
                         <p className="sl-reveal sl-d2" style={{
                             fontSize: 18, color: '#49454f', lineHeight: 1.7,
                             maxWidth: 600, margin: '0 auto 40px',
                         }}>
-                            O Littera transforma a correção de redações do ENEM na sua escola, entregando análises profundas e padronizadas para cada aluno em segundos, não em semanas.
+                            A tecnologia que eleva as redações da sua escola ao padrão de excelência do Enem.
                         </p>
 
                         <div className="sl-reveal sl-d3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

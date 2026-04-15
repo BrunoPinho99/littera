@@ -27,6 +27,37 @@ export const calculateUserRank = (essayCount: number) => {
   return JOURNEY_TIERS.find(tier => essayCount >= tier.min && essayCount <= tier.max) || JOURNEY_TIERS[0];
 };
 
+export const checkEssayCache = async (userId: string, conteudo: string): Promise<CorrectionResult | null> => {
+  if (userId === 'demo' || userId === 'demo-user') return null;
+
+  try {
+    const { data, error } = await supabase
+      .from('redacoes')
+      .select('total_score, competencias_json, comentario_geral')
+      .eq('user_id', userId)
+      .eq('conteudo', conteudo)
+      .limit(1)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    const parsedCompetencies = typeof data.competencias_json === 'string'
+      ? JSON.parse(data.competencias_json)
+      : data.competencias_json;
+
+    return {
+      totalScore: data.total_score || 0,
+      competencies: parsedCompetencies || [],
+      generalComment: data.comentario_geral || "",
+      aiDetected: false,
+      aiJustification: ""
+    };
+  } catch (err) {
+    console.error("Erro ao verificar cache:", err);
+    return null;
+  }
+};
+
 export const saveEssayToDatabase = async (topicTitle: string, input: EssayInput, userId: string, result?: CorrectionResult, userMetadata?: any) => {
   const content = input.type === 'text' ? input.content : 'Redação enviada via imagem';
 
