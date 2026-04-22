@@ -60,19 +60,9 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
         { id: 'explore', label: 'Temas', icon: 'explore' },
         { id: 'ranking', label: 'Comunidade', icon: 'groups' },
       ];
-    } else if (userType === 'teacher') {
-      return [
-        { id: 'inst-students', label: 'Meus Alunos', icon: 'school' },
-        { id: 'inst-performance', label: 'Correções', icon: 'assignment_turned_in' },
-        { id: 'inst-ranking', label: 'Ranking da Turma', icon: 'leaderboard' },
-      ];
     } else {
-      return [
-        { id: 'inst-students', label: 'Alunos', icon: 'person' },
-        { id: 'inst-performance', label: 'Desempenho', icon: 'insights' },
-        { id: 'inst-ranking', label: 'Rankings', icon: 'emoji_events' },
-        { id: 'inst-classes', label: 'Turmas', icon: 'class' },
-      ];
+      // Admin e Teacher usam apenas os Maxi Cards dentro do próprio InstitutionDashboard para navegação unificada e mais simples
+      return [];
     }
   };
 

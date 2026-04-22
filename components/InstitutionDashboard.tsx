@@ -18,13 +18,13 @@ import { generateAssignmentTheme } from '../services/geminiService';
 import RankingView from './RankingView';
 
 interface InstitutionDashboardProps {
-  initialTab?: 'students' | 'essays' | 'ranking' | 'classes' | 'staff' | 'settings';
+  initialTab?: 'overview' | 'students' | 'essays' | 'ranking' | 'classes' | 'staff' | 'settings';
   userType?: 'teacher' | 'school_admin';
 }
 
 const ITEMS_PER_PAGE = 8;
 
-const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab = 'students', userType = 'school_admin' }) => {
+const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab = 'overview', userType = 'school_admin' }) => {
 
   // Helper: busca o school_id real do usuário (metadados ou tabela profiles)
   const getResolvedSchoolId = async (session: any): Promise<string> => {
@@ -405,19 +405,18 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       { label: 'Docentes', value: professors.length, icon: 'school', color: 'bg-violet-500' },
     ];
   }, [students, classes, essays, professors, userType]);
-
   const availableTabs = useMemo(() => {
     const baseTabs = [
-      { id: 'students', label: userType === 'teacher' ? 'Meus Alunos' : 'Alunos', icon: 'person' },
-      { id: 'essays', label: 'Correções', icon: 'description' },
-      { id: 'ranking', label: 'Ranking', icon: 'trophy' },
+      { id: 'overview', label: 'Visão Geral', icon: 'dashboard' },
+      { id: 'students', label: userType === 'teacher' ? 'Meus Alunos' : 'Alunos', icon: 'manage_accounts' },
+      { id: 'essays', label: 'Correções', icon: 'history_edu' },
+      { id: 'ranking', label: 'Rankings', icon: 'emoji_events' },
     ];
 
     if (userType === 'school_admin') {
-      baseTabs.splice(1, 0, { id: 'classes', label: 'Turmas', icon: 'grid_view' });
-      baseTabs.splice(2, 0, { id: 'staff', label: 'Docentes', icon: 'school' }); // Add 'Docentes' tab
+      baseTabs.splice(2, 0, { id: 'classes', label: 'Turmas', icon: 'meeting_room' });
+      baseTabs.splice(3, 0, { id: 'staff', label: 'Professores', icon: 'school' }); 
     }
-
 
     return baseTabs;
   }, [userType]);
@@ -534,22 +533,155 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         ))}
       </div>
 
-      {/* Seção Principal de Abas */}
+      <h2 className="text-2xl font-black text-gray-900 dark:text-white mt-8 mb-4">Painel de Controle</h2>
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${userType === 'teacher' ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4 mb-8`}>
+        {availableTabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 outline-none focus-visible:ring-4 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-300 group ${
+              activeTab === tab.id 
+              ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30 scale-105 z-10' 
+              : 'bg-white dark:bg-surface-dark border-transparent dark:border-white/5 text-gray-600 dark:text-gray-400 hover:border-primary/30 hover:text-gray-900 dark:hover:text-white hover:shadow-lg'
+            }`}
+          >
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:-translate-y-1 ${
+              activeTab === tab.id ? 'bg-white/20' : 'bg-gray-50 dark:bg-white/5 text-primary'
+            }`}>
+              <span className={`material-icons-outlined text-3xl ${activeTab === tab.id ? 'text-white' : ''}`}>
+                {tab.icon}
+              </span>
+            </div>
+            <span className="text-sm sm:text-base font-bold text-center leading-tight">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium border border-gray-100 dark:border-white/5 overflow-hidden">
-        <div className="flex border-b border-gray-50 dark:border-white/5 bg-gray-50/50 dark:bg-white/5 p-2 overflow-x-auto">
-          {availableTabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 min-w-[140px] py-4 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab.id ? 'bg-white dark:bg-surface-dark shadow-md text-primary' : 'text-gray-400 hover:text-gray-900'}`}
-            >
-              <span className="material-icons-outlined text-lg">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+
 
         <div className="p-10">
+          {activeTab === 'overview' && (
+            <div className="space-y-8 animate-fade-in">
+              {/* ROI and General Stats Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-gradient-to-br from-[#1C2030]/80 to-[#12141F] dark:from-white/10 dark:to-white/5 p-8 rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-premium relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <span className="material-icons-outlined text-8xl text-white">timer</span>
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/80 mb-2">Tempo Poupado</p>
+                  <div className="flex items-end gap-2">
+                    <h3 className="text-5xl font-black text-white">{Math.round((essays.length * 15) / 60)}</h3>
+                    <span className="text-xl font-bold text-gray-400 mb-1">horas</span>
+                  </div>
+                  <p className="text-xs text-gray-400 font-medium mt-4">Economia gerada pelos docentes que não precisaram corrigir {essays.length} redações manualmente.</p>
+                </div>
+
+                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Média da Escola</p>
+                  <div className="flex items-end gap-2">
+                    <h3 className="text-5xl font-black text-gray-900 dark:text-white">
+                      {essays.length ? Math.round(essays.reduce((a,c)=>a+c.score,0)/essays.length) : 0}
+                    </h3>
+                    <span className="text-xl font-bold text-gray-400 mb-1">/ 1000</span>
+                  </div>
+                  <div className="mt-4 w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500 rounded-full" 
+                      style={{ width: `${Math.min(100, (essays.length ? Math.round(essays.reduce((a,c)=>a+c.score,0)/essays.length) : 0) / 10)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 font-medium mt-3">Nota média calculada em todas as submissões deste ano.</p>
+                </div>
+
+                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2">Engajamento</p>
+                  <div className="flex items-end gap-2">
+                    <h3 className="text-5xl font-black text-gray-900 dark:text-white">
+                      {students.length ? Math.round((students.filter(s => s.essaysSubmitted > 0).length / students.length) * 100) : 0}
+                    </h3>
+                    <span className="text-xl font-bold text-gray-400 mb-1">%</span>
+                  </div>
+                  <p className="text-xs text-gray-400 font-medium mt-4">Percentual de alunos que já submeteram ao menos uma redação na plataforma.</p>
+                </div>
+              </div>
+
+              {/* Advanced Highlights */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Ranking de Alunos Simplificado */}
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-gray-100 dark:border-white/5 p-8 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-lg font-black text-gray-900 dark:text-white">Alunos Destaque</h4>
+                    <span className="p-2 rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-500/10"><span className="material-icons-outlined text-sm">stars</span></span>
+                  </div>
+                  <div className="space-y-4">
+                    {[...students]
+                      .filter(s => s.averageScore > 0)
+                      .sort((a,b) => b.averageScore - a.averageScore)
+                      .slice(0, 4)
+                      .map((s, idx) => {
+                        const sClass = classes.find(c => c.id === s.class_id);
+                        return (
+                          <div key={s.id} className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 flex items-center justify-center font-bold text-gray-500 dark:text-gray-300">
+                                {idx + 1}º
+                              </div>
+                              <div>
+                                <p className="font-bold text-sm text-gray-900 dark:text-white">{s.name}</p>
+                                <p className="text-xs text-gray-400">{sClass ? sClass.name : 'Ensino Médio'}</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-black text-primary">{s.averageScore}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    {students.filter(s => s.averageScore > 0).length === 0 && (
+                      <p className="text-sm text-gray-400 font-medium text-center py-6">Nenhum aluno com nota registrada ainda.</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ranking de Turmas */}
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-gray-100 dark:border-white/5 p-8 shadow-sm">
+                  <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-lg font-black text-gray-900 dark:text-white">Top Turmas por Média</h4>
+                    <span className="p-2 rounded-xl bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10"><span className="material-icons-outlined text-sm">equalizer</span></span>
+                  </div>
+                  <div className="space-y-4">
+                    {[...classes]
+                      .sort((a,b) => (b.averageScore || 0) - (a.averageScore || 0))
+                      .slice(0, 4)
+                      .map((c, idx) => (
+                        <div key={c.id} className="flex items-center gap-4 p-3">
+                          <div className="w-8 flex-shrink-0 text-center font-bold text-gray-400">#{idx + 1}</div>
+                          <div className="flex-1 w-full">
+                            <div className="flex justify-between items-end mb-1">
+                              <p className="font-bold text-sm text-gray-900 dark:text-white">{c.name}</p>
+                              <p className="font-black text-xs text-gray-500">{c.averageScore || 0} pts</p>
+                            </div>
+                            <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-primary rounded-full transition-all duration-1000" 
+                                style={{ width: `${Math.min(100, (c.averageScore || 0) / 10)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    {classes.length === 0 && (
+                      <p className="text-sm text-gray-400 font-medium text-center py-6">Nenhuma turma cadastrada no momento.</p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {activeTab === 'students' && (
             <>
               <div className="flex gap-2 mb-6">

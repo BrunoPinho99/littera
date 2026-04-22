@@ -58,7 +58,6 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingText, setStreamingText] = useState('');
 
   // Checkout
   const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
@@ -154,7 +153,7 @@ const App: React.FC = () => {
       currentView !== 'profile' &&
       currentView !== 'notifications'
     ) {
-      navigate('/app/inst-students', { replace: true });
+      navigate('/app/inst-overview', { replace: true });
     }
   }, [userType, currentView]);
 
@@ -178,7 +177,6 @@ const App: React.FC = () => {
 
   const handleEssaySubmit = async (input: EssayInput) => {
     setIsCorrecting(true);
-    setStreamingText('');
     try {
       const userId = session?.user?.id || 'demo';
 
@@ -189,24 +187,27 @@ const App: React.FC = () => {
           await new Promise(r => setTimeout(r, 1000));
           setCorrectionResult({ ...cached, timeTaken: 'Cache', topicTitle: writingTopicTitle });
           navigate('/app/result');
+          // Small delay before hiding overlay to prevent flash
+          setTimeout(() => setIsCorrecting(false), 100);
           return;
         }
       }
 
-      const result = await correctEssay(writingTopicTitle, input, (t) => setStreamingText(t));
+      const result = await correctEssay(writingTopicTitle, input);
       setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
       
       await saveEssayToDatabase(writingTopicTitle, input, userId, result, session?.user?.user_metadata);
       navigate('/app/result');
+      // Small delay before hiding overlay to prevent flash
+      setTimeout(() => setIsCorrecting(false), 100);
     } catch (err: any) {
-      alert('Erro ao corrigir: ' + err.message);
-    } finally {
       setIsCorrecting(false);
+      alert('Erro ao corrigir: ' + err.message);
     }
   };
 
   const getDefaultView = (type: string) => {
-    if (type === 'school_admin' || type === 'teacher') return 'inst-students';
+    if (type === 'school_admin' || type === 'teacher') return 'inst-overview';
     return 'practice';
   };
 
@@ -308,7 +309,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <main className="pt-20 lg:pt-24 px-6 pb-12 max-w-[1400px] mx-auto">
+        <main className="pt-16 sm:pt-20 lg:pt-24 px-3 sm:px-6 pb-8 sm:pb-12 max-w-[1400px] mx-auto">
           {/* Views de Aluno */}
           {!['school_admin', 'teacher'].includes(userType) && (
             <Routes>
@@ -334,11 +335,10 @@ const App: React.FC = () => {
                   onSubmit={handleEssaySubmit}
                   isSubmitting={isCorrecting}
                   startTime={Date.now()}
-                  streamingText={streamingText}
                 />
               } />
               <Route path="result" element={
-                correctionResult ? <CorrectionResultView result={correctionResult} onBack={() => navigate('/app/practice')} /> : <Navigate to="/app/practice" replace />
+                correctionResult ? <CorrectionResultView result={correctionResult} onBack={() => navigate('/app/practice')} onEvolution={() => navigate('/app/performance')} /> : <Navigate to="/app/practice" replace />
               } />
               <Route path="explore" element={
                 <ExploreView onSelectTopic={(title) => {
@@ -367,12 +367,13 @@ const App: React.FC = () => {
           {/* Views Institucionais */}
           {['school_admin', 'teacher'].includes(userType) && (
             <Routes>
+              <Route path="inst-overview" element={<InstitutionDashboard initialTab="overview" userType={userType as any} />} />
               <Route path="inst-students" element={<InstitutionDashboard initialTab="students" userType={userType as any} />} />
               <Route path="inst-performance" element={<InstitutionDashboard initialTab="essays" userType={userType as any} />} />
               <Route path="inst-ranking" element={<InstitutionDashboard initialTab="ranking" userType={userType as any} />} />
               <Route path="inst-classes" element={<InstitutionDashboard initialTab="classes" userType={userType as any} />} />
               <Route path="profile" element={<ProfileView user={session?.user} />} />
-              <Route path="*" element={<Navigate to="/app/inst-students" replace />} />
+              <Route path="*" element={<Navigate to="/app/inst-overview" replace />} />
             </Routes>
           )}
         </main>
