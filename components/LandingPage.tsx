@@ -8,6 +8,9 @@ interface LandingPageProps {
 
 const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) => {
     const [scrolled, setScrolled] = useState(false);
+    const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+    const [isSubmittingLead, setIsSubmittingLead] = useState(false);
+    const [isLeadSuccess, setIsLeadSuccess] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -44,6 +47,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 @keyframes slFloat {
                     0%, 100% { transform: translateY(0px); }
                     50% { transform: translateY(-10px); }
+                }
+                
+                @keyframes slScaleIn {
+                    0% { transform: scale(0.5); opacity: 0; }
+                    60% { transform: scale(1.1); opacity: 1; }
+                    100% { transform: scale(1); opacity: 1; }
                 }
 
                 .sl-nav-scrolled {
@@ -213,7 +222,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         <h1 className="sl-headline sl-reveal sl-d1" style={{
                             fontSize: 'clamp(38px, 5.5vw, 64px)',
                             fontWeight: 900, marginBottom: 28, color: '#131b2e',
-                        }}>Eleve o nível das redações da sua escola com feedback em tempo real
+                        }}>Eleve o nível das redações dos seus alunos com feedback em tempo real
 
                         </h1>
 
@@ -225,7 +234,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         </p>
 
                         <div className="sl-reveal sl-d3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button className="sl-btn-primary" onClick={() => onDemoClick('teacher')} style={{ padding: '16px 36px', fontSize: 16 }}>
+                            <button className="sl-btn-primary" onClick={() => setIsLeadModalOpen(true)} style={{ padding: '16px 36px', fontSize: 16 }}>
                                 Conheça o Padrão Littera
                             </button>
                             <button className="sl-btn-secondary" onClick={onLoginClick}>
@@ -520,6 +529,132 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                     </p>
                 </div>
             </footer>
+
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                LEAD MODAL — Brevo Integration
+            ═══════════════════════════════════════════════════════════════════ */}
+            {isLeadModalOpen && (
+                <div style={{
+                    position: 'fixed', inset: 0, zIndex: 99999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(19, 27, 46, 0.5)', backdropFilter: 'blur(10px)',
+                    padding: 20
+                }}>
+                    <div className="sl-card" style={{ 
+                        width: '100%', maxWidth: 480, background: '#fff', 
+                        padding: '40px', position: 'relative',
+                        boxShadow: '0 32px 64px rgba(0,0,0,0.15)',
+                        animation: 'slReveal 0.4s cubic-bezier(0.16,1,0.3,1)'
+                    }}>
+                        <button 
+                            onClick={() => { setIsLeadModalOpen(false); setTimeout(() => setIsLeadSuccess(false), 300); }}
+                            style={{ position: 'absolute', top: 24, right: 24, background: 'transparent', border: 'none', cursor: 'pointer', color: '#c7c5d0', padding: 4 }}
+                        >
+                            <span className="material-icons-outlined">close</span>
+                        </button>
+
+                        {isLeadSuccess ? (
+                            <div style={{ textAlign: 'center', padding: '20px 0', animation: 'slReveal 0.4s ease' }}>
+                                <div style={{ 
+                                    width: 80, height: 80, borderRadius: '50%', background: '#10b981', 
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                                    margin: '0 auto 24px', animation: 'slScaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)' 
+                                }}>
+                                    <span className="material-icons-outlined" style={{ color: '#fff', fontSize: 40 }}>check</span>
+                                </div>
+                                <h3 className="sl-headline" style={{ fontSize: 28, fontWeight: 900, color: '#131b2e', marginBottom: 12 }}>
+                                    Tudo certo!
+                                </h3>
+                                <p style={{ fontSize: 16, color: '#49454f', lineHeight: 1.6, marginBottom: 32 }}>
+                                    Seus dados foram enviados com sucesso. Nossa equipe avaliará seu perfil e entrará em contato em breve.
+                                </p>
+                                <button onClick={() => { setIsLeadModalOpen(false); setTimeout(() => setIsLeadSuccess(false), 300); }} className="sl-btn-primary" style={{ width: '100%', padding: '16px' }}>
+                                    Concluir
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+
+                        <div style={{ width: 48, height: 48, borderRadius: 12, background: 'linear-gradient(135deg, #004ac6 0%, #2563eb 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, color: '#fff' }}>
+                            <span className="material-icons-outlined">auto_awesome</span>
+                        </div>
+
+                        <h3 className="sl-headline" style={{ fontSize: 26, fontWeight: 900, color: '#131b2e', marginBottom: 12 }}>
+                            Conheça o Padrão Littera
+                        </h3>
+                        <p style={{ fontSize: 15, color: '#49454f', marginBottom: 28, lineHeight: 1.6 }}>
+                            Preencha seus dados para conversarmos sobre como elevar o nível e a performance das redações na sua escola.
+                        </p>
+
+                        <form onSubmit={async (e) => {
+                            e.preventDefault();
+                            setIsSubmittingLead(true);
+                            const fd = new FormData(e.currentTarget);
+                            const data = Object.fromEntries(fd.entries());
+                            
+                            try {
+                                const apiKey = import.meta.env.VITE_BREVO_API_KEY;
+                                
+                                if (apiKey) {
+                                    // Integração REAL com o Brevo (via API v3)
+                                    await fetch('https://api.brevo.com/v3/contacts', {
+                                        method: 'POST',
+                                        headers: {
+                                            'accept': 'application/json',
+                                            'api-key': apiKey,
+                                            'content-type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            email: data.EMAIL,
+                                            attributes: {
+                                                NOME: data.NOME,
+                                                TELEFONE: data.TELEFONE,
+                                                ESCOLA: data.ESCOLA
+                                            },
+                                            updateEnabled: true // Se o contato já existir, atualiza
+                                        })
+                                    });
+                                } else {
+                                    // Fallback simulado se não houver chave API. O log exibe os dados para você colar a chave depois.
+                                    console.warn("⚠️ VITE_BREVO_API_KEY não configurada no .env.local", data);
+                                    await new Promise(r => setTimeout(r, 1500)); 
+                                }
+                                setIsLeadSuccess(true);
+                            } catch (err) {
+                                console.error(err);
+                                alert("Ocorreu um erro ao enviar. Tente novamente mais tarde.");
+                            } finally {
+                                setIsSubmittingLead(false);
+                            }
+                        }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                            <div>
+                                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>Nome completo</label>
+                                <input required name="NOME" type="text" placeholder="Nome do responsável" style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>E-mail corporativo</label>
+                                <input required name="EMAIL" type="email" placeholder="nome@escola.com.br" style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: 16 }}>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>Celular / WhatsApp</label>
+                                    <input required name="TELEFONE" type="tel" placeholder="(11) 99999-9999" style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>Nome da Escola</label>
+                                    <input required name="ESCOLA" type="text" placeholder="Instituição..." style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
+                                </div>
+                            </div>
+                            <button type="submit" className="sl-btn-primary" disabled={isSubmittingLead} style={{ width: '100%', padding: '16px', marginTop: 12, opacity: isSubmittingLead ? 0.7 : 1 }}>
+                                {isSubmittingLead ? 'Enviando...' : 'Agendar Reunião de Descoberta'}
+                            </button>
+                        </form>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

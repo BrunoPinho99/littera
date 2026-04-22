@@ -9,7 +9,6 @@ interface EssayEditorProps {
   isSubmitting: boolean;
   initialMode?: 'text' | 'image';
   startTime: number;
-  streamingText?: string;
 }
 
 const EssayEditor: React.FC<EssayEditorProps> = ({ 
@@ -18,8 +17,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   onSubmit, 
   isSubmitting, 
   initialMode = 'text',
-  startTime,
-  streamingText
+  startTime
 }) => {
   const [mode, setMode] = useState<'text' | 'image'>(initialMode);
   const [text, setText] = useState("");
@@ -155,11 +153,11 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-surface-dark rounded-3xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-fade-in flex flex-col h-[calc(100vh-200px)] min-h-[600px] relative">
+    <div className="bg-white dark:bg-surface-dark rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-fade-in flex flex-col h-[calc(100vh-140px)] sm:h-[calc(100vh-180px)] lg:h-[calc(100vh-200px)] min-h-[400px] relative">
       {/* Header */}
-      <div className="bg-gray-50 dark:bg-slate-800/50 px-6 py-4 border-b border-gray-200 dark:border-slate-700 flex justify-between items-center">
-        <div className="flex-1 min-w-0 mr-4">
-          <div className="flex items-center gap-3 mb-1">
+      <div className="bg-gray-50 dark:bg-slate-800/50 px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
+        <div className="flex-1 min-w-0 sm:mr-4">
+          <div className="flex items-center gap-2 sm:gap-3 mb-1 flex-wrap">
             <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Tema da Redação</h3>
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-md">
               <span className="material-icons-outlined text-xs text-primary">timer</span>
@@ -176,21 +174,21 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               </span>
             </div>
           </div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white line-clamp-1" title={topicTitle}>{topicTitle}</h2>
+          <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white line-clamp-1" title={topicTitle}>{topicTitle}</h2>
         </div>
         
-        <div className="flex bg-gray-200 dark:bg-slate-700 p-1 rounded-lg shrink-0">
+        <div className="flex bg-gray-200 dark:bg-slate-700 p-1 rounded-lg shrink-0 self-start sm:self-auto">
           <button
             onClick={() => setMode('text')}
             disabled={isSubmitting}
-            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all ${mode === 'text' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all ${mode === 'text' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
           >
             Digitar
           </button>
           <button
             onClick={() => setMode('image')}
             disabled={isSubmitting}
-            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all ${mode === 'image' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all ${mode === 'image' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
           >
             Enviar Foto
           </button>
@@ -211,7 +209,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
             ></div>
             
             <textarea
-              className="w-full h-full p-8 pt-[0.45rem] resize-none bg-transparent border-0 focus:ring-0 text-gray-800 dark:text-gray-200 text-xl font-serif leading-[2.25rem] placeholder-gray-300 dark:placeholder-slate-600 outline-none relative z-10"
+              className="w-full h-full p-4 sm:p-8 pt-[0.45rem] resize-none bg-transparent border-0 focus:ring-0 text-gray-800 dark:text-gray-200 text-base sm:text-xl font-serif leading-[2.25rem] placeholder-gray-300 dark:placeholder-slate-600 outline-none relative z-10"
               placeholder="Comece a escrever sua redação aqui..."
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -266,78 +264,191 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
         )}
       </div>
       
-      {/* Loading Overlay */}
+      {/* Loading Overlay — Professional Correction UX */}
       {isSubmitting && (
-        <div className="absolute inset-0 z-50 bg-white/95 dark:bg-surface-dark/95 backdrop-blur-md flex flex-col items-center justify-center transition-all duration-300 p-6">
-          <div className="w-full max-w-md bg-white dark:bg-slate-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 p-8 relative overflow-hidden animate-fade-in text-center">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gray-100 dark:bg-slate-700">
-               <div 
-                 className="h-full bg-gradient-to-r from-primary via-purple-400 to-blue-400 transition-all duration-300"
-                 style={{ width: `${progress}%` }}
-               ></div>
-            </div>
-            
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 mx-auto relative">
-              <div className="w-14 h-14 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <span className="material-icons-outlined text-primary absolute text-3xl">auto_fix_high</span>
-            </div>
-
-            <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Análise Inteligente</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6 font-medium">
-              Extraindo insights e validando competências...
-            </p>
-
-            {streamingText ? (
+        <div className="fixed inset-0 z-[9999] bg-white dark:bg-[#0c1021] overflow-y-auto transition-all duration-300">
+          <div className="min-h-full w-full flex flex-col items-center justify-center p-4 sm:p-6">
+            <div className="w-full max-w-lg animate-fade-in text-center py-8">
+              
+              {/* Animated Brain Icon */}
+              <div className="relative w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-6 sm:mb-8">
+              {/* Outer rotating ring */}
               <div 
-                className="w-full h-32 md:h-40 bg-[#0B0F19] text-[10px] md:text-xs font-mono text-emerald-400 p-4 rounded-2xl overflow-auto text-left whitespace-pre-wrap border border-white/5 shadow-inner"
-                ref={(el) => { if (el) el.scrollTop = el.scrollHeight; }}
-              >
-                {streamingText}
-                <span className="animate-pulse">_</span>
+                className="absolute inset-0 rounded-full border-2 border-dashed border-primary/20"
+                style={{ animation: 'correctionSpin 8s linear infinite' }}
+              />
+              {/* Middle pulsing ring */}
+              <div 
+                className="absolute inset-2 rounded-full border-[3px] border-transparent"
+                style={{ 
+                  borderTopColor: '#004ac6',
+                  borderRightColor: '#2563eb',
+                  animation: 'correctionSpin 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite',
+                }}
+              />
+              {/* Inner glow */}
+              <div 
+                className="absolute inset-4 rounded-full bg-gradient-to-br from-primary/10 to-blue-400/10"
+                style={{ animation: 'correctionPulse 2s ease-in-out infinite' }}
+              />
+              {/* Icon */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span 
+                  className="material-icons-outlined text-primary text-4xl"
+                  style={{ animation: 'correctionIconFloat 3s ease-in-out infinite' }}
+                >
+                  psychology
+                </span>
               </div>
-            ) : (
-              <div className="space-y-4 text-left bg-gray-50 dark:bg-slate-900/50 p-6 rounded-2xl">
-                 <div className="flex items-center gap-3 text-sm">
-                    <span className={`material-icons-outlined text-lg ${progress > 15 ? 'text-green-500' : 'text-gray-300'}`}>
-                      {progress > 15 ? 'check_circle' : 'circle'}
-                    </span>
-                    <span className={progress > 15 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Análise forense ativa</span>
-                 </div>
-                 <div className="flex items-center gap-3 text-sm">
-                    <span className={`material-icons-outlined text-lg ${progress > 45 ? 'text-green-500' : 'text-gray-300'}`}>
-                      {progress > 45 ? 'check_circle' : 'circle'}
-                    </span>
-                    <span className={progress > 45 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Avaliação de repertório</span>
-                 </div>
-                 <div className="flex items-center gap-3 text-sm">
-                    <span className={`material-icons-outlined text-lg ${progress > 80 ? 'text-green-500' : 'text-gray-300'}`}>
-                      {progress > 80 ? 'check_circle' : 'circle'}
-                    </span>
-                    <span className={progress > 80 ? 'text-gray-700 dark:text-white font-bold' : 'text-gray-400'}>Finalizando relatório</span>
-                 </div>
-              </div>
-            )}
-            
-            <p className="mt-8 text-[10px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">
-              Rede Neural Flash Otimizada
+            </div>
+
+            {/* Title */}
+            <h3 
+              className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-2"
+              style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}
+            >
+              Corrigindo sua redação
+            </h3>
+            <p className="text-gray-400 dark:text-gray-500 mb-6 sm:mb-8 text-xs sm:text-sm font-medium">
+              Nossa I.A. está analisando cada competência com cuidado
             </p>
+
+            {/* Progress Bar */}
+            <div className="w-full max-w-xs mx-auto mb-6 sm:mb-8">
+              <div className="h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full rounded-full relative"
+                  style={{ 
+                    width: `${progress}%`, 
+                    transition: 'width 0.3s ease',
+                    background: 'linear-gradient(90deg, #004ac6, #2563eb, #60a5fa)',
+                  }}
+                >
+                  {/* Shimmer effect on progress bar */}
+                  <div 
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)',
+                      animation: 'correctionShimmer 1.5s ease-in-out infinite',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Steps */}
+            <div className="w-full max-w-sm mx-auto space-y-2 sm:space-y-3 mb-6 sm:mb-8">
+              {[
+                { label: 'Leitura e compreensão do texto', threshold: 15, icon: 'auto_stories' },
+                { label: 'Avaliação das 5 competências ENEM', threshold: 40, icon: 'checklist_rtl' },
+                { label: 'Análise de coerência e coesão', threshold: 65, icon: 'hub' },
+                { label: 'Gerando feedback personalizado', threshold: 85, icon: 'rate_review' },
+              ].map((step, i) => {
+                const isComplete = progress > step.threshold;
+                const isActive = !isComplete && (i === 0 || progress > [0, 15, 40, 65][i]);
+                return (
+                  <div 
+                    key={i} 
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 ${
+                      isComplete 
+                        ? 'bg-emerald-50 dark:bg-emerald-950/30' 
+                        : isActive 
+                          ? 'bg-primary/5 dark:bg-primary/10' 
+                          : 'bg-gray-50 dark:bg-slate-800/50'
+                    }`}
+                  >
+                    {/* Step icon */}
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${
+                      isComplete 
+                        ? 'bg-emerald-500 text-white' 
+                        : isActive 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'bg-gray-100 dark:bg-slate-700 text-gray-300 dark:text-slate-600'
+                    }`}>
+                      {isComplete ? (
+                        <span className="material-icons-outlined text-lg" style={{ animation: 'correctionCheckPop 0.3s ease-out' }}>check</span>
+                      ) : isActive ? (
+                        <span className="material-icons-outlined text-lg" style={{ animation: 'correctionIconFloat 1.5s ease-in-out infinite' }}>{step.icon}</span>
+                      ) : (
+                        <span className="material-icons-outlined text-lg">{step.icon}</span>
+                      )}
+                    </div>
+                    
+                    {/* Step label */}
+                    <span className={`text-sm font-semibold transition-colors duration-500 ${
+                      isComplete 
+                        ? 'text-emerald-700 dark:text-emerald-400' 
+                        : isActive 
+                          ? 'text-gray-800 dark:text-white' 
+                          : 'text-gray-300 dark:text-slate-600'
+                    }`}>
+                      {step.label}
+                    </span>
+                    
+                    {/* Active indicator */}
+                    {isActive && (
+                      <div className="ml-auto flex gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: 'correctionDot 1.4s ease-in-out infinite' }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: 'correctionDot 1.4s ease-in-out 0.2s infinite' }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: 'correctionDot 1.4s ease-in-out 0.4s infinite' }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Bottom tag */}
+            <p className="text-[11px] font-bold text-gray-300 dark:text-slate-600 uppercase tracking-[0.15em]">
+              Gemini Flash • Análise profunda em segundos
+            </p>
+          </div>
+          
+          {/* Inline keyframes for correction overlay */}
+          <style>{`
+            @keyframes correctionSpin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+            @keyframes correctionPulse {
+              0%, 100% { opacity: 0.5; transform: scale(1); }
+              50% { opacity: 1; transform: scale(1.08); }
+            }
+            @keyframes correctionIconFloat {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-3px); }
+            }
+            @keyframes correctionShimmer {
+              0% { transform: translateX(-100%); }
+              100% { transform: translateX(200%); }
+            }
+            @keyframes correctionCheckPop {
+              0% { transform: scale(0); opacity: 0; }
+              60% { transform: scale(1.3); }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes correctionDot {
+              0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+                40% { opacity: 1; transform: scale(1.2); }
+              }
+            `}</style>
           </div>
         </div>
       )}
 
       {/* Footer Actions */}
-      <div className="p-6 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center">
+      <div className="p-3 sm:p-6 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center gap-3">
         <button
           onClick={onCancel}
           disabled={isSubmitting}
-          className="px-6 py-3 rounded-xl text-gray-600 dark:text-gray-400 font-medium hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
+          className="px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl text-gray-600 dark:text-gray-400 text-sm sm:text-base font-medium hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors"
         >
           Cancelar
         </button>
         <button
           onClick={handleSubmit}
           disabled={!canSubmit()}
-          className="px-8 py-3 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-primary/50 text-white font-bold shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2"
+          className="px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-primary/50 text-white text-sm sm:text-base font-bold shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2"
         >
           {isSubmitting ? 'Analisando...' : 'Entregar Redação'}
           {!isSubmitting && <span className="material-icons-outlined text-sm">send</span>}

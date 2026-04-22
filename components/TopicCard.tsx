@@ -12,49 +12,135 @@ interface TopicCardProps {
 
 const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWrite, onUpload }) => {
   const [countdown, setCountdown] = React.useState<number | null>(null);
+  const [countdownPhase, setCountdownPhase] = React.useState<'counting' | 'go' | null>(null);
   const [selectedText, setSelectedText] = React.useState<SupportText | null>(null);
 
   const handleWriteClick = () => {
     setCountdown(3);
-    const interval = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev === 1) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setCountdown(null);
-            onWrite();
-          }, 500); // Pequeno delay no "1" antes de ir
-          return 1;
-        }
-        return prev ? prev - 1 : null;
-      });
-    }, 1000);
+    setCountdownPhase('counting');
+    
+    // Exact 3-second countdown: 3 → 2 → 1 → GO → navigate
+    setTimeout(() => setCountdown(2), 1000);
+    setTimeout(() => setCountdown(1), 2000);
+    setTimeout(() => {
+      setCountdownPhase('go');
+      setCountdown(0);
+    }, 3000);
+    setTimeout(() => {
+      setCountdown(null);
+      setCountdownPhase(null);
+      onWrite();
+    }, 3600);
   };
 
   return (
     <>
       <div className="relative group">
         {/* Countdown Overlay */}
-        {countdown !== null && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-on-surface/80 backdrop-blur-md">
-            <div className="flex flex-col items-center gap-6">
-              <div className="relative flex items-center justify-center" style={{ width: 140, height: 140 }}>
-                <svg width="140" height="140" className="absolute inset-0 -rotate-90">
-                  <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
+        {countdown !== null && countdownPhase !== null && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0e1a]/90 backdrop-blur-xl">
+            <div className="flex flex-col items-center gap-8">
+              {/* Outer glow ring */}
+              <div className="relative flex items-center justify-center" style={{ width: 180, height: 180 }}>
+                {/* Background subtle pulse */}
+                <div 
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(0,74,198,0.15) 0%, transparent 70%)',
+                    animation: 'countdownPulseGlow 1s ease-in-out infinite',
+                  }}
+                />
+                
+                {/* Track circle */}
+                <svg width="180" height="180" className="absolute inset-0 -rotate-90">
+                  <circle cx="90" cy="90" r="76" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+                  {/* Progress arc */}
                   <circle
-                    cx="70" cy="70" r="60" fill="none"
-                    stroke="#004ac6" strokeWidth="8"
+                    cx="90" cy="90" r="76" fill="none"
+                    stroke="url(#countdownGradient)" strokeWidth="6"
                     strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 60}`}
-                    strokeDashoffset={`${2 * Math.PI * 60 * (1 - countdown / 3)}`}
-                    style={{ transition: 'stroke-dashoffset 0.9s linear' }}
+                    strokeDasharray={`${2 * Math.PI * 76}`}
+                    strokeDashoffset={`${2 * Math.PI * 76 * (countdown / 3)}`}
+                    style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1)' }}
                   />
+                  <defs>
+                    <linearGradient id="countdownGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#004ac6" />
+                      <stop offset="50%" stopColor="#2563eb" />
+                      <stop offset="100%" stopColor="#60a5fa" />
+                    </linearGradient>
+                  </defs>
                 </svg>
-                <span key={countdown} className="text-7xl font-black text-white animate-count-in z-10" style={{ letterSpacing: '-0.05em', fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
-                  {countdown}
-                </span>
+
+                {/* Glowing dot at tip */}
+                <div 
+                  className="absolute w-3 h-3 rounded-full bg-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.8)]"
+                  style={{
+                    top: '50%',
+                    left: '50%',
+                    transform: `rotate(${360 * (1 - countdown / 3) - 90}deg) translate(76px) translate(-50%, -50%)`,
+                    transformOrigin: '0 0',
+                    transition: 'transform 1s cubic-bezier(0.4, 0, 0.2, 1)',
+                    opacity: countdownPhase === 'go' ? 0 : 1,
+                  }}
+                />
+
+                {/* Number or GO */}
+                {countdownPhase === 'go' ? (
+                  <span 
+                    key="go" 
+                    className="text-5xl font-black text-white z-10"
+                    style={{ 
+                      letterSpacing: '0.05em', 
+                      fontFamily: 'Plus Jakarta Sans, Inter, sans-serif',
+                      animation: 'countdownGoFlash 0.5s cubic-bezier(0.16,1,0.3,1)',
+                      textShadow: '0 0 30px rgba(96,165,250,0.6)',
+                    }}
+                  >
+                    GO!
+                  </span>
+                ) : (
+                  <span 
+                    key={countdown} 
+                    className="text-8xl font-black text-white z-10"
+                    style={{ 
+                      letterSpacing: '-0.05em', 
+                      fontFamily: 'Plus Jakarta Sans, Inter, sans-serif',
+                      animation: 'countdownNumberPop 0.4s cubic-bezier(0.16,1,0.3,1)',
+                      textShadow: '0 0 40px rgba(0,74,198,0.3)',
+                    }}
+                  >
+                    {countdown}
+                  </span>
+                )}
               </div>
-              <p className="text-label-sm text-white/50 uppercase tracking-[0.3em]">Preparando...</p>
+
+              {/* Status text */}
+              <div className="flex flex-col items-center gap-2">
+                <p 
+                  className="text-sm font-bold uppercase tracking-[0.25em]" 
+                  style={{ 
+                    color: countdownPhase === 'go' ? '#60a5fa' : 'rgba(255,255,255,0.4)',
+                    transition: 'color 0.3s ease',
+                  }}
+                >
+                  {countdownPhase === 'go' ? 'Boa redação!' : 'Preparando...'}
+                </p>
+                {/* Subtle dots indicator */}
+                <div className="flex gap-2">
+                  {[3, 2, 1].map((n) => (
+                    <div 
+                      key={n} 
+                      className="w-2 h-2 rounded-full transition-all duration-500"
+                      style={{ 
+                        backgroundColor: countdown !== null && countdown <= n && n > countdown ? '#004ac6' : (countdown === 0 ? '#60a5fa' : 'rgba(255,255,255,0.1)'),
+                        transform: countdown !== null && countdown <= n && n > countdown ? 'scale(1.3)' : 'scale(1)',
+                        boxShadow: countdown !== null && countdown <= n && n > countdown ? '0 0 8px rgba(0,74,198,0.5)' : 'none',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -205,6 +291,20 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
         }
         .animate-scale-up {
           animation: scaleUp 0.3s ease-out forwards;
+        }
+        @keyframes countdownNumberPop {
+          0% { opacity: 0; transform: scale(0.3) rotate(-10deg); }
+          60% { opacity: 1; transform: scale(1.1) rotate(2deg); }
+          100% { opacity: 1; transform: scale(1) rotate(0deg); }
+        }
+        @keyframes countdownGoFlash {
+          0% { opacity: 0; transform: scale(0.5); }
+          50% { opacity: 1; transform: scale(1.2); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes countdownPulseGlow {
+          0%, 100% { opacity: 0.5; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.05); }
         }
       `}</style>
     </>
