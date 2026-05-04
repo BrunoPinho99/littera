@@ -12,6 +12,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);
     const [isLeadSuccess, setIsLeadSuccess] = useState(false);
 
+    // Custom smooth cursor refs
+    const cursorRef = React.useRef<HTMLDivElement>(null);
+    const mousePos = React.useRef({ x: -100, y: -100 });
+    const currentPos = React.useRef({ x: -100, y: -100 });
+
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
@@ -22,14 +27,55 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
         );
         document.querySelectorAll('.sl-reveal').forEach(el => observer.observe(el));
 
-        return () => { window.removeEventListener('scroll', handleScroll); observer.disconnect(); };
+        const handleMouseMove = (e: MouseEvent) => {
+            mousePos.current = { x: e.clientX, y: e.clientY };
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+
+        let animationFrameId: number;
+        const renderCursor = () => {
+            currentPos.current.x += (mousePos.current.x - currentPos.current.x) * 0.25;
+            currentPos.current.y += (mousePos.current.y - currentPos.current.y) * 0.25;
+            if (cursorRef.current) {
+                cursorRef.current.style.transform = `translate3d(${currentPos.current.x}px, ${currentPos.current.y}px, 0)`;
+            }
+            animationFrameId = requestAnimationFrame(renderCursor);
+        };
+        renderCursor();
+
+        return () => { 
+            window.removeEventListener('scroll', handleScroll); 
+            observer.disconnect(); 
+            window.removeEventListener('mousemove', handleMouseMove);
+            cancelAnimationFrame(animationFrameId);
+        };
     }, []);
 
     return (
-        <div style={{ fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif", background: '#faf8ff', minHeight: '100vh', color: '#131b2e', overflowX: 'hidden' }}>
+        <div className="landing-page-wrapper" style={{ fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif", background: '#faf8ff', minHeight: '100vh', color: '#131b2e', overflowX: 'hidden', cursor: 'none' }}>
+            
+            {/* Custom Smooth Cursor */}
+            <div ref={cursorRef} style={{
+                position: 'fixed', top: 0, left: 0, width: 36, height: 36, pointerEvents: 'none', zIndex: 999999, willChange: 'transform', transformOrigin: 'top left'
+            }}>
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="cursorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#00f2fe" />
+                            <stop offset="100%" stop-color="#0055ff" />
+                        </linearGradient>
+                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000000" floodOpacity="0.15"/>
+                        </filter>
+                    </defs>
+                    <path d="M4.5 4.5 L12.5 28 L16.5 18.5 L28 12.5 Z" fill="url(#cursorGrad)" filter="url(#shadow)" />
+                </svg>
+            </div>
 
             {/* ─── GLOBAL INLINE CSS ─── */}
             <style>{`
+                .landing-page-wrapper * { cursor: none !important; }
+                
                 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
 
                 .sl-reveal {
@@ -461,6 +507,137 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 </div>
             </section>
 
+
+            {/* ═══════════════════════════════════════════════════════════════════
+                PRICING & ROI — Argumento de Vendas B2B
+            ═══════════════════════════════════════════════════════════════════ */}
+            <section style={{ background: '#ffffff', padding: '8rem 32px' }}>
+                <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+                            Retorno sobre o Investimento
+                        </p>
+                        <h2 className="sl-headline" style={{ fontSize: 'clamp(28px, 3.5vw, 42px)', fontWeight: 900, color: '#131b2e', marginBottom: 24 }}>
+                            A tecnologia que se paga sozinha.
+                        </h2>
+                        <p style={{ fontSize: 16, color: '#49454f', maxWidth: 600, margin: '0 auto', lineHeight: 1.6 }}>
+                            Otimize o tempo da sua equipe pedagógica. Troque o trabalho braçal pela inteligência de dados e veja a economia gerar resultados diretos no seu caixa.
+                        </p>
+                    </div>
+
+                    {/* ROI Block */}
+                    <div className="sl-reveal" style={{
+                        background: '#131b2e', borderRadius: 24, padding: '40px',
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 32,
+                        marginBottom: 80, position: 'relative', overflow: 'hidden'
+                    }}>
+                        {/* decorative background element */}
+                        <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: 300, height: 300, background: '#004ac6', filter: 'blur(100px)', opacity: 0.3, pointerEvents: 'none' }}></div>
+
+                        <div>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Custo mensal do Littera</p>
+                            <p style={{ fontSize: 24, fontWeight: 900, color: '#ffffff' }}>R$ 2.800</p>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Horas de correção salvas/mês</p>
+                            <p style={{ fontSize: 24, fontWeight: 900, color: '#3b82f6' }}>~200h</p>
+                        </div>
+                        <div>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Custo equivalente (R$ 80/h)</p>
+                            <p style={{ fontSize: 24, fontWeight: 900, color: '#f87171', textDecoration: 'line-through' }}>R$ 16.000</p>
+                        </div>
+                        <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 32 }}>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Economia líquida mensal</p>
+                            <p style={{ fontSize: 32, fontWeight: 900, color: '#10b981' }}>R$ 13.200</p>
+                        </div>
+                    </div>
+
+                    {/* Pricing Cards */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, alignItems: 'center' }}>
+                        {/* Starter */}
+                        <div className="sl-reveal sl-d1" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 40, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
+                            <p style={{ fontSize: 18, fontWeight: 700, color: '#131b2e', marginBottom: 16 }}>Starter</p>
+                            <div style={{ marginBottom: 8 }}>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.03em' }}>R$ 9</span>
+                            </div>
+                            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 32 }}>/aluno/mês · até 200 alunos</p>
+                            
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {[
+                                    { text: 'Correção ilimitada', included: true },
+                                    { text: 'Feedback por competência', included: true },
+                                    { text: 'Relatório mensal', included: true },
+                                    { text: 'Dashboard gestor', included: false },
+                                    { text: 'Suporte dedicado', included: false },
+                                ].map((item, i) => (
+                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: item.included ? '#374151' : '#9ca3af', fontSize: 14 }}>
+                                        <span className="material-icons-outlined" style={{ fontSize: 18, color: item.included ? '#10b981' : '#d1d5db' }}>{item.included ? 'check' : 'close'}</span>
+                                        {item.text}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* School (Popular) */}
+                        <div className="sl-reveal sl-d2" style={{ border: '2px solid #004ac6', borderRadius: 24, padding: 40, background: '#131b2e', color: '#ffffff', position: 'relative', display: 'flex', flexDirection: 'column', transform: 'translateY(-16px)', boxShadow: '0 32px 64px rgba(0,74,198,0.15)' }}>
+                            <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#004ac6', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 9999, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Mais popular
+                            </div>
+                            <p style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginBottom: 16 }}>School</p>
+                            <div style={{ marginBottom: 8 }}>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>R$ 7</span>
+                            </div>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>/aluno/mês · 200-1.000 alunos</p>
+                            
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {[
+                                    { text: 'Correção ilimitada' },
+                                    { text: 'Feedback por competência' },
+                                    { text: 'Dashboard para gestor' },
+                                    { text: 'Relatório para pais' },
+                                    { text: 'Onboarding assistido' },
+                                ].map((item, i) => (
+                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
+                                        <span className="material-icons-outlined" style={{ fontSize: 18, color: '#3b82f6' }}>check</span>
+                                        {item.text}
+                                    </li>
+                                ))}
+                            </ul>
+                            
+                            <button onClick={() => onDemoClick('teacher')} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                            >
+                                Iniciar agora
+                            </button>
+                        </div>
+
+                        {/* Enterprise */}
+                        <div className="sl-reveal sl-d3" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 40, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
+                            <p style={{ fontSize: 18, fontWeight: 700, color: '#131b2e', marginBottom: 16 }}>Enterprise</p>
+                            <div style={{ marginBottom: 8, height: 56, display: 'flex', alignItems: 'center' }}>
+                                <span style={{ fontSize: 32, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.02em' }}>Sob consulta</span>
+                            </div>
+                            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 32 }}>redes de ensino e EAD</p>
+                            
+                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                {[
+                                    { text: 'Tudo do School' },
+                                    { text: 'API + Integração SIS' },
+                                    { text: 'White-label opcional' },
+                                    { text: 'CS dedicado' },
+                                    { text: 'Contrato multi-unidade' },
+                                ].map((item, i) => (
+                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#374151', fontSize: 14 }}>
+                                        <span className="material-icons-outlined" style={{ fontSize: 18, color: '#10b981' }}>check</span>
+                                        {item.text}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             {/* ═══════════════════════════════════════════════════════════════════
                 BOTTOM CTA — Dark section, urgency

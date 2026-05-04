@@ -75,9 +75,6 @@ const generateWithRetry = async (
 
       // Falha rápida para acionar o fallback no nível superior sem notificar o usuário
       throw error;
-
-      // Para qualquer outro erro, propaga diretamente
-      throw error;
     }
   }
 };
@@ -117,8 +114,6 @@ const generateStreamWithRetry = async (
       }
 
       throw error;
-
-      throw error;
     }
   }
 };
@@ -148,7 +143,7 @@ export const generateCustomTopic = async (userInterest: string): Promise<Topic> 
   try {
     const result = await generateWithRetry(model, prompt, 1);
     const text = result.response.text();
-    const data = JSON.parse(text);
+    const data = JSON.parse(extractJson(text));
 
     return {
       id: generateId(),
@@ -227,7 +222,7 @@ Responda seguindo o schema abaixo:
     }
 
     const text = result.response.text();
-    const parsed = JSON.parse(text) as CorrectionResult;
+    const parsed = JSON.parse(extractJson(text)) as CorrectionResult;
     
     // Forçar a desativação da detecção de IA
     parsed.aiDetected = false;
