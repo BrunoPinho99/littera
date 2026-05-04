@@ -18,7 +18,7 @@ import { generateAssignmentTheme } from '../services/geminiService';
 import RankingView from './RankingView';
 
 interface InstitutionDashboardProps {
-  initialTab?: 'overview' | 'students' | 'essays' | 'ranking' | 'classes' | 'staff' | 'settings';
+  initialTab?: 'overview' | 'students' | 'essays' | 'ranking' | 'classes' | 'staff' | 'settings' | 'subscription';
   userType?: 'teacher' | 'school_admin';
 }
 
@@ -80,6 +80,114 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [newAssignment, setNewAssignment] = useState({ title: '', baseText: '', class_id: '', due_date: '' });
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+
+  // ── Subscription & Card Management ──
+  interface CreditCard {
+    id: string;
+    brand: string;
+    last4: string;
+    holder: string;
+    expiry: string;
+    isDefault: boolean;
+  }
+  const [savedCards, setSavedCards] = useState<CreditCard[]>([
+    { id: 'card-1', brand: 'Visa', last4: '4242', holder: 'Bruno Pinho', expiry: '12/27', isDefault: true }
+  ]);
+  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
+  const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
+  const [cardForm, setCardForm] = useState({ number: '', holder: '', expiry: '', cvv: '' });
+  const [isSavingCard, setIsSavingCard] = useState(false);
+  const [confirmDeleteCardId, setConfirmDeleteCardId] = useState<string | null>(null);
+
+  const detectBrand = (num: string): string => {
+    const n = num.replace(/\s/g, '');
+    if (/^4/.test(n)) return 'Visa';
+    if (/^5[1-5]/.test(n) || /^2[2-7]/.test(n)) return 'Mastercard';
+    if (/^3[47]/.test(n)) return 'Amex';
+    if (/^6(?:011|5)/.test(n)) return 'Discover';
+    if (/^(606282|3841)/.test(n)) return 'Hipercard';
+    if (/^(36|38|30[0-5])/.test(n)) return 'Diners';
+    return 'Cartão';
+  };
+
+  const brandColor: Record<string, string> = {
+    'Visa': '#1a1f71',
+    'Mastercard': '#eb001b',
+    'Amex': '#006fcf',
+    'Elo': '#00a4e0',
+    'Hipercard': '#822124',
+    'Diners': '#004a97',
+    'Discover': '#ff6000',
+    'Cartão': '#6b7280'
+  };
+
+  const formatCardNumber = (v: string): string => {
+    const digits = v.replace(/\D/g, '').slice(0, 16);
+    return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
+  };
+
+  const formatExpiry = (v: string): string => {
+    const digits = v.replace(/\D/g, '').slice(0, 4);
+    if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
+    return digits;
+  };
+
+  const openAddCard = () => {
+    setEditingCard(null);
+    setCardForm({ number: '', holder: '', expiry: '', cvv: '' });
+    setIsCardModalOpen(true);
+  };
+
+  const openEditCard = (card: CreditCard) => {
+    setEditingCard(card);
+    setCardForm({ number: `**** **** **** ${card.last4}`, holder: card.holder, expiry: card.expiry, cvv: '' });
+    setIsCardModalOpen(true);
+  };
+
+  const handleSaveCard = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingCard(true);
+    setTimeout(() => {
+      if (editingCard) {
+        setSavedCards(prev => prev.map(c => c.id === editingCard.id ? {
+          ...c,
+          holder: cardForm.holder,
+          expiry: cardForm.expiry,
+          brand: cardForm.number.startsWith('*') ? c.brand : detectBrand(cardForm.number),
+          last4: cardForm.number.startsWith('*') ? c.last4 : cardForm.number.replace(/\s/g, '').slice(-4)
+        } : c));
+      } else {
+        const digits = cardForm.number.replace(/\s/g, '');
+        const newCard: CreditCard = {
+          id: `card-${Date.now()}`,
+          brand: detectBrand(digits),
+          last4: digits.slice(-4),
+          holder: cardForm.holder,
+          expiry: cardForm.expiry,
+          isDefault: savedCards.length === 0
+        };
+        setSavedCards(prev => [...prev, newCard]);
+      }
+      setIsSavingCard(false);
+      setIsCardModalOpen(false);
+      setCardForm({ number: '', holder: '', expiry: '', cvv: '' });
+      setEditingCard(null);
+    }, 800);
+  };
+
+  const handleDeleteCard = (id: string) => {
+    const card = savedCards.find(c => c.id === id);
+    if (card?.isDefault && savedCards.length > 1) {
+      alert('Defina outro cartão como principal antes de excluir este.');
+      return;
+    }
+    setSavedCards(prev => prev.filter(c => c.id !== id));
+    setConfirmDeleteCardId(null);
+  };
+
+  const handleSetDefaultCard = (id: string) => {
+    setSavedCards(prev => prev.map(c => ({ ...c, isDefault: c.id === id })));
+  };
 
   // Sync activeTab with prop when it changes (navigation from sidebar/navbar)
   useEffect(() => {
@@ -415,7 +523,8 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
     if (userType === 'school_admin') {
       baseTabs.splice(2, 0, { id: 'classes', label: 'Turmas', icon: 'meeting_room' });
-      baseTabs.splice(3, 0, { id: 'staff', label: 'Professores', icon: 'school' }); 
+      baseTabs.splice(3, 0, { id: 'staff', label: 'Professores', icon: 'school' });
+      baseTabs.push({ id: 'subscription', label: 'Assinatura', icon: 'credit_card' });
     }
 
     return baseTabs;
@@ -853,6 +962,194 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             </div>
           )}
           {activeTab === 'ranking' && <RankingView showAllEntries={true} manualData={rankingData} />}
+
+          {/* ── SUBSCRIPTION TAB ── */}
+          {activeTab === 'subscription' && userType === 'school_admin' && (
+            <div className="space-y-10 animate-fade-in">
+              {/* Subscription Overview */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-gradient-to-br from-[#131b2e] to-[#1e293b] p-8 rounded-[2rem] relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 rounded-full blur-[80px] pointer-events-none"></div>
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">Ativa</span>
+                      <h3 className="text-2xl font-black text-white mt-3">Plano School</h3>
+                      <p className="text-gray-400 text-sm mt-1">Renovação automática em 15/06/2026</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-4xl font-black text-white">R$ 7<span className="text-lg font-bold text-gray-400">/aluno</span></p>
+                      <p className="text-xs text-gray-500 mt-1">200-1.000 alunos</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-8">
+                    <div className="bg-white/5 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Alunos ativos</p>
+                      <p className="text-xl font-black text-white">{students.length}</p>
+                    </div>
+                    <div className="bg-white/5 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Correções/mês</p>
+                      <p className="text-xl font-black text-primary">∞</p>
+                    </div>
+                    <div className="bg-white/5 rounded-2xl p-4">
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Custo mensal</p>
+                      <p className="text-xl font-black text-emerald-400">R$ {(students.length * 7).toLocaleString('pt-BR')}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-gray-100 dark:border-white/5 p-8 flex flex-col justify-between">
+                  <div>
+                    <h4 className="text-lg font-black text-gray-900 dark:text-white mb-1">Próxima fatura</h4>
+                    <p className="text-xs text-gray-400 mb-6">Cobrada automaticamente no cartão principal</p>
+                    <div className="flex items-end gap-1">
+                      <span className="text-4xl font-black text-gray-900 dark:text-white">R$ {(students.length * 7).toLocaleString('pt-BR')}</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2">Vencimento: 15/06/2026</p>
+                  </div>
+                  <button className="w-full mt-6 py-3 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-bold text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+                    Ver histórico de faturas
+                  </button>
+                </div>
+              </div>
+
+              {/* Credit Cards Section */}
+              <div>
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-xl font-black text-gray-900 dark:text-white">Formas de Pagamento</h3>
+                    <p className="text-sm text-gray-400 mt-1">Gerencie seus cartões de crédito cadastrados</p>
+                  </div>
+                  <button
+                    onClick={openAddCard}
+                    className="px-5 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
+                  >
+                    <span className="material-icons-outlined text-lg">add</span>
+                    Novo Cartão
+                  </button>
+                </div>
+
+                {savedCards.length === 0 ? (
+                  <div className="bg-white dark:bg-surface-dark rounded-[2rem] border-2 border-dashed border-gray-200 dark:border-white/10 p-12 flex flex-col items-center text-center">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-gray-300 mb-4">
+                      <span className="material-icons-outlined text-3xl">credit_card_off</span>
+                    </div>
+                    <p className="font-bold text-gray-500 dark:text-gray-400">Nenhum cartão cadastrado</p>
+                    <p className="text-sm text-gray-400 mt-1">Adicione um cartão para manter sua assinatura ativa.</p>
+                    <button onClick={openAddCard} className="mt-6 px-6 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors">
+                      Adicionar cartão
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {savedCards.map(card => (
+                      <div
+                        key={card.id}
+                        className={`relative bg-white dark:bg-surface-dark rounded-[2rem] border-2 p-6 transition-all group hover:shadow-lg ${
+                          card.isDefault
+                            ? 'border-primary shadow-md shadow-primary/10'
+                            : 'border-gray-100 dark:border-white/5'
+                        }`}
+                      >
+                        {card.isDefault && (
+                          <span className="absolute -top-3 left-6 px-3 py-1 bg-primary text-white text-[9px] font-black uppercase tracking-widest rounded-full">Principal</span>
+                        )}
+
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-12 h-8 rounded-lg flex items-center justify-center text-white text-[10px] font-black"
+                              style={{ backgroundColor: brandColor[card.brand] || '#6b7280' }}
+                            >
+                              {card.brand.slice(0, 4).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-black text-sm text-gray-900 dark:text-white">{card.brand}</p>
+                              <p className="text-xs text-gray-400">•••• {card.last4}</p>
+                            </div>
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {!card.isDefault && (
+                              <button
+                                onClick={() => handleSetDefaultCard(card.id)}
+                                className="p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-400 hover:text-emerald-500 transition-colors"
+                                title="Definir como principal"
+                              >
+                                <span className="material-icons-outlined text-lg">star_outline</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => openEditCard(card)}
+                              className="p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-500 transition-colors"
+                              title="Editar"
+                            >
+                              <span className="material-icons-outlined text-lg">edit</span>
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteCardId(card.id)}
+                              className="p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-500 transition-colors"
+                              title="Excluir"
+                            >
+                              <span className="material-icons-outlined text-lg">delete_outline</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-end">
+                          <div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Titular</p>
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{card.holder}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Validade</p>
+                            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{card.expiry}</p>
+                          </div>
+                        </div>
+
+                        {/* Delete confirmation overlay */}
+                        {confirmDeleteCardId === card.id && (
+                          <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-[2rem] flex flex-col items-center justify-center p-6 z-10 animate-fade-in">
+                            <span className="material-icons-outlined text-3xl text-rose-500 mb-3">warning</span>
+                            <p className="font-bold text-gray-900 dark:text-white text-center mb-1">Excluir este cartão?</p>
+                            <p className="text-xs text-gray-400 text-center mb-6">•••• {card.last4} · {card.brand}</p>
+                            <div className="flex gap-3 w-full">
+                              <button
+                                onClick={() => setConfirmDeleteCardId(null)}
+                                className="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 transition-colors text-sm"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCard(card.id)}
+                                className="flex-1 py-3 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all text-sm"
+                              >
+                                Excluir
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Danger Zone */}
+              <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-rose-200 dark:border-rose-900/30 p-8">
+                <h4 className="text-lg font-black text-gray-900 dark:text-white mb-1">Zona de risco</h4>
+                <p className="text-sm text-gray-400 mb-6">Ações irreversíveis sobre a assinatura.</p>
+                <div className="flex gap-4">
+                  <button className="px-6 py-3 rounded-xl border border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-widest hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors">
+                    Pausar assinatura
+                  </button>
+                  <button className="px-6 py-3 rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 font-bold text-xs uppercase tracking-widest hover:bg-rose-50 dark:hover:bg-rose-900/10 transition-colors">
+                    Cancelar plano
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {activeTab === 'essays' && (
             <div className="space-y-4">
               {essays.length > 0 ? essays.map(essay => (
@@ -1331,6 +1628,115 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           </div>
         )
       }
+
+      {/* Modal Adicionar/Editar Cartão */}
+      {isCardModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => { setIsCardModalOpen(false); setEditingCard(null); }}></div>
+          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
+            <div className="p-8 border-b border-gray-100 dark:border-white/5">
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                {editingCard ? 'Editar Cartão' : 'Novo Cartão'}
+              </h3>
+              <p className="text-gray-500 text-sm mt-1">
+                {editingCard ? `Atualize os dados do cartão •••• ${editingCard.last4}` : 'Adicione um cartão de crédito para pagamento da assinatura.'}
+              </p>
+            </div>
+
+            <form onSubmit={handleSaveCard} className="p-8 space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Número do Cartão</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={cardForm.number}
+                    onChange={e => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })}
+                    placeholder="0000 0000 0000 0000"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all pr-20 tracking-wider"
+                    maxLength={19}
+                    required={!editingCard}
+                  />
+                  {cardForm.number.replace(/\s/g, '').length >= 4 && (
+                    <span
+                      className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-[9px] font-black text-white"
+                      style={{ backgroundColor: brandColor[detectBrand(cardForm.number)] || '#6b7280' }}
+                    >
+                      {detectBrand(cardForm.number)}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome no Cartão</label>
+                <input
+                  type="text"
+                  value={cardForm.holder}
+                  onChange={e => setCardForm({ ...cardForm, holder: e.target.value.toUpperCase() })}
+                  placeholder="NOME COMO ESTÁ NO CARTÃO"
+                  className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all uppercase tracking-wider"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Validade</label>
+                  <input
+                    type="text"
+                    value={cardForm.expiry}
+                    onChange={e => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })}
+                    placeholder="MM/AA"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-wider"
+                    maxLength={5}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">CVV</label>
+                  <input
+                    type="password"
+                    value={cardForm.cvv}
+                    onChange={e => setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+                    placeholder="•••"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-widest text-center"
+                    maxLength={4}
+                    required={!editingCard}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl flex items-start gap-3 border border-blue-100 dark:border-blue-800/20">
+                <span className="material-icons-outlined text-blue-500 text-lg mt-0.5">lock</span>
+                <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
+                  Seus dados de pagamento são criptografados e protegidos. Nenhum número de cartão é armazenado nos nossos servidores.
+                </p>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  type="button"
+                  onClick={() => { setIsCardModalOpen(false); setEditingCard(null); }}
+                  className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCard}
+                  className="flex-1 py-4 rounded-xl font-bold text-white bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+                >
+                  {isSavingCard ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    editingCard ? 'Atualizar Cartão' : 'Salvar Cartão'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div >
   );
 };
