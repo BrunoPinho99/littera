@@ -155,10 +155,10 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
           )}
 
-          <div className="p-10 md:p-14 flex flex-col items-center text-center relative z-20">
+          <div className="p-6 sm:p-10 md:p-14 flex flex-col items-center text-center relative z-20">
 
             {/* Floating badge — Secondary button style */}
-            <div className="mb-8 animate-float">
+            <div className="mb-5 sm:mb-8 animate-float">
               <button
                 onClick={onRefresh}
                 disabled={isLoading}
@@ -170,16 +170,16 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
 
             {/* Hero Title — display-md, Plus Jakarta Sans */}
-            <h2 className={`max-w-4xl text-display-md font-display text-on-surface leading-[1.1] mb-8 tracking-tight transition-all duration-500 ${isLoading ? 'opacity-30 blur-sm scale-95' : 'opacity-100 scale-100'}`}
+            <h2 className={`max-w-4xl text-2xl sm:text-display-sm md:text-display-md font-display text-on-surface leading-[1.15] mb-5 sm:mb-8 tracking-tight transition-all duration-500 ${isLoading ? 'opacity-30 blur-sm scale-95' : 'opacity-100 scale-100'}`}
                 style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
               {topic.title}
             </h2>
 
-            <div className="w-20 h-1.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent rounded-full mb-12"></div>
+            <div className="w-14 sm:w-20 h-1.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent rounded-full mb-8 sm:mb-12"></div>
 
             {/* Support Texts — Nested containers (surface-container-low on surface-container-lowest) */}
-            <div className="w-full max-w-5xl mb-12">
-              <div className="flex items-center justify-center gap-3 mb-6 opacity-50">
+            <div className="w-full max-w-5xl mb-8 sm:mb-12">
+              <div className="flex items-center justify-center gap-3 mb-4 sm:mb-6 opacity-50">
                 <div className="h-px w-12 bg-outline-variant/30"></div>
                 <span className="text-label-sm uppercase tracking-[0.3em] text-on-surface-variant">Contexto & Apoio</span>
                 <div className="h-px w-12 bg-outline-variant/30"></div>
@@ -190,7 +190,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
                   <div
                     key={text.id}
                     onClick={() => setSelectedText(text)}
-                    className="text-left bg-surface-container-low p-6 rounded-card hover:bg-surface-container-lowest hover:shadow-ambient transition-all duration-300 group/card cursor-pointer"
+                    className="text-left bg-surface-container-low p-4 sm:p-6 rounded-card hover:bg-surface-container-lowest hover:shadow-ambient transition-all duration-300 group/card cursor-pointer"
                   >
                     <div className="flex items-center justify-between gap-3 mb-3">
                       <div className="flex items-center gap-3">

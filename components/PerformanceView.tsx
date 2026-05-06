@@ -221,10 +221,10 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
   }
 
   return (
-    <div className="animate-fade-in pb-24 max-w-7xl mx-auto">
+    <div className="animate-fade-in pb-28 md:pb-24 max-w-7xl mx-auto">
 
       {/* ── Page Header ── */}
-      <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="mb-6 sm:mb-10 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -232,7 +232,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
             </div>
             <span className="text-xs font-black uppercase tracking-widest text-primary">Painel do Aluno</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-on-surface tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-on-surface tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
             Minha <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Evolução</span>
           </h1>
         </div>
@@ -245,14 +245,14 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
       </div>
 
       {/* ── Row 1: KPI Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
 
         {/* Card: Nota Atual */}
-        <div className="bg-surface-container-lowest rounded-card p-5 ghost-border shadow-ambient relative overflow-hidden">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 ghost-border shadow-ambient relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Última Nota</p>
           <div className="flex items-end gap-2">
-            <span className="text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{latestScore}</span>
+            <span className="text-2xl sm:text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{latestScore}</span>
             <span className={`text-xs font-black mb-1 ${latestDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {latestDelta !== 0 && (latestDelta > 0 ? '↑' : '↓')}{Math.abs(latestDelta)}
             </span>
@@ -261,39 +261,39 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
         </div>
 
         {/* Card: Média */}
-        <div className="bg-surface-container-lowest rounded-card p-5 ghost-border shadow-ambient relative overflow-hidden">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 ghost-border shadow-ambient relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none"></div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Média Geral</p>
-          <span className="text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{stats.averageScore}</span>
+          <span className="text-2xl sm:text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{stats.averageScore}</span>
           <div className="mt-2 w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div className="h-full bg-amber-400 rounded-full transition-all duration-700" style={{ width: `${(stats.averageScore / 1000) * 100}%` }}></div>
           </div>
         </div>
 
         {/* Card: Redações */}
-        <div className="bg-surface-container-lowest rounded-card p-5 ghost-border shadow-ambient relative overflow-hidden">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 ghost-border shadow-ambient relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent pointer-events-none"></div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Redações</p>
-          <span className="text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{stats.totalEssays}</span>
+          <span className="text-2xl sm:text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{stats.totalEssays}</span>
           <p className="text-[10px] text-on-surface-variant font-medium mt-1">enviadas</p>
         </div>
 
         {/* Card: Ranking */}
-        <div className="bg-on-surface rounded-card p-5 border border-white/5 shadow-ambient relative overflow-hidden">
+        <div className="bg-on-surface rounded-card p-4 sm:p-5 border border-white/5 shadow-ambient relative overflow-hidden">
           <div className="absolute -right-4 -bottom-4 text-white/5 text-[5rem] leading-none font-black select-none" style={{ fontFamily: 'Plus Jakarta Sans' }}>
             #{rankPosition}
           </div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Ranking</p>
-          <span className="text-4xl font-black text-white" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>#{rankPosition}</span>
+          <span className="text-2xl sm:text-4xl font-black text-white" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>#{rankPosition}</span>
           <p className="text-[10px] text-on-surface-variant font-medium mt-1">posição global</p>
         </div>
       </div>
 
       {/* ── Row 2: Chart + Calendar + Rank Card ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
 
         {/* Evolution Chart (2/3 width) */}
-        <div className="lg:col-span-2 bg-surface-container-lowest rounded-card p-6 ghost-border shadow-ambient">
+        <div className="lg:col-span-2 bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="font-black text-on-surface text-base">Gráfico de Evolução</h3>
@@ -355,19 +355,19 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
         </div>
 
         {/* Calendar (1/3) */}
-        <div className="bg-surface-container-lowest rounded-card p-6 ghost-border shadow-ambient">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
           <EssayCalendar history={stats.history} />
         </div>
       </div>
 
       {/* ── Row 3: Competency Radar + Rank Progress + History ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
 
         {/* Left column: Competencies + Rank progression */}
         <div className="space-y-6">
 
           {/* Rank card */}
-          <div className="bg-surface-container-lowest rounded-card p-6 ghost-border shadow-ambient">
+          <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
             <div className="flex items-center justify-between mb-5">
               <h3 className="font-black text-on-surface text-sm">Nível de Escritor</h3>
               <div className={`w-10 h-10 ${currentRank.bg} ${currentRank.color} rounded-xl flex items-center justify-center`}>
@@ -421,7 +421,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
           </div>
 
           {/* Competencies */}
-          <div className="bg-surface-container-lowest rounded-card p-6 ghost-border shadow-ambient">
+          <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
             <h3 className="font-black text-on-surface text-sm mb-5">Competências ENEM</h3>
             <div className="space-y-4">
               {stats.competencyAverages.length > 0 ? stats.competencyAverages.map((comp: any, i: number) => {
@@ -457,7 +457,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
 
         {/* Right column: Essay history list (2/3 width) */}
         <div className="lg:col-span-2 bg-surface-container-lowest rounded-card ghost-border shadow-ambient flex flex-col overflow-hidden">
-          <div className="px-6 py-5 border-b ghost-border flex items-center justify-between">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b ghost-border flex items-center justify-between">
             <div>
               <h3 className="font-black text-on-surface">Histórico de Redações</h3>
               <p className="text-xs text-on-surface-variant font-medium mt-0.5">{stats.totalEssays} no total</p>
@@ -479,7 +479,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
                 <div
                   key={essay.id}
                   onClick={() => essay.result && setSelectedEssay(essay)}
-                  className={`group flex items-center gap-4 px-6 py-4 hover:bg-surface-container-low transition-colors ${essay.result ? 'cursor-pointer' : 'cursor-default'}`}
+                  className={`group flex items-center gap-3 sm:gap-4 px-4 sm:px-6 py-3 sm:py-4 hover:bg-surface-container-low transition-colors ${essay.result ? 'cursor-pointer' : 'cursor-default'}`}
                 >
                   {/* Rank number */}
                   <span className="text-xs font-black text-slate-300 dark:text-slate-600 w-5 shrink-0">
@@ -487,8 +487,8 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
                   </span>
 
                   {/* Score badge */}
-                  <div className={`w-14 h-14 shrink-0 rounded-2xl flex flex-col items-center justify-center font-black ${scoreColor}`}>
-                    <span className="text-lg leading-none">{essay.score}</span>
+                  <div className={`w-11 h-11 sm:w-14 sm:h-14 shrink-0 rounded-xl sm:rounded-2xl flex flex-col items-center justify-center font-black ${scoreColor}`}>
+                    <span className="text-sm sm:text-lg leading-none">{essay.score}</span>
                     <span className="text-[9px] font-bold opacity-70 mt-0.5">pts</span>
                   </div>
 

@@ -112,7 +112,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                     border-radius: 1rem;
                     padding: 12px 18px;
                     box-shadow: 0 10px 32px rgba(19,27,46,0.07);
-                    display: flex;
                     align-items: center;
                     gap: 12px;
                     animation: slFloat 4s ease-in-out infinite;
@@ -127,6 +126,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 .sl-section-gap {
                     padding-top: 8rem;
                     padding-bottom: 8rem;
+                }
+
+                @media (max-width: 640px) {
+                    .sl-section-gap {
+                        padding-top: 4rem;
+                        padding-bottom: 4rem;
+                    }
                 }
 
                 .sl-stat-number {
@@ -144,14 +150,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
                 transition: 'all 0.4s ease',
             }}>
-                <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 32px', height: 72, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span className="sl-headline" style={{ fontSize: 24, fontWeight: 900, color: '#131b2e', cursor: 'pointer' }}>
+                <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span className="sl-headline" style={{ fontSize: 22, fontWeight: 900, color: '#131b2e', cursor: 'pointer' }}>
                         Littera<span style={{ color: 'rgba(0,74,198,0.3)' }}>.</span>
                     </span>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <button className="sl-btn-secondary" onClick={onLoginClick}>Entrar</button>
-                        <button className="sl-btn-primary" onClick={() => onDemoClick('teacher')} style={{ padding: '10px 24px', fontSize: 14 }}>
+                        <button className="sl-btn-primary" onClick={() => onDemoClick('teacher')} style={{ padding: '8px 18px', fontSize: 13 }}>
                             Agendar demo
                         </button>
                     </div>
@@ -163,13 +169,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 display-lg headline · High-Low contrast · Floating stat cards
             ═══════════════════════════════════════════════════════════════════ */}
             <section style={{
-                paddingTop: 160, paddingBottom: 100, minHeight: '100vh',
+                paddingTop: 80, paddingBottom: 40,
+                minHeight: '80vh',
                 display: 'flex', alignItems: 'center',
                 background: '#ffffff',
                 backgroundSize: '64px 64px',
                 backgroundImage: 'linear-gradient(to right, rgba(0,74,198,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,74,198,0.03) 1px, transparent 1px)',
             }}>
-                <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '0 32px', width: '100%' }}>
+                <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '0 16px', width: '100%' }}>
 
                     {/* Floating cards — hidden on small screens */}
                     <div className="hidden md:flex sl-float-card" style={{ position: 'absolute', top: -20, left: -10, animationDelay: '0s' }}>
@@ -217,8 +224,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
 
                         <div className="sl-reveal" style={{
                             display: 'inline-flex', alignItems: 'center', gap: 8,
-                            background: '#f2f3ff', borderRadius: 9999, padding: '8px 20px', marginBottom: 32,
-                            fontSize: 13, fontWeight: 600, color: '#49454f',
+                            background: '#f2f3ff', borderRadius: 9999, padding: '6px 16px', marginBottom: 24,
+                            fontSize: 12, fontWeight: 600, color: '#49454f',
                         }}>
                             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#004ac6' }}></span>
                             Correção inteligente para escolas de excelência
@@ -232,14 +239,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         </h1>
 
                         <p className="sl-reveal sl-d2" style={{
-                            fontSize: 18, color: '#49454f', lineHeight: 1.7,
-                            maxWidth: 600, margin: '0 auto 40px',
+                            fontSize: 16, color: '#49454f', lineHeight: 1.7,
+                            maxWidth: 600, margin: '0 auto 32px', padding: '0 8px',
                         }}>
                             A tecnologia que eleva as redações da sua escola ao padrão de excelência do Enem.
                         </p>
 
                         <div className="sl-reveal sl-d3" style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-                            <button className="sl-btn-primary" onClick={() => setIsLeadModalOpen(true)} style={{ padding: '16px 36px', fontSize: 16 }}>
+                            <button className="sl-btn-primary" onClick={() => setIsLeadModalOpen(true)} style={{ padding: '14px 28px', fontSize: 15 }}>
                                 Conheça o Padrão Littera
                             </button>
                             <button className="sl-btn-secondary" onClick={onLoginClick}>
@@ -255,7 +262,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 SOCIAL PROOF — Depoimento centralizado
                 surface_container_low background · no borders (No-Line Rule)
             ═══════════════════════════════════════════════════════════════════ */}
-            <section style={{ background: '#f2f3ff', padding: '72px 32px' }}>
+            <section style={{ background: '#f2f3ff', padding: '48px 16px' }}>
                 <div style={{ maxWidth: 760, margin: '0 auto', textAlign: 'center' }} className="sl-reveal">
                     <p style={{
                         fontSize: 'clamp(18px, 2.5vw, 22px)', fontStyle: 'italic', lineHeight: 1.7,
@@ -280,10 +287,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 PROBLEMA vs. SOLUÇÃO — Quebra de objeção
                 No-Line Rule: left uses surface, right uses Intelligence Card
             ═══════════════════════════════════════════════════════════════════ */}
-            <section className="sl-section-gap" style={{ padding: '8rem 32px' }}>
+            <section className="sl-section-gap" style={{ padding: '4rem 16px' }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
-                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 32 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                             O contraste é inevitável
                         </p>
@@ -292,10 +299,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         </h2>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 460px), 1fr))', gap: 32 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 20 }}>
 
                         {/* Left — Problema */}
-                        <div className="sl-card sl-reveal sl-d1" style={{ padding: '2.5rem', background: '#faf8ff' }}>
+                        <div className="sl-card sl-reveal sl-d1" style={{ padding: '1.5rem', background: '#faf8ff' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
                                 <div style={{ width: 40, height: 40, borderRadius: 12, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <span className="material-icons-outlined" style={{ color: '#ef4444', fontSize: 20 }}>schedule</span>
@@ -316,7 +323,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         </div>
 
                         {/* Right — Solução (Intelligence Card) */}
-                        <div className="sl-intelligence-card sl-reveal sl-d2" style={{ padding: '2.5rem', position: 'relative', overflow: 'hidden' }}>
+                        <div className="sl-intelligence-card sl-reveal sl-d2" style={{ padding: '1.5rem', position: 'relative', overflow: 'hidden' }}>
                             <div style={{ position: 'absolute', top: 0, right: 0, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,74,198,0.06) 0%, transparent 70%)', pointerEvents: 'none' }}></div>
 
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24, position: 'relative' }}>
@@ -346,10 +353,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 RESULTADOS — As métricas que importam
                 surface_container_low bg · Cards with massive stat numbers
             ═══════════════════════════════════════════════════════════════════ */}
-            <section style={{ background: '#f2f3ff', padding: '8rem 32px' }}>
+            <section style={{ background: '#f2f3ff', padding: '4rem 16px' }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
-                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 32 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                             Resultados reais
                         </p>
@@ -364,7 +371,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                             { stat: '3×', label: 'mais redações praticadas por aluno comparado à média nacional do ENEM.', icon: 'edit_note', color: '#004ac6' },
                             { stat: '-60%', label: 'de redução na carga de correção manual do corpo docente.', icon: 'timer', color: '#8b5cf6' },
                         ].map((item, i) => (
-                            <div key={i} className={`sl-card sl-reveal sl-d${i + 1}`} style={{ padding: '2.5rem', textAlign: 'center' }}>
+                            <div key={i} className={`sl-card sl-reveal sl-d${i + 1}`} style={{ padding: '1.5rem', textAlign: 'center' }}>
                                 <div style={{ width: 52, height: 52, borderRadius: 16, background: `${item.color}10`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                                     <span className="material-icons-outlined" style={{ color: item.color, fontSize: 24 }}>{item.icon}</span>
                                 </div>
@@ -384,10 +391,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
             {/* ═══════════════════════════════════════════════════════════════════
                 COMPETÊNCIAS — O que o Littera analisa
             ═══════════════════════════════════════════════════════════════════ */}
-            <section className="sl-section-gap" style={{ padding: '8rem 32px' }}>
+            <section className="sl-section-gap" style={{ padding: '4rem 16px' }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
 
-                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 32 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                             Análise nas 5 dimensões
                         </p>
@@ -404,7 +411,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                             { c: 'C4', title: 'Coesão Textual', desc: 'Uso de mecanismos linguísticos para articular ideias entre parágrafos e períodos.', color: '#10b981' },
                             { c: 'C5', title: 'Proposta de Intervenção', desc: 'Elaboração de proposta detalhada com agente, ação, meio, efeito e detalhamento.', color: '#ef4444' },
                         ].map((item, i) => (
-                            <div key={i} className={`sl-card sl-reveal sl-d${Math.min(i + 1, 5)}`} style={{ padding: '2rem 2.5rem', display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+                            <div key={i} className={`sl-card sl-reveal sl-d${Math.min(i + 1, 5)}`} style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                                 <div style={{
                                     width: 44, height: 44, borderRadius: 14, flexShrink: 0,
                                     background: `${item.color}10`, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -427,10 +434,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 ONBOARDING — Da assinatura ao primeiro texto
                 Minimal horizontal steps
             ═══════════════════════════════════════════════════════════════════ */}
-            <section style={{ background: '#f2f3ff', padding: '8rem 32px' }}>
+            <section style={{ background: '#f2f3ff', padding: '4rem 16px' }}>
                 <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
-                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 32 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                             Implementação sem atrito
                         </p>
@@ -470,9 +477,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
             {/* ═══════════════════════════════════════════════════════════════════
                 PRICING & ROI — Argumento de Vendas B2B
             ═══════════════════════════════════════════════════════════════════ */}
-            <section style={{ background: '#ffffff', padding: '8rem 32px' }}>
+            <section style={{ background: '#ffffff', padding: '4rem 16px' }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 64 }}>
+                    <div className="sl-reveal" style={{ textAlign: 'center', marginBottom: 32 }}>
                         <p style={{ fontSize: 13, fontWeight: 700, color: '#004ac6', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                             Retorno sobre o Investimento
                         </p>
@@ -486,9 +493,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
 
                     {/* ROI Block */}
                     <div className="sl-reveal" style={{
-                        background: '#131b2e', borderRadius: 24, padding: '40px',
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 32,
-                        marginBottom: 80, position: 'relative', overflow: 'hidden'
+                        background: '#131b2e', borderRadius: 24, padding: '24px',
+                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 20,
+                        marginBottom: 40, position: 'relative', overflow: 'hidden'
                     }}>
                         {/* decorative background element */}
                         <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: 300, height: 300, background: '#004ac6', filter: 'blur(100px)', opacity: 0.3, pointerEvents: 'none' }}></div>
@@ -505,16 +512,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Custo equivalente (R$ 80/h)</p>
                             <p style={{ fontSize: 24, fontWeight: 900, color: '#f87171', textDecoration: 'line-through' }}>R$ 16.000</p>
                         </div>
-                        <div style={{ borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: 32 }}>
+                        <div>
                             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Economia líquida mensal</p>
                             <p style={{ fontSize: 32, fontWeight: 900, color: '#10b981' }}>R$ 13.200</p>
                         </div>
                     </div>
 
                     {/* Pricing Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, alignItems: 'center' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24, alignItems: 'center' }}>
                         {/* Starter */}
-                        <div className="sl-reveal sl-d1" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 40, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
+                        <div className="sl-reveal sl-d1" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 24, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
                             <p style={{ fontSize: 18, fontWeight: 700, color: '#131b2e', marginBottom: 16 }}>Starter</p>
                             <div style={{ marginBottom: 8 }}>
                                 <span style={{ fontSize: 48, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.03em' }}>R$ 9</span>
@@ -538,7 +545,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         </div>
 
                         {/* School (Popular) */}
-                        <div className="sl-reveal sl-d2" style={{ border: '2px solid #004ac6', borderRadius: 24, padding: 40, background: '#131b2e', color: '#ffffff', position: 'relative', display: 'flex', flexDirection: 'column', transform: 'translateY(-16px)', boxShadow: '0 32px 64px rgba(0,74,198,0.15)' }}>
+                        <div className="sl-reveal sl-d2" style={{ border: '2px solid #004ac6', borderRadius: 24, padding: 24, background: '#131b2e', color: '#ffffff', position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 64px rgba(0,74,198,0.15)' }}>
                             <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#004ac6', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 9999, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                 Mais popular
                             </div>
@@ -572,7 +579,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                         </div>
 
                         {/* Enterprise */}
-                        <div className="sl-reveal sl-d3" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 40, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
+                        <div className="sl-reveal sl-d3" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 24, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
                             <p style={{ fontSize: 18, fontWeight: 700, color: '#131b2e', marginBottom: 16 }}>Enterprise</p>
                             <div style={{ marginBottom: 8, height: 56, display: 'flex', alignItems: 'center' }}>
                                 <span style={{ fontSize: 32, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.02em' }}>Sob consulta</span>
@@ -604,7 +611,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
             ═══════════════════════════════════════════════════════════════════ */}
             <section style={{
                 background: 'linear-gradient(135deg, #004ac6 0%, #1e3a8a 100%)',
-                padding: '8rem 32px',
+                padding: '4rem 16px',
                 textAlign: 'center',
             }}>
                 <div style={{ maxWidth: 720, margin: '0 auto' }} className="sl-reveal">
@@ -642,7 +649,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
             {/* ═══════════════════════════════════════════════════════════════════
                 FOOTER — Minimal
             ═══════════════════════════════════════════════════════════════════ */}
-            <footer style={{ background: '#131b2e', padding: '48px 32px', textAlign: 'center' }}>
+            <footer style={{ background: '#131b2e', padding: '32px 16px', textAlign: 'center' }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
                     <span className="sl-headline" style={{ fontSize: 20, fontWeight: 900, color: '#ffffff' }}>
                         Littera<span style={{ color: 'rgba(255,255,255,0.2)' }}>.</span>
@@ -679,7 +686,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                 }}>
                     <div className="sl-card" style={{ 
                         width: '100%', maxWidth: 480, background: '#fff', 
-                        padding: '40px', position: 'relative',
+                        padding: '24px', position: 'relative',
                         boxShadow: '0 32px 64px rgba(0,0,0,0.15)',
                         animation: 'slReveal 0.4s cubic-bezier(0.16,1,0.3,1)'
                     }}>
@@ -772,14 +779,14 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>E-mail corporativo</label>
                                 <input required name="EMAIL" type="email" placeholder="nome@escola.com.br" style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
                             </div>
-                            <div style={{ display: 'flex', gap: 16 }}>
-                                <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                <div style={{ flex: '1 1 45%', minWidth: 140 }}>
                                     <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>Celular / WhatsApp</label>
-                                    <input required name="TELEFONE" type="tel" placeholder="(11) 99999-9999" style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
+                                    <input required name="TELEFONE" type="tel" placeholder="(11) 99999-9999" style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 14, background: '#faf8ff', outline: 'none', boxSizing: 'border-box' }} />
                                 </div>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ flex: '1 1 45%', minWidth: 140 }}>
                                     <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>Nome da Escola</label>
-                                    <input required name="ESCOLA" type="text" placeholder="Instituição..." style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
+                                    <input required name="ESCOLA" type="text" placeholder="Instituição..." style={{ width: '100%', padding: '12px 14px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 14, background: '#faf8ff', outline: 'none', boxSizing: 'border-box' }} />
                                 </div>
                             </div>
                             <button type="submit" className="sl-btn-primary" disabled={isSubmittingLead} style={{ width: '100%', padding: '16px', marginTop: 12, opacity: isSubmittingLead ? 0.7 : 1 }}>

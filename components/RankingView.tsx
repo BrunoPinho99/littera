@@ -101,14 +101,14 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
   }
 
   return (
-    <div className="animate-fade-in max-w-5xl mx-auto pb-20 px-4">
+    <div className="animate-fade-in max-w-5xl mx-auto pb-28 md:pb-20 px-2 sm:px-4">
       {/* Header Section */}
-      <div className="text-center mb-12">
+      <div className="text-center mb-6 sm:mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full mb-6">
           <span className="material-icons-outlined text-sm">military_tech</span>
           <span className="text-xs font-black uppercase tracking-widest">Temporada 2024</span>
         </div>
-        <h1 className="text-4xl md:text-5xl font-black text-on-surface mb-4 tracking-tighter">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-on-surface mb-4 tracking-tighter">
           Ranking de <span className="text-primary">Elite</span>
         </h1>
         
@@ -119,7 +119,7 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all duration-300 uppercase tracking-tighter ${
+                className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-black transition-all duration-300 uppercase tracking-tighter ${
                   filter === f 
                     ? 'bg-surface-container-lowest text-primary shadow-md scale-105' 
                     : 'text-on-surface-variant hover:text-gray-600'
@@ -134,18 +134,18 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
 
       {/* Podium Display (Apenas na primeira página e se não for lista filtrada vazia) */}
       {currentPage === 1 && topThree.length > 0 && (
-        <div className="flex justify-center items-end gap-2 md:gap-6 mb-20 min-h-[360px]">
+        <div className="flex justify-center items-end gap-1 sm:gap-2 md:gap-6 mb-10 sm:mb-20 min-h-[240px] sm:min-h-[360px]">
           {/* 2nd Place */}
           <div className="flex flex-col items-center group order-1">
             {topThree[1] && (
               <>
                 <div className="relative mb-4">
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-slate-200 p-1 bg-white shadow-xl group-hover:-translate-y-2 transition-transform duration-500">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-4 border-slate-200 p-1 bg-white shadow-xl group-hover:-translate-y-2 transition-transform duration-500">
                     <img src={topThree[1].avatar} className="w-full h-full object-cover rounded-full" alt="" />
                   </div>
                   <div className="absolute -top-2 -right-2 w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center border-2 border-surface font-black text-on-surface-variant text-xs">2º</div>
                 </div>
-                <div className="bg-slate-100 dark:bg-slate-800/50 w-24 md:w-36 h-32 rounded-t-[2rem] flex flex-col justify-end pb-6 items-center border-t-4 border-slate-300">
+                <div className="bg-slate-100 dark:bg-slate-800/50 w-20 sm:w-24 md:w-36 h-24 sm:h-32 rounded-t-[1.5rem] sm:rounded-t-[2rem] flex flex-col justify-end pb-4 sm:pb-6 items-center border-t-4 border-slate-300">
                   <p className="font-black text-[10px] md:text-xs text-on-surface truncate w-full px-2 text-center">{topThree[1].name}</p>
                   <p className="text-primary font-black text-[10px]">{topThree[1].points} pts</p>
                 </div>
@@ -159,12 +159,12 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
               <>
                 <div className="relative mb-6">
                   <span className="material-icons-outlined text-amber-400 text-5xl absolute -top-14 left-1/2 -translate-x-1/2 animate-bounce">workspace_premium</span>
-                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-amber-400 p-1 bg-white shadow-2xl ring-8 ring-amber-400/5 group-hover:-translate-y-4 transition-transform duration-500">
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-full border-4 border-amber-400 p-1 bg-white shadow-2xl ring-8 ring-amber-400/5 group-hover:-translate-y-4 transition-transform duration-500">
                     <img src={topThree[0].avatar} className="w-full h-full object-cover rounded-full" alt="" />
                   </div>
                   <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 bg-amber-400 text-white px-4 py-1.5 rounded-full font-black text-[9px] shadow-lg border-2 border-surface whitespace-nowrap uppercase tracking-tighter">LÍDER ABSOLUTO</div>
                 </div>
-                <div className="bg-gradient-to-b from-amber-50 to-white dark:from-amber-900/10 dark:to-surface-dark w-32 md:w-48 h-48 rounded-t-[2.5rem] flex flex-col justify-end pb-8 items-center border-t-4 border-amber-400 shadow-xl">
+                <div className="bg-gradient-to-b from-amber-50 to-white dark:from-amber-900/10 dark:to-surface-dark w-28 sm:w-32 md:w-48 h-32 sm:h-48 rounded-t-[2rem] sm:rounded-t-[2.5rem] flex flex-col justify-end pb-5 sm:pb-8 items-center border-t-4 border-amber-400 shadow-xl">
                   <p className="font-black text-xs md:text-sm text-on-surface truncate w-full px-4 text-center">{topThree[0].name}</p>
                   <p className="text-primary font-black text-xs">{topThree[0].points} pts</p>
                 </div>
@@ -177,12 +177,12 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
             {topThree[2] && (
               <>
                 <div className="relative mb-4">
-                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-amber-800/20 p-1 bg-white shadow-xl group-hover:-translate-y-2 transition-transform duration-500">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full border-4 border-amber-800/20 p-1 bg-white shadow-xl group-hover:-translate-y-2 transition-transform duration-500">
                     <img src={topThree[2].avatar} className="w-full h-full object-cover rounded-full" alt="" />
                   </div>
                   <div className="absolute -top-2 -left-2 w-8 h-8 bg-amber-50 rounded-full flex items-center justify-center border-2 border-surface font-black text-amber-800 text-xs">3º</div>
                 </div>
-                <div className="bg-amber-50 dark:bg-amber-900/5 w-24 md:w-36 h-24 rounded-t-[2rem] flex flex-col justify-end pb-6 items-center border-t-4 border-amber-700/20">
+                <div className="bg-amber-50 dark:bg-amber-900/5 w-20 sm:w-24 md:w-36 h-20 sm:h-24 rounded-t-[1.5rem] sm:rounded-t-[2rem] flex flex-col justify-end pb-4 sm:pb-6 items-center border-t-4 border-amber-700/20">
                   <p className="font-black text-[10px] md:text-xs text-on-surface truncate w-full px-2 text-center">{topThree[2].name}</p>
                   <p className="text-primary font-black text-[10px]">{topThree[2].points} pts</p>
                 </div>
@@ -194,7 +194,7 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
 
       {/* Full List Table */}
       <div className="bg-surface-container-lowest rounded-card shadow-ambient ghost-border overflow-hidden">
-        <div className="px-8 py-6 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-surface-container-low">
+        <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-surface-container-low">
           <h3 className="text-[10px] font-black text-on-surface-variant uppercase tracking-[0.2em]">
             Classificação {manualData ? 'Institucional' : filter === 'global' ? 'Brasil' : 'Focada'}
           </h3>
@@ -211,31 +211,31 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
             return (
               <div 
                 key={user.id} 
-                className={`flex items-center justify-between px-8 py-6 transition-colors hover:bg-surface-container-low ${user.isCurrentUser ? 'bg-primary/5 dark:bg-primary/10 border-l-4 border-primary' : ''}`}
+                className={`flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 transition-colors hover:bg-surface-container-low ${user.isCurrentUser ? 'bg-primary/5 dark:bg-primary/10 border-l-4 border-primary' : ''}`}
               >
-                <div className="flex items-center gap-6">
+                <div className="flex items-center gap-3 sm:gap-6">
                   <span className={`w-8 text-center font-black text-lg ${realIndex < 3 ? 'text-primary' : 'text-on-surface-variant'}`}>{realIndex + 1}º</span>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3 sm:gap-4">
                     <div className="relative">
-                      <img src={user.avatar} className="w-12 h-12 rounded-full border-2 border-surface dark:border-slate-700 shadow-sm" alt="" />
+                      <img src={user.avatar} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-surface dark:border-slate-700 shadow-sm" alt="" />
                       {user.isCurrentUser && <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 border-2 border-surface rounded-full"></span>}
                     </div>
                     <div>
                       <h4 className={`font-black text-sm ${user.isCurrentUser ? 'text-primary' : 'text-on-surface'}`}>
                         {user.name} {user.isCurrentUser && !showAllEntries && "(Você)"}
                       </h4>
-                      <p className="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest">{user.school} • {user.className}</p>
+                      <p className="text-[8px] sm:text-[9px] font-bold text-on-surface-variant uppercase tracking-widest hidden sm:block">{user.school} • {user.className}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-12">
+                <div className="flex items-center gap-4 sm:gap-12">
                   <div className="hidden md:block text-center">
                     <p className="text-[9px] font-black text-on-surface-variant uppercase mb-1">Redações</p>
                     <p className="font-black text-on-surface">{user.essaysCount}</p>
                   </div>
-                  <div className="text-right min-w-[80px]">
-                    <p className="text-xl font-black text-on-surface leading-none">{user.points}</p>
+                  <div className="text-right min-w-[60px] sm:min-w-[80px]">
+                    <p className="text-base sm:text-xl font-black text-on-surface leading-none">{user.points}</p>
                     <p className="text-[9px] font-black text-primary uppercase tracking-tighter">Pontos</p>
                   </div>
                 </div>

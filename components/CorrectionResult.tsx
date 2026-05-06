@@ -77,7 +77,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
       <div className="bg-surface-container-lowest rounded-card shadow-ambient overflow-hidden mb-8">
 
         {/* Header Score — Dark inset */}
-        <div className="p-10 text-center relative overflow-hidden bg-on-surface text-white">
+        <div className="p-6 sm:p-10 text-center relative overflow-hidden bg-on-surface text-white">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/20 to-transparent pointer-events-none"></div>
 
           <div className="flex flex-col items-center relative z-10">
@@ -85,7 +85,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
               Nota Final
             </h2>
 
-            <div className={`text-8xl md:text-9xl font-black mb-2 tabular-nums ${getScoreColor(result.totalScore)}`}
+            <div className={`text-6xl sm:text-8xl md:text-9xl font-black mb-2 tabular-nums ${getScoreColor(result.totalScore)}`}
               style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif', letterSpacing: '-0.04em' }}>
               {result.totalScore}
             </div>
@@ -126,7 +126,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
         </div>
 
         {/* General Feedback — Tonal layering (surface-container-low section) */}
-        <div className="p-8 bg-surface-container-low">
+        <div className="p-5 sm:p-8 bg-surface-container-low">
           <h3 className="flex items-center gap-2 text-title-lg text-on-surface mb-4">
             <div className="w-8 h-8 rounded-xl bg-primary-fixed/40 flex items-center justify-center">
               <span className="material-icons-outlined text-primary text-base">psychology</span>
@@ -139,7 +139,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
         </div>
 
         {/* Competencies — surface back to surface-container-lowest */}
-        <div className="p-8">
+        <div className="p-5 sm:p-8">
           <h3 className="flex items-center gap-2 text-title-lg text-on-surface mb-6">
             <div className="w-8 h-8 rounded-xl bg-primary-fixed/40 flex items-center justify-center">
               <span className="material-icons-outlined text-primary text-base">checklist</span>
@@ -149,7 +149,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
 
           <div className="space-y-4">
             {result.competencies.map((comp, index) => (
-              <div key={index} className="bg-surface-container-low p-5 rounded-card hover:shadow-card transition-shadow">
+              <div key={index} className="bg-surface-container-low p-4 sm:p-5 rounded-card hover:shadow-card transition-shadow">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-lg bg-surface-container-high flex items-center justify-center">
@@ -185,7 +185,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
         </div>
 
         {/* CTA */}
-        <div className="p-8 flex flex-col sm:flex-row justify-center gap-4">
+        <div className="p-5 sm:p-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4">
           {onEvolution && (
             <button
               onClick={onEvolution}

@@ -219,10 +219,10 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
       {/* Lado Direito - Formulário Glassmorphism */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-grid">
         <div className="w-full max-w-md animate-fade-in-up">
-          <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
+            <div className="bg-white dark:bg-surface-dark rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
 
             <div className="mb-6 text-center">
-              <h2 className="text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter">
+              <h2 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter">
                 {isLogin ? 'Bem-vindo' : 'Ativar Conta'}
               </h2>
               <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em]">
