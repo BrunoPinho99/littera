@@ -1,7 +1,9 @@
 // api/webhook.ts
 import { createClient } from '@supabase/supabase-js';
+import { applyCors } from './_cors';
 
 export default async function handler(req: any, res: any) {
+    if (applyCors(req, res)) return;
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method Not Allowed' });
     }

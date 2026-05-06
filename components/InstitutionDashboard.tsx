@@ -673,19 +673,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-fade-in">
               {/* ROI and General Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-[#1C2030]/80 to-[#12141F] dark:from-white/10 dark:to-white/5 p-8 rounded-[2rem] border border-gray-100 dark:border-white/10 shadow-premium relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <span className="material-icons-outlined text-8xl text-white">timer</span>
-                  </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/80 mb-2">Tempo Poupado</p>
-                  <div className="flex items-end gap-2">
-                    <h3 className="text-5xl font-black text-white">{Math.round((essays.length * 15) / 60)}</h3>
-                    <span className="text-xl font-bold text-gray-400 mb-1">horas</span>
-                  </div>
-                  <p className="text-xs text-gray-400 font-medium mt-4">Economia gerada pelos docentes que não precisaram corrigir {essays.length} redações manualmente.</p>
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Média da Escola</p>
                   <div className="flex items-end gap-2">
