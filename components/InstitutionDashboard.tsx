@@ -1060,7 +1060,61 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {/* ── SUBSCRIPTION TAB ── */}
           {activeTab === 'subscription' && userType === 'school_admin' && (
             <div className="space-y-10 animate-fade-in">
-              {/* Subscription Overview */}
+
+              {/* Banner de Assinatura Pendente */}
+              {school?.subscription_status !== 'active' && (
+                <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-black to-slate-900 rounded-[2rem] border-2 border-primary/20 shadow-2xl p-8 sm:p-12 text-center">
+                  <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/20 rounded-full blur-[80px] pointer-events-none"></div>
+                  <div className="relative z-10 max-w-xl mx-auto">
+                    <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <span className="material-icons-outlined text-primary text-3xl">workspace_premium</span>
+                    </div>
+                    <h3 className="text-2xl sm:text-3xl font-black text-white mb-3">Ative sua Assinatura</h3>
+                    <p className="text-gray-400 text-sm sm:text-base mb-8 leading-relaxed">
+                      Para liberar o acesso completo da sua instituição — turmas ilimitadas, convites de professores e alunos, correções por IA e painel de relatórios — finalize sua assinatura.
+                    </p>
+                    <button
+                      onClick={async () => {
+                        const btn = document.getElementById('asaas-subscribe-btn');
+                        if (btn) { btn.textContent = 'Gerando link...'; (btn as HTMLButtonElement).disabled = true; }
+                        try {
+                          const res = await fetch('/api/create-subscription', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              schoolId: school?.id,
+                              email: school?.name || '',
+                              name: school?.name || 'Escola',
+                              planPrice: 29.90,
+                              frequency: 1,
+                              returnUrl: window.location.href
+                            })
+                          });
+                          const data = await res.json();
+                          if (data.checkoutUrl) {
+                            window.open(data.checkoutUrl, '_blank');
+                          } else {
+                            alert('Não foi possível gerar o link de pagamento. Tente novamente.');
+                          }
+                        } catch (err) {
+                          console.error(err);
+                          alert('Erro ao conectar com o servidor de pagamentos.');
+                        } finally {
+                          if (btn) { btn.textContent = 'Assinar Agora'; (btn as HTMLButtonElement).disabled = false; }
+                        }
+                      }}
+                      id="asaas-subscribe-btn"
+                      className="px-10 py-4 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/30 transition-all hover:scale-105 flex items-center gap-3 mx-auto"
+                    >
+                      <span className="material-icons-outlined">lock_open</span>
+                      Assinar Agora
+                    </button>
+                    <p className="text-[10px] text-gray-500 mt-4 uppercase tracking-widest">Pagamento seguro via Asaas • Pix, Boleto ou Cartão</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Subscription Overview (só aparece quando ativa) */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-gradient-to-br from-[#131b2e] to-[#1e293b] p-8 rounded-[2rem] relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 rounded-full blur-[80px] pointer-events-none"></div>

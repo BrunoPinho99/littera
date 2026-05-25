@@ -93,9 +93,37 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               data: { school_id: schoolId }
             });
 
-            setSuccessMessage("Instituição cadastrada com sucesso! Bem-vindo.");
-            // Pequeno delay para exibir mensagem antes de entrar
-            setTimeout(() => onLoginSuccess(), 1500);
+            setSuccessMessage("Instituição criada! Redirecionando para assinatura...");
+            
+            // Gera link de pagamento Asaas e redireciona
+            try {
+              const subRes = await fetch('/api/create-subscription', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  schoolId: schoolId,
+                  email: email,
+                  name: name,
+                  planPrice: 29.90,
+                  frequency: 1,
+                  returnUrl: window.location.origin + '/app/inst-overview'
+                })
+              });
+              const subData = await subRes.json();
+              if (subData.checkoutUrl) {
+                setTimeout(() => {
+                  window.open(subData.checkoutUrl, '_blank');
+                  onLoginSuccess();
+                }, 1500);
+              } else {
+                // Fallback: entra no app mesmo sem link (poderá assinar depois)
+                console.warn('Não foi possível gerar link Asaas:', subData);
+                setTimeout(() => onLoginSuccess(), 1500);
+              }
+            } catch (subErr) {
+              console.warn('Erro ao gerar link de assinatura:', subErr);
+              setTimeout(() => onLoginSuccess(), 1500);
+            }
           } else if (signUpData.user && !signUpData.session) {
             setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar a conta antes de entrar.");
             setTimeout(() => setIsLogin(true), 3000);
@@ -344,7 +372,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               >
                 Acesso Demonstrativo ({userType === 'student' ? 'Aluno' : userType === 'teacher' ? 'Docente' : 'Escola'})
               </button>
-              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                 {isLogin
                   ? (userType === 'school_admin' ? 'Ainda não tem conta?' : 'Foi convidado pela escola?')
                   : 'Já tem cadastro?'}
