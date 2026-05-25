@@ -1,6 +1,34 @@
 import { supabase } from '../supabaseClient';
 import { EssayInput, CorrectionResult, SavedEssay, Assignment, School, ClassGroup, StudentDetail, BulkStudentRow } from '../types';
 
+// ── Email de Convite via Edge Function ─────────────────────────────────────────
+// Chama a Edge Function 'send-invite' que usa a service_role key no backend
+export const sendInviteEmail = async (params: {
+  email: string;
+  name: string;
+  role: 'student' | 'professor';
+  school_id: string;
+  school_name: string;
+  class_id?: string;
+}): Promise<{ success: boolean; alreadyExists?: boolean; message?: string }> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-invite', {
+      body: params,
+    });
+
+    if (error) {
+      console.error('[sendInviteEmail] Edge Function error:', error);
+      // Não bloqueia o fluxo principal — o registro foi criado, só o email falhou
+      return { success: false, message: error.message };
+    }
+
+    return data as { success: boolean; alreadyExists?: boolean; message?: string };
+  } catch (err: any) {
+    console.error('[sendInviteEmail] Unexpected error:', err);
+    return { success: false, message: err.message };
+  }
+};
+
 export const JOURNEY_TIERS = [
   { min: 0, max: 2, label: 'Aspirante', icon: 'edit', color: 'text-gray-400', bg: 'bg-gray-100', next: 3 },
   { min: 3, max: 5, label: 'Escritor Bronze', icon: 'workspace_premium', color: 'text-amber-700', bg: 'bg-amber-100', next: 6 },
@@ -185,29 +213,47 @@ export const createProfessor = async (profData: { name: string; email: string; s
     };
     const currentProfs = JSON.parse(localStorage.getItem('scritta_demo_professors') || '[]');
     localStorage.setItem('scritta_demo_professors', JSON.stringify([...currentProfs, mockProfessor]));
-    return mockProfessor;
+    return { ...mockProfessor, _inviteEmailSent: false };
   }
 
-  // MODO REAL
+  // MODO REAL — Busca dados da escola para personalizar o email
+  const schoolData = await getSchoolData(profData.school_id).catch(() => null);
+  const schoolName = schoolData?.name || 'sua escola';
+
+  // Cria o registro no banco com status 'invited'
   const { data, error } = await supabase
     .from('profiles')
     .insert([{
-      id: generateUUID(), // Nota: Idealmente seria o ID do Auth, mas para convite usamos placeholder
+      id: generateUUID(),
       full_name: profData.name,
       email: profData.email,
       role: 'professor',
       school_id: profData.school_id,
       class_id: profData.class_id,
-      status: 'invited' // Marcado como convidado
+      status: 'invited'
     }])
     .select()
     .single();
 
   if (error) throw error;
-  return data;
+
+  // Envia email de convite via Edge Function (não bloqueia em caso de falha)
+  const inviteResult = await sendInviteEmail({
+    email: profData.email,
+    name: profData.name,
+    role: 'professor',
+    school_id: profData.school_id,
+    school_name: schoolName,
+    class_id: profData.class_id,
+  });
+
+  return { ...data, _inviteEmailSent: inviteResult.success, _inviteAlreadyExists: inviteResult.alreadyExists };
 };
 
-export const createStudent = async (studentData: { name: string; email: string; school_id: string; class_id: string; registration_number?: string }): Promise<StudentDetail | null> => {
+export const createStudent = async (
+  studentData: { name: string; email: string; school_id: string; class_id: string; registration_number?: string },
+  _schoolName?: string // opcional: nome da escola para personalizar o email
+): Promise<StudentDetail | null> => {
   // MODO DEMO
   if (studentData.school_id === 'demo-school') {
     const mockStudent: StudentDetail = {
@@ -217,7 +263,7 @@ export const createStudent = async (studentData: { name: string; email: string; 
       averageScore: 0,
       essaysSubmitted: 0,
       lastActivity: "Novo",
-      status: 'active',
+      status: 'invited',
       class_id: studentData.class_id,
       school_id: studentData.school_id,
       registration_number: studentData.registration_number
@@ -227,7 +273,7 @@ export const createStudent = async (studentData: { name: string; email: string; 
     return mockStudent;
   }
 
-  // MODO REAL
+  // MODO REAL — Verifica se email já existe
   const { data: existingUser } = await supabase
     .from('profiles')
     .select('id')
@@ -241,19 +287,31 @@ export const createStudent = async (studentData: { name: string; email: string; 
   const { data, error } = await supabase
     .from('profiles')
     .insert([{
-      id: generateUUID(), // Placeholder ID
+      id: generateUUID(),
       full_name: studentData.name,
       email: studentData.email,
       role: 'student',
       school_id: studentData.school_id,
       class_id: studentData.class_id,
-      // registration_number: studentData.registration_number, // Coluna ainda não existe no banco
       status: 'invited'
     }])
     .select()
     .single();
 
   if (error) throw error;
+
+  // Busca nome da escola se não foi passado
+  const schoolName = _schoolName || (await getSchoolData(studentData.school_id).catch(() => null))?.name || 'sua escola';
+
+  // Envia email de convite via Edge Function
+  await sendInviteEmail({
+    email: studentData.email,
+    name: studentData.name,
+    role: 'student',
+    school_id: studentData.school_id,
+    school_name: schoolName,
+    class_id: studentData.class_id,
+  });
 
   return {
     id: data.id,
@@ -262,7 +320,7 @@ export const createStudent = async (studentData: { name: string; email: string; 
     averageScore: 0,
     essaysSubmitted: 0,
     lastActivity: "Novo",
-    status: 'active',
+    status: 'invited',
     class_id: data.class_id,
     school_id: data.school_id,
     registration_number: data.registration_number
@@ -275,12 +333,16 @@ export const createStudentsBulk = async (students: { name: string; email: string
     errors: [] as { email: string, reason: string }[]
   };
 
+  // Busca nome da escola uma única vez para todos os convites
+  const schoolData = await getSchoolData(schoolId).catch(() => null);
+  const schoolName = schoolData?.name || 'sua escola';
+
   for (const student of students) {
     try {
-      const result = await createStudent({
-        ...student,
-        school_id: schoolId
-      });
+      const result = await createStudent(
+        { ...student, school_id: schoolId },
+        schoolName // passa o nome já buscado para evitar N queries
+      );
       if (result) {
         results.success.push(result);
       }

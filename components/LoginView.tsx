@@ -345,13 +345,17 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 Acesso Demonstrativo ({userType === 'student' ? 'Aluno' : userType === 'teacher' ? 'Docente' : 'Escola'})
               </button>
               <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
-                {isLogin ? 'Foi convidado pela escola?' : 'Já tem cadastro?'}
+                {isLogin
+                  ? (userType === 'school_admin' ? 'Ainda não tem conta?' : 'Foi convidado pela escola?')
+                  : 'Já tem cadastro?'}
                 <button
                   type="button"
                   onClick={() => { setIsLogin(!isLogin); setErrorMessage(null); }}
                   className="ml-2 text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4"
                 >
-                  {isLogin ? 'Resgatar Convite' : 'Fazer Login'}
+                  {isLogin
+                    ? (userType === 'school_admin' ? 'Criar Conta' : 'Resgatar Convite')
+                    : 'Fazer Login'}
                 </button>
               </p>
             </div>

@@ -16,6 +16,7 @@ import InstitutionDashboard from './components/InstitutionDashboard';
 import LandingPage from './components/LandingPage';
 import CheckoutForm from './components/CheckoutForm';
 import PaymentSuccess from './components/PaymentSuccess';
+import AcceptInviteView from './components/AcceptInviteView';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification } from './types';
 import { correctEssay } from './services/geminiService';
@@ -445,6 +446,7 @@ const App: React.FC = () => {
         ) : <Navigate to="/" replace />
       } />
       <Route path="/sucesso" element={<PaymentSuccess />} />
+      <Route path="/convite" element={<AcceptInviteView />} />
       <Route path="/app/*" element={<MainAppLayout />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

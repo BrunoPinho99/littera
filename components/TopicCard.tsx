@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Topic, SupportText } from '../types';
+import { exploreTopics } from '../data/exploreTopics';
 
 interface TopicCardProps {
   topic: Topic;
@@ -14,6 +15,19 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const [countdownPhase, setCountdownPhase] = React.useState<'counting' | 'go' | null>(null);
   const [selectedText, setSelectedText] = React.useState<SupportText | null>(null);
+
+  const topicData = exploreTopics.find(t => t.id === topic.id || t.title === topic.title);
+  const difficulty = topicData?.difficulty || 'Médio';
+  
+  const getDifficultyXP = (diff: string) => {
+    switch (diff) {
+      case 'Fácil': return 500;
+      case 'Médio': return 1000;
+      case 'Difícil': return 1500;
+      default: return 1000;
+    }
+  };
+  const xpReward = getDifficultyXP(difficulty);
 
   const handleWriteClick = () => {
     setCountdown(3);
@@ -210,25 +224,33 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
 
             {/* CTAs — Primary gradient + Secondary outlined */}
-            <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <button
-                onClick={handleWriteClick}
-                disabled={isLoading}
-                className="group relative px-8 py-5 btn-gradient text-on-primary rounded-pill font-black text-label-lg transition-all hover:scale-[1.02] active:scale-95 shadow-glow-sm hover:shadow-glow disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3 overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <span className="material-icons-outlined text-xl group-hover:rotate-12 transition-transform">edit_note</span>
-                <span>Escrever Redação</span>
-              </button>
+            <div className="flex flex-col items-center w-full sm:w-auto">
+              <div className="flex items-center gap-2 mb-4 animate-fade-in-up">
+                 <span className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-black tracking-widest uppercase border border-primary/20">
+                   <span className="material-icons-outlined text-sm">stars</span>
+                   Recompensa: +{xpReward} XP
+                 </span>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <button
+                  onClick={handleWriteClick}
+                  disabled={isLoading}
+                  className="group relative px-8 py-5 bg-slate-900 text-white rounded-pill font-black text-label-lg transition-all hover:scale-[1.02] hover:bg-black active:scale-95 shadow-glow-sm hover:shadow-glow disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3 overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                  <span className="material-icons-outlined text-xl group-hover:-rotate-12 transition-transform">rocket_launch</span>
+                  <span className="uppercase tracking-widest">Aceitar Desafio</span>
+                </button>
 
-              <button
-                onClick={onUpload}
-                disabled={isLoading}
-                className="px-8 py-5 bg-surface-container-lowest ghost-border text-on-surface-variant rounded-pill font-black text-label-lg transition-all hover:text-primary hover:shadow-card active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
-              >
-                <span className="material-icons-outlined text-xl">add_a_photo</span>
-                <span>Enviar Foto</span>
-              </button>
+                <button
+                  onClick={onUpload}
+                  disabled={isLoading}
+                  className="px-8 py-5 bg-surface-container-lowest ghost-border text-on-surface-variant rounded-pill font-black text-label-lg transition-all hover:text-primary hover:shadow-card active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                >
+                  <span className="material-icons-outlined text-xl">add_a_photo</span>
+                  <span className="uppercase tracking-widest">Enviar Foto</span>
+                </button>
+              </div>
             </div>
           </div>
 

@@ -19,13 +19,30 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory]);
 
+  // Lógica gamificada
+  const getDifficultyXP = (difficulty: string) => {
+    switch (difficulty) {
+      case 'Fácil': return 500;
+      case 'Médio': return 1000;
+      case 'Difícil': return 1500;
+      default: return 500;
+    }
+  };
+
+  // Desafio da Semana (simulando um tema em destaque)
+  const featuredTopic = exploreTopics.find(t => t.difficulty === 'Difícil') || exploreTopics[0];
+
   const filteredTopics = useMemo(() => {
     return exploreTopics.filter(topic => {
+      // Remover o tópico em destaque do grid se estivermos na visualização 'Todos' sem busca, para não duplicar
+      const isFeatured = topic.id === featuredTopic.id && selectedCategory === 'Todos' && !searchTerm;
+      if (isFeatured) return false;
+
       const matchesSearch = topic.title.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === "Todos" || topic.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, featuredTopic.id]);
 
   const totalPages = Math.ceil(filteredTopics.length / ITEMS_PER_PAGE);
   const currentTopics = filteredTopics.slice(
@@ -55,12 +72,12 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
     <div className="animate-fade-in pb-24 md:pb-20">
       
       {/* Header Section */}
-      <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-16">
-        <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-on-surface tracking-tighter mb-3 sm:mb-4">
-          Explore os principais temas de <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-pink-500">redação do ENEM</span>
+      <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-on-surface tracking-tighter mb-4">
+          Central de <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Missões</span>
         </h1>
         <p className="text-sm sm:text-lg text-on-surface-variant font-medium px-2">
-          Navegue por nossa biblioteca de temas de alta probabilidade, atualizados semanalmente com dados reais.
+          Escolha seu desafio, acumule XP e domine a arte da redação.
         </p>
       </div>
 
@@ -74,7 +91,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
               placeholder="Busque por 'Inteligência Artificial'..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-surface-container-low border-transparent focus:bg-white dark:focus:bg-black focus:border-primary/20 focus:ring-4 focus:ring-primary/10 text-on-surface font-bold transition-all outline-none text-sm sm:text-base"
+              className="w-full pl-11 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-surface-container-low border-transparent focus:bg-white dark:focus:bg-black focus:border-primary/20 focus:ring-4 focus:ring-primary/10 text-on-surface font-bold transition-all outline-none text-sm sm:text-base uppercase tracking-wider"
             />
           </div>
           
@@ -95,6 +112,45 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
           </div>
         </div>
       </div>
+
+      {/* Desafio da Semana (Hero Banner) */}
+      {selectedCategory === 'Todos' && !searchTerm && currentPage === 1 && (
+        <div className="mb-12 relative overflow-hidden group rounded-[2rem] bg-gradient-to-br from-slate-900 via-black to-slate-900 border-2 border-primary/20 shadow-2xl shadow-primary/20 cursor-pointer"
+             onClick={() => onSelectTopic(featuredTopic.title)}>
+          {/* Fundo Decorativo */}
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/30 rounded-full blur-[80px] group-hover:bg-primary/50 transition-colors duration-700"></div>
+          <div className="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay"></div>
+          
+          <div className="relative z-10 p-6 sm:p-10 flex flex-col md:flex-row gap-8 items-center md:items-start text-white">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 text-primary border border-primary/30 text-xs font-black uppercase tracking-widest">
+                  <span className="material-icons-outlined text-sm">local_fire_department</span>
+                  Desafio da Semana
+                </span>
+                <span className="px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/20 text-xs font-black uppercase tracking-widest">
+                  +{getDifficultyXP(featuredTopic.difficulty)} XP
+                </span>
+              </div>
+              
+              <h2 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 group-hover:to-white transition-colors">
+                {featuredTopic.title}
+              </h2>
+              
+              <div className="flex items-center gap-4 pt-4">
+                <button className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-on-primary rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/30 transform group-hover:scale-105 transition-all">
+                  <span className="material-icons-outlined">sports_esports</span>
+                  Aceitar Missão
+                </button>
+                <div className="text-sm font-bold text-gray-400 flex items-center gap-2">
+                  <span className="material-icons-outlined text-gray-500">group</span>
+                  2.450 alunos na arena
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Grid de Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8 mb-12">
@@ -123,13 +179,14 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
             </h3>
             
             <div className="mt-auto pt-6 border-t border-gray-50 dark:border-slate-800/50 flex items-center justify-between relative z-10">
-               <div className="flex -space-x-2">
-                 {[1,2,3].map(i => (
-                   <div key={i} className="w-6 h-6 rounded-full bg-gray-200 dark:bg-slate-700 border-2 border-white dark:border-surface-dark"></div>
-                 ))}
+               <div className="flex items-center gap-2">
+                 <span className="flex items-center gap-1 px-2.5 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-black tracking-widest uppercase">
+                   <span className="material-icons-outlined text-sm">stars</span>
+                   +{getDifficultyXP(topic.difficulty)} XP
+                 </span>
                </div>
-               <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm">
-                 <span className="material-icons-outlined text-lg">arrow_forward</span>
+               <div className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm transform group-hover:rotate-12">
+                 <span className="material-icons-outlined text-lg">flight_takeoff</span>
                </div>
             </div>
           </div>

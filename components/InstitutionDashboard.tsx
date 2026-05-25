@@ -43,6 +43,13 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
 
+  // ── Toast Notification ──
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; title: string; message: string } | null>(null);
+  const showToast = (type: 'success' | 'error' | 'info', title: string, message: string) => {
+    setToast({ type, title, message });
+    setTimeout(() => setToast(null), 6000);
+  };
+
   const [school, setSchool] = useState<School | null>(null);
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   const [students, setStudents] = useState<StudentDetail[]>([]);
@@ -278,7 +285,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const handleCreateProfessor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProfessor.name || !newProfessor.email || !newProfessor.class_id) {
-      alert("Por favor, preencha todos os campos e selecione uma turma.");
+      showToast('error', 'Campos incompletos', 'Por favor, preencha todos os campos e selecione uma turma.');
       return;
     }
 
@@ -297,12 +304,20 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       if (createdProf) {
         setProfessors(prev => [...prev, createdProf]);
         setIsProfessorModalOpen(false);
+        const savedEmail = newProfessor.email;
         setNewProfessor({ name: '', email: '', class_id: '' });
-        alert(`Sucesso! Um e-mail de convite foi enviado para ${newProfessor.email}. O professor deverá usar a opção "Resgatar Convite" no login para criar sua senha.`);
+
+        if ((createdProf as any)._inviteEmailSent) {
+          showToast('success', '✉️ Convite enviado!', `Um email foi enviado para ${savedEmail} com o link de ativação da conta.`);
+        } else if ((createdProf as any)._inviteAlreadyExists) {
+          showToast('info', 'Professor já cadastrado', `O email ${savedEmail} já possui uma conta ativa na plataforma.`);
+        } else {
+          showToast('info', 'Professor adicionado', `Registro criado para ${savedEmail}. O envio de email pode ter falhado — verifique a configuração da Edge Function.`);
+        }
       }
     } catch (error: any) {
       const msg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-      alert("Erro ao cadastrar professor: " + msg);
+      showToast('error', 'Erro ao cadastrar professor', msg);
     } finally {
       setIsSavingProfessor(false);
     }
@@ -311,7 +326,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStudent.name || !newStudent.email || !newStudent.class_id) {
-      alert("Por favor, preencha os campos obrigatórios e selecione uma turma.");
+      showToast('error', 'Campos incompletos', 'Por favor, preencha os campos obrigatórios e selecione uma turma.');
       return;
     }
 
@@ -331,13 +346,15 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       if (createdStudent) {
         setStudents(prev => [createdStudent, ...prev]);
         setIsStudentModalOpen(false);
+        const savedEmail = newStudent.email;
+        const savedName = newStudent.name;
         setNewStudent({ name: '', email: '', class_id: '', registration_number: '' });
         if (activeTab !== 'students') setActiveTab('students');
-        alert(`Aluno cadastrado! Um e-mail de convite foi enviado para ${newStudent.email}. Instrua o aluno a usar "Resgatar Convite" no login.`);
+        showToast('success', '✉️ Convite enviado!', `Email de ativação enviado para ${savedEmail}. ${savedName} receberá um link para criar a senha e acessar a plataforma.`);
       }
     } catch (error: any) {
       const msg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
-      alert(msg || "Erro ao cadastrar aluno. Verifique se o e-mail já existe.");
+      showToast('error', 'Erro ao cadastrar aluno', msg || 'Verifique se o e-mail já existe.');
     } finally {
       setIsSavingStudent(false);
     }
@@ -566,9 +583,34 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     }).sort((a, b) => b.points - a.points);
   }, [students, classes, school]);
 
+  const toastColors = {
+    success: 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300',
+    error: 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-300',
+    info: 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300',
+  };
+  const toastIcons = { success: 'check_circle', error: 'error', info: 'info' };
+
   return (
     <div className="animate-fade-in-up space-y-12">
-      {/* ... (rest of the component structure is unchanged, changes were in handlers above) ... */}
+
+      {/* ── Toast Notification ───────────────────────────────────────────────── */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-[200] max-w-sm w-full animate-fade-in-up`}>
+          <div className={`flex items-start gap-3 p-4 rounded-2xl border shadow-xl backdrop-blur-sm ${toastColors[toast.type]}`}>
+            <span className="material-icons-outlined text-xl flex-shrink-0 mt-0.5">
+              {toastIcons[toast.type]}
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="font-black text-sm">{toast.title}</p>
+              <p className="text-xs mt-0.5 opacity-80 leading-relaxed">{toast.message}</p>
+            </div>
+            <button onClick={() => setToast(null)} className="flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
+              <span className="material-icons-outlined text-lg">close</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-2">
@@ -626,6 +668,68 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           </div>
         )}
       </header>
+
+      {/* ── Onboarding: Primeiros Passos (só para school_admin sem turmas) ─── */}
+      {userType === 'school_admin' && !loading && classes.length === 0 && (
+        <div className="relative overflow-hidden bg-gradient-to-br from-primary to-blue-700 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl shadow-primary/30">
+          {/* Decorative blobs */}
+          <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/15 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-8">
+            {/* Icon */}
+            <div className="flex-shrink-0 w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-sm">
+              <span className="material-icons-outlined text-white text-3xl">rocket_launch</span>
+            </div>
+
+            {/* Text */}
+            <div className="flex-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-1">Primeiros Passos</p>
+              <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
+                Comece criando suas turmas! 🎓
+              </h3>
+              <p className="text-white/75 font-medium text-sm leading-relaxed max-w-xl">
+                Para convidar professores e alunos, você precisa ter pelo menos uma turma cadastrada. Siga a ordem abaixo para configurar sua escola rapidamente.
+              </p>
+
+              {/* Steps */}
+              <div className="flex flex-wrap gap-3 mt-5">
+                {[
+                  { step: '1', icon: 'meeting_room', label: 'Criar turmas', active: true },
+                  { step: '2', icon: 'school', label: 'Convidar professores', active: false },
+                  { step: '3', icon: 'group_add', label: 'Convidar alunos', active: false },
+                ].map(({ step, icon, label, active }) => (
+                  <div
+                    key={step}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all ${
+                      active
+                        ? 'bg-white text-primary shadow-lg'
+                        : 'bg-white/15 text-white/70'
+                    }`}
+                  >
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${active ? 'bg-primary text-white' : 'bg-white/20 text-white'}`}>
+                      {step}
+                    </span>
+                    <span className="material-icons-outlined text-base">{icon}</span>
+                    {label}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="flex-shrink-0">
+              <button
+                onClick={() => setIsClassModalOpen(true)}
+                className="flex items-center gap-2 px-8 py-4 bg-white text-primary font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all"
+              >
+                <span className="material-icons-outlined text-lg">add</span>
+                Criar Primeira Turma
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Grid de Métricas */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
