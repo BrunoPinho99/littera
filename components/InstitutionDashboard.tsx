@@ -600,6 +600,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   }
 
   if (school?.subscription_status === 'pending_payment') {
+    const checkoutUrl = localStorage.getItem('littera_checkout_url');
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium border border-gray-100 dark:border-white/5 p-8 text-center animate-fade-in mt-8">
         <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mb-6">
@@ -607,15 +608,29 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         </div>
         <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Aguardando Pagamento</h2>
         <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
-          Sua assinatura está sendo processada. Assim que o pagamento for confirmado pelo Asaas, seu acesso será liberado automaticamente.
+          Sua escola foi cadastrada com sucesso! Para liberar o acesso completo, realize o pagamento no ambiente seguro do Asaas. Assim que confirmado, seu painel será desbloqueado automaticamente.
         </p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="px-6 py-3 bg-primary text-white rounded-2xl font-bold hover:bg-primary-dark transition-colors flex items-center gap-2"
-        >
-          <span className="material-icons-outlined">refresh</span>
-          Atualizar Página
-        </button>
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {checkoutUrl && (
+            <a
+              href={checkoutUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-4 bg-primary text-white rounded-2xl font-bold hover:bg-primary-dark transition-colors flex items-center gap-2 shadow-lg shadow-primary/30"
+            >
+              <span className="material-icons-outlined">payment</span>
+              Realizar Pagamento
+            </a>
+          )}
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-gray-100 dark:bg-slate-700 text-gray-700 dark:text-gray-200 rounded-2xl font-bold hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-2"
+          >
+            <span className="material-icons-outlined">refresh</span>
+            Já paguei, atualizar
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-6">O Asaas também enviará instruções de pagamento para o e-mail cadastrado.</p>
       </div>
     );
   }

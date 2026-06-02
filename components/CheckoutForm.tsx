@@ -50,10 +50,16 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                 throw new Error('A senha deve ter pelo menos 6 caracteres.');
             }
 
-            // 1. Criar o usuário no Supabase Auth
+            // 1. Criar o usuário no Supabase Auth (já com metadata de gestor)
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email: formData.email,
                 password: formData.password,
+                options: {
+                    data: {
+                        user_type: 'school_admin',
+                        full_name: formData.name,
+                    }
+                }
             });
 
             if (authError) throw new Error(authError.message);
@@ -85,12 +91,12 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                 throw new Error(data.message || 'Erro ao gerar pagamento.');
             }
 
-            // 3. Redirecionar para o ambiente seguro do Asaas
+            // 3. Salvar link de pagamento e ir para o Dashboard
             if (data.checkoutUrl) {
-                window.location.href = data.checkoutUrl;
-            } else {
-                throw new Error('URL de checkout não retornada.');
+                localStorage.setItem('littera_checkout_url', data.checkoutUrl);
             }
+            // Redireciona para o painel — o Asaas gerencia o pagamento
+            window.location.href = '/app/inst-overview';
 
         } catch (error: any) {
             console.error('Erro no checkout:', error);
@@ -106,7 +112,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                     <span className="material-icons-outlined text-sm">arrow_back</span> Voltar
                 </button>
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Cadastro da Escola</h1>
-                <p className="text-gray-500 mt-2">Você será redirecionado para o ambiente seguro de pagamento na próxima etapa.</p>
+                <p className="text-gray-500 mt-2">Crie sua conta de gestor. O pagamento será gerenciado pelo Asaas após o cadastro.</p>
             </div>
 
             <form onSubmit={handleCheckout} className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm space-y-6">
@@ -154,8 +160,8 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                         <p className="text-lg font-bold text-gray-900 dark:text-white">{plan.name} - {plan.price}</p>
                     </div>
                     <button disabled={isProcessing} type="submit" className="w-full md:w-auto px-8 py-4 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2">
-                        {isProcessing ? 'Processando...' : 'Ir para Pagamento Seguro'}
-                        {!isProcessing && <span className="material-icons-outlined text-sm">lock</span>}
+                        {isProcessing ? 'Criando sua conta...' : 'Cadastrar Escola'}
+                        {!isProcessing && <span className="material-icons-outlined text-sm">school</span>}
                     </button>
                 </div>
             </form>

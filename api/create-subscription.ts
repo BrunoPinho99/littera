@@ -81,8 +81,20 @@ export default async function handler(req: any, res: any) {
 
         if (profileError) throw new Error('Erro ao salvar perfil: ' + profileError.message);
 
-        // 5. Retornar URL para redirecionamento
-        return res.status(200).json({ checkoutUrl: paymentLink.url });
+        // 4b. Atualizar o user_metadata com school_id para o frontend funcionar
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: {
+                user_type: 'school_admin',
+                school_id: schoolData.id,
+                full_name: name,
+            }
+        });
+
+        // 5. Retornar URL de pagamento do Asaas + schoolId
+        return res.status(200).json({
+            checkoutUrl: paymentLink.url,
+            schoolId: schoolData.id
+        });
 
     } catch (error: any) {
         console.error('Erro na assinatura:', error);
