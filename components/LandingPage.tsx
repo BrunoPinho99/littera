@@ -6,7 +6,7 @@ interface LandingPageProps {
     onCheckout?: (plan: any) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, onCheckout }) => {
     const [scrolled, setScrolled] = useState(false);
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);
@@ -542,6 +542,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                                     </li>
                                 ))}
                             </ul>
+
+                            <button onClick={() => onCheckout?.({ id: 'starter_mensal', name: 'Starter', price: 'R$ 9', frequency: 1 })} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
+                            >
+                                Assinar Starter
+                            </button>
                         </div>
 
                         {/* School (Popular) */}
@@ -570,11 +577,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                                 ))}
                             </ul>
                             
-                            <button onClick={() => onDemoClick('teacher')} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                            <button onClick={() => onCheckout?.({ id: 'school_mensal', name: 'School', price: 'R$ 7', frequency: 1 })} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
                             >
-                                Iniciar agora
+                                Assinar School
                             </button>
                         </div>
 
@@ -600,6 +607,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick }) 
                                     </li>
                                 ))}
                             </ul>
+
+                            <button onClick={() => onCheckout?.({ id: 'enterprise', name: 'Enterprise', price: 'Sob consulta', frequency: 1 })} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
+                            >
+                                Falar com comercial
+                            </button>
                         </div>
                     </div>
                 </div>
