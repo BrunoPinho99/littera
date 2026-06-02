@@ -448,16 +448,10 @@ const App: React.FC = () => {
           <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 transition-colors">
             <CheckoutForm
               plan={checkoutPlan}
-              schoolId={session?.user?.user_metadata?.school_id || session?.user?.id}
               onBack={() => {
                 setCheckoutPlan(null);
                 localStorage.removeItem('littera_checkout_plan');
                 navigate('/');
-              }}
-              onSuccess={(successData) => {
-                localStorage.setItem('littera_payment_success', JSON.stringify(successData));
-                localStorage.removeItem('littera_checkout_plan');
-                navigate('/sucesso');
               }}
             />
           </div>
