@@ -129,3 +129,35 @@ export interface BulkStudentRow {
   class_name: string;
   registration_number: string;
 }
+
+// --- Handwritten Essay Correction Types ---
+
+export type CompetencyId = 'C1' | 'C2' | 'C3' | 'C4' | 'C5';
+
+export interface AnnotatedSegment {
+  text: string;
+  competencyId: CompetencyId | null;
+  type: 'highlight' | 'neutral';
+  observation: string;
+}
+
+export interface HandwrittenCompetency {
+  id: CompetencyId;
+  name: string;
+  score: number;
+  feedback: string;
+  suggestions: string[];
+}
+
+export interface HandwrittenCorrectionResult {
+  transcribedText: string;
+  totalScore: number;
+  competencies: HandwrittenCompetency[];
+  annotatedSegments: AnnotatedSegment[];
+  generalComment: string;
+  overallSuggestions: string[];
+  // Front-end metadata
+  topicTitle?: string;
+  timeTaken?: string;
+  originalImageUrl?: string;
+}

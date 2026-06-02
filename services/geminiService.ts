@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { CorrectionResult, EssayInput, Topic } from "../types";
+import { CorrectionResult, EssayInput, Topic, HandwrittenCorrectionResult } from "../types";
 
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -275,5 +275,153 @@ export const generateAssignmentTheme = async (
   } catch (error: any) {
     console.error("Erro ao gerar tema de atividade:", error);
     throw error;
+  }
+};
+
+// --- CORREÇÃO DE REDAÇÃO MANUSCRITA (OCR + ENEM) ---
+export const correctHandwrittenEssay = async (
+  topicTitle: string,
+  base64: string,
+  mimeType: string,
+): Promise<HandwrittenCorrectionResult> => {
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: "application/json"
+    },
+  });
+
+const systemPrompt = `
+Você é um avaliador oficial do ENEM e um especialista avançado em OCR (Reconhecimento Óptico de Caracteres) de caligrafia humana.
+Sua capacidade de leitura e compreensão de manuscritos em português brasileiro é excepcional, mesmo em condições adversas como iluminação ruim, caligrafia cursiva complexa, rasuras ou papel amassado.
+
+## SUA TAREFA PRINCIPAL: OCR DE ALTA PRECISÃO E AVALIAÇÃO
+1. **Transcreva** fielmente todo o texto manuscrito da imagem enviada.
+   - Preserve rigorosamente a divisão de parágrafos, pontuação, acentuação, maiúsculas/minúsculas e os erros ortográficos cometidos pelo aluno (eles são essenciais para avaliar a Competência 1).
+   - Se houver rasuras óbvias (palavras riscadas), ignore-as e foque apenas no texto final legível.
+   - Se alguma palavra for absolutamente ilegível, substitua-a por "[ilegível]".
+2. **Avalie** a redação segundo as 5 Competências do ENEM (0 a 200 cada, múltiplos de 40), baseando-se no tema "${topicTitle}".
+3. **Mapeie** cada trecho do texto à competência mais relevante que ele evidencia (acerto ou desvio).
+
+## FORMATO DE RESPOSTA (JSON estrito)
+Retorne APENAS um JSON válido, sem markdown, sem comentários, seguindo este schema exato:
+
+{
+  "transcribedText": "<texto completo transcrito, use \\n para quebras de linha>",
+  "totalScore": <soma das 5 competências>,
+  "competencies": [
+    {
+      "id": "C1",
+      "name": "Competência 1 – Domínio da norma culta",
+      "score": <0-200>,
+      "feedback": "<análise detalhada desta competência>",
+      "suggestions": ["<sugestão prática 1>", "<sugestão prática 2>"]
+    },
+    {
+      "id": "C2",
+      "name": "Competência 2 – Compreensão da proposta",
+      "score": <0-200>,
+      "feedback": "<análise>",
+      "suggestions": ["..."]
+    },
+    {
+      "id": "C3",
+      "name": "Competência 3 – Argumentação",
+      "score": <0-200>,
+      "feedback": "<análise>",
+      "suggestions": ["..."]
+    },
+    {
+      "id": "C4",
+      "name": "Competência 4 – Coesão textual",
+      "score": <0-200>,
+      "feedback": "<análise>",
+      "suggestions": ["..."]
+    },
+    {
+      "id": "C5",
+      "name": "Competência 5 – Proposta de intervenção",
+      "score": <0-200>,
+      "feedback": "<análise>",
+      "suggestions": ["..."]
+    }
+  ],
+  "annotatedSegments": [
+    {
+      "text": "<trecho exato do texto transcrito>",
+      "competencyId": "C1" | "C2" | "C3" | "C4" | "C5" | null,
+      "type": "highlight" | "neutral",
+      "observation": "<breve nota sobre por que este trecho é relevante para a competência>"
+    }
+  ],
+  "generalComment": "<análise geral em 3-4 frases>",
+  "overallSuggestions": ["<sugestão geral 1>", "<sugestão geral 2>", "<sugestão geral 3>"]
+}
+
+## REGRAS PARA annotatedSegments
+- A CONCATENAÇÃO de todos os campos "text" dos segmentos DEVE reproduzir exatamente o valor de "transcribedText".
+- Não omita nenhum caractere, espaço ou quebra de linha.
+- Trechos que não se associam diretamente a nenhuma competência devem ter competencyId: null e type: "neutral".
+- Trechos que demonstram acerto ou desvio em uma competência devem ter o competencyId correspondente e type: "highlight".
+- Cada segmento deve conter no mínimo 1 palavra e no máximo 2 frases.
+- Não sobreponha competências no mesmo segmento. Se um trecho envolver múltiplas competências, escolha a mais relevante.
+
+## REGRAS PARA A AVALIAÇÃO
+- Seja rigoroso e justo como um avaliador real do ENEM.
+- As notas devem ser múltiplos de 40 (0, 40, 80, 120, 160, 200).
+- Se a imagem não contém texto legível, retorne totalScore: 0 e um generalComment explicando.
+`;
+
+  try {
+    const base64Data = base64.includes(",") ? base64.split(",")[1] : base64;
+
+    const request = {
+      contents: [{
+        role: "user" as const,
+        parts: [
+          { text: systemPrompt + `\n\nO tema da redação é: "${topicTitle}"\n\nA redação manuscrita está na imagem a seguir:` },
+          { inlineData: { mimeType: mimeType || "image/jpeg", data: base64Data } },
+        ],
+      }],
+    };
+
+    const result = await generateWithRetry(model, request, 1);
+    const text = result.response.text();
+    const parsed = JSON.parse(extractJson(text)) as HandwrittenCorrectionResult;
+
+    // Validação de integridade
+    if (!parsed.annotatedSegments || !Array.isArray(parsed.annotatedSegments)) {
+      throw new Error("Formato de resposta inválido: annotatedSegments ausentes.");
+    }
+    if (typeof parsed.totalScore !== "number" || !Array.isArray(parsed.competencies)) {
+      throw new Error("Formato de resposta inválido: score ou competências ausentes.");
+    }
+
+    return parsed;
+  } catch (error: any) {
+    console.error("Erro na Correção Manuscrita (Ativando Fallback):", error);
+
+    // FALLBACK — garante que o cliente nunca recebe erro
+    return {
+      transcribedText: "Não foi possível transcrever o texto da imagem. Certifique-se de que a foto está bem iluminada, com a folha inteira visível e o texto legível.",
+      totalScore: 0,
+      competencies: [
+        { id: "C1", name: "Competência 1 – Domínio da norma culta", score: 0, feedback: "Não foi possível avaliar. Tente enviar uma nova foto com melhor qualidade.", suggestions: [] },
+        { id: "C2", name: "Competência 2 – Compreensão da proposta", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
+        { id: "C3", name: "Competência 3 – Argumentação", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
+        { id: "C4", name: "Competência 4 – Coesão textual", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
+        { id: "C5", name: "Competência 5 – Proposta de intervenção", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
+      ],
+      annotatedSegments: [
+        { text: "Não foi possível transcrever o texto da imagem. Certifique-se de que a foto está bem iluminada, com a folha inteira visível e o texto legível.", competencyId: null, type: "neutral", observation: "" }
+      ],
+      generalComment: "A imagem enviada não pôde ser processada. Tente novamente com uma foto mais nítida e bem iluminada.",
+      overallSuggestions: [
+        "Tire a foto em ambiente bem iluminado.",
+        "Certifique-se de que toda a redação está visível na foto.",
+        "Evite sombras sobre o texto."
+      ],
+    };
   }
 };

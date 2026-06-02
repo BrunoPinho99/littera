@@ -590,6 +590,36 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   };
   const toastIcons = { success: 'check_circle', error: 'error', info: 'info' };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh]">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-4 text-gray-500 font-medium">Carregando painel...</p>
+      </div>
+    );
+  }
+
+  if (school?.subscription_status === 'pending_payment') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium border border-gray-100 dark:border-white/5 p-8 text-center animate-fade-in mt-8">
+        <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mb-6">
+          <span className="material-icons-outlined text-4xl">hourglass_empty</span>
+        </div>
+        <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-2">Aguardando Pagamento</h2>
+        <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-8">
+          Sua assinatura está sendo processada. Assim que o pagamento for confirmado pelo Asaas, seu acesso será liberado automaticamente.
+        </p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="px-6 py-3 bg-primary text-white rounded-2xl font-bold hover:bg-primary-dark transition-colors flex items-center gap-2"
+        >
+          <span className="material-icons-outlined">refresh</span>
+          Atualizar Página
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in-up space-y-12">
 

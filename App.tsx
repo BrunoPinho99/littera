@@ -8,6 +8,7 @@ import PerformanceView from './components/PerformanceView';
 import ExploreView from './components/ExploreView';
 import EssayEditor from './components/EssayEditor';
 import CorrectionResultView from './components/CorrectionResult';
+import HandwrittenResultView from './components/HandwrittenResult';
 import RankingView from './components/RankingView';
 import NotificationsView from './components/NotificationsView';
 import ProfileView from './components/ProfileView';
@@ -18,8 +19,8 @@ import CheckoutForm from './components/CheckoutForm';
 import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
 // Types and Services
-import { Topic, CorrectionResult, EssayInput, Notification } from './types';
-import { correctEssay } from './services/geminiService';
+import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult } from './types';
+import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
 import { saveEssayToDatabase, getNotifications, getSchoolData, checkEssayCache } from './services/databaseService';
 import { supabase } from './supabaseClient';
 import { exploreTopics } from './data/exploreTopics';
@@ -56,6 +57,7 @@ const App: React.FC = () => {
   const [topic, setTopic] = useState<Topic>(INITIAL_TOPIC);
   const [writingTopicTitle, setWritingTopicTitle] = useState('');
   const [correctionResult, setCorrectionResult] = useState<CorrectionResult | null>(null);
+  const [handwrittenResult, setHandwrittenResult] = useState<HandwrittenCorrectionResult | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -207,6 +209,19 @@ const App: React.FC = () => {
     }
   };
 
+  const handleHandwrittenSubmit = async (base64: string, mimeType: string) => {
+    setIsCorrecting(true);
+    try {
+      const result = await correctHandwrittenEssay(writingTopicTitle, base64, mimeType);
+      setHandwrittenResult({ ...result, topicTitle: writingTopicTitle, timeTaken: '0m' });
+      navigate('/app/handwritten-result');
+      setTimeout(() => setIsCorrecting(false), 100);
+    } catch (err: any) {
+      setIsCorrecting(false);
+      alert('Erro ao corrigir manuscrito: ' + err.message);
+    }
+  };
+
   const getDefaultView = (type: string) => {
     if (type === 'school_admin' || type === 'teacher') return 'inst-overview';
     return 'practice';
@@ -324,7 +339,6 @@ const App: React.FC = () => {
                     }}
                     isLoading={isLoading}
                     onWrite={() => { setWritingTopicTitle(topic.title); navigate('/app/writing'); }}
-                    onUpload={() => { setWritingTopicTitle(topic.title); navigate('/app/writing'); }}
                   />
                   <CreateTopicCard onTopicGenerated={(t) => { setTopic(t); }} />
                 </div>
@@ -334,12 +348,16 @@ const App: React.FC = () => {
                   topicTitle={writingTopicTitle}
                   onCancel={() => navigate('/app/practice')}
                   onSubmit={handleEssaySubmit}
+                  onHandwrittenSubmit={handleHandwrittenSubmit}
                   isSubmitting={isCorrecting}
                   startTime={Date.now()}
                 />
               } />
               <Route path="result" element={
                 correctionResult ? <CorrectionResultView result={correctionResult} onBack={() => navigate('/app/practice')} onEvolution={() => navigate('/app/performance')} /> : <Navigate to="/app/practice" replace />
+              } />
+              <Route path="handwritten-result" element={
+                handwrittenResult ? <HandwrittenResultView result={handwrittenResult} onBack={() => navigate('/app/practice')} onEvolution={() => navigate('/app/performance')} /> : <Navigate to="/app/practice" replace />
               } />
               <Route path="explore" element={
                 <ExploreView onSelectTopic={(title) => {

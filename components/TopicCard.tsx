@@ -8,10 +8,9 @@ interface TopicCardProps {
   onRefresh: () => void;
   isLoading: boolean;
   onWrite: () => void;
-  onUpload: () => void;
 }
 
-const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWrite, onUpload }) => {
+const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWrite }) => {
   const [countdown, setCountdown] = React.useState<number | null>(null);
   const [countdownPhase, setCountdownPhase] = React.useState<'counting' | 'go' | null>(null);
   const [selectedText, setSelectedText] = React.useState<SupportText | null>(null);
@@ -169,10 +168,10 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
           )}
 
-          <div className="p-6 sm:p-10 md:p-14 flex flex-col items-center text-center relative z-20">
+          <div className="p-5 sm:p-6 md:p-8 flex flex-col items-center text-center relative z-20">
 
             {/* Floating badge — Secondary button style */}
-            <div className="mb-5 sm:mb-8 animate-float">
+            <div className="mb-3 sm:mb-4 animate-float">
               <button
                 onClick={onRefresh}
                 disabled={isLoading}
@@ -184,38 +183,38 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             </div>
 
             {/* Hero Title — display-md, Plus Jakarta Sans */}
-            <h2 className={`max-w-4xl text-2xl sm:text-display-sm md:text-display-md font-display text-on-surface leading-[1.15] mb-5 sm:mb-8 tracking-tight transition-all duration-500 ${isLoading ? 'opacity-30 blur-sm scale-95' : 'opacity-100 scale-100'}`}
+            <h2 className={`max-w-4xl text-2xl sm:text-3xl md:text-4xl font-display font-bold text-on-surface leading-[1.15] mb-3 sm:mb-5 tracking-tight transition-all duration-500 ${isLoading ? 'opacity-30 blur-sm scale-95' : 'opacity-100 scale-100'}`}
                 style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
               {topic.title}
             </h2>
 
-            <div className="w-14 sm:w-20 h-1.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent rounded-full mb-8 sm:mb-12"></div>
+            <div className="w-14 sm:w-20 h-1.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent rounded-full mb-4 sm:mb-6"></div>
 
             {/* Support Texts — Nested containers (surface-container-low on surface-container-lowest) */}
-            <div className="w-full max-w-5xl mb-8 sm:mb-12">
-              <div className="flex items-center justify-center gap-3 mb-4 sm:mb-6 opacity-50">
+            <div className="w-full max-w-5xl mb-5 sm:mb-8">
+              <div className="flex items-center justify-center gap-3 mb-3 sm:mb-4 opacity-50">
                 <div className="h-px w-12 bg-outline-variant/30"></div>
-                <span className="text-label-sm uppercase tracking-[0.3em] text-on-surface-variant">Contexto & Apoio</span>
+                <span className="text-label-sm uppercase tracking-[0.3em] text-on-surface-variant text-[10px]">Contexto & Apoio</span>
                 <div className="h-px w-12 bg-outline-variant/30"></div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {topic.supportTexts.slice(0, 2).map((text) => (
                   <div
                     key={text.id}
                     onClick={() => setSelectedText(text)}
-                    className="text-left bg-surface-container-low p-4 sm:p-6 rounded-card hover:bg-surface-container-lowest hover:shadow-ambient transition-all duration-300 group/card cursor-pointer"
+                    className="text-left bg-surface-container-low p-3 sm:p-4 rounded-card hover:bg-surface-container-lowest hover:shadow-ambient transition-all duration-300 group/card cursor-pointer"
                   >
-                    <div className="flex items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center justify-between gap-3 mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-lg bg-surface-container-lowest shadow-inner flex items-center justify-center text-primary group-hover/card:bg-primary group-hover/card:text-on-primary transition-colors">
-                          <span className="material-icons-outlined text-lg">{text.icon === 'article' ? 'description' : text.icon}</span>
+                          <span className="material-icons-outlined text-base">{text.icon === 'article' ? 'description' : text.icon}</span>
                         </div>
                         <h4 className="font-bold text-body-sm text-on-surface line-clamp-1">{text.title}</h4>
                       </div>
-                      <span className="shrink-0 material-icons-outlined text-outline-variant group-hover/card:text-primary transition-colors group-hover/card:translate-x-1 duration-300">chevron_right</span>
+                      <span className="shrink-0 material-icons-outlined text-outline-variant group-hover/card:text-primary transition-colors group-hover/card:translate-x-1 duration-300 text-sm">chevron_right</span>
                     </div>
-                    <p className="text-body-sm text-on-surface-variant leading-relaxed line-clamp-2 pl-11">
+                    <p className="text-xs sm:text-body-sm text-on-surface-variant leading-relaxed line-clamp-2 pl-11">
                       {text.content}
                     </p>
                   </div>
@@ -223,34 +222,23 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
               </div>
             </div>
 
-            {/* CTAs — Primary gradient + Secondary outlined */}
+            {/* CTA — Single primary action */}
             <div className="flex flex-col items-center w-full sm:w-auto">
-              <div className="flex items-center gap-2 mb-4 animate-fade-in-up">
-                 <span className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-black tracking-widest uppercase border border-primary/20">
-                   <span className="material-icons-outlined text-sm">stars</span>
+              <div className="flex items-center gap-2 mb-3 animate-fade-in-up">
+                 <span className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-lg text-[10px] font-black tracking-widest uppercase border border-primary/20">
+                   <span className="material-icons-outlined text-xs">stars</span>
                    Recompensa: +{xpReward} XP
                  </span>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-                <button
-                  onClick={handleWriteClick}
-                  disabled={isLoading}
-                  className="group relative px-8 py-5 bg-slate-900 text-white rounded-pill font-black text-label-lg transition-all hover:scale-[1.02] hover:bg-black active:scale-95 shadow-glow-sm hover:shadow-glow disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3 overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                  <span className="material-icons-outlined text-xl group-hover:-rotate-12 transition-transform">rocket_launch</span>
-                  <span className="uppercase tracking-widest">Aceitar Desafio</span>
-                </button>
-
-                <button
-                  onClick={onUpload}
-                  disabled={isLoading}
-                  className="px-8 py-5 bg-surface-container-lowest ghost-border text-on-surface-variant rounded-pill font-black text-label-lg transition-all hover:text-primary hover:shadow-card active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
-                >
-                  <span className="material-icons-outlined text-xl">add_a_photo</span>
-                  <span className="uppercase tracking-widest">Enviar Foto</span>
-                </button>
-              </div>
+              <button
+                onClick={handleWriteClick}
+                disabled={isLoading}
+                className="group relative px-6 py-3 sm:py-4 bg-slate-900 text-white rounded-pill font-black text-sm transition-all hover:scale-[1.02] hover:bg-black active:scale-95 shadow-glow-sm hover:shadow-glow disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 overflow-hidden w-full sm:w-auto"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                <span className="material-icons-outlined text-lg group-hover:-rotate-12 transition-transform">rocket_launch</span>
+                <span className="uppercase tracking-widest">Aceitar Desafio</span>
+              </button>
             </div>
           </div>
 

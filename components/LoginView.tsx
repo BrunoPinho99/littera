@@ -245,8 +245,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
       </div>
 
       {/* Lado Direito - Formulário Glassmorphism */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-grid">
-        <div className="w-full max-w-md animate-fade-in-up">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-grid overflow-y-auto">
+        <div className="w-full max-w-md animate-fade-in-up py-8">
             <div className="bg-white dark:bg-surface-dark rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
 
             <div className="mb-6 text-center">
@@ -275,7 +275,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               ))}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6 animate-fade-in">
+            <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
               {errorMessage && (
                 <div className="p-5 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-bold text-center animate-shake">
                   {errorMessage}
@@ -289,7 +289,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
 
               {/* Nome só é necessário para Escolas novas. Alunos/Profs já têm nome no convite. */}
               {!isLogin && userType === 'school_admin' && (
-                <div className="space-y-2 group">
+                <div className="space-y-1 group">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">
                     NOME DA INSTITUIÇÃO
                   </label>
@@ -304,7 +304,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 </div>
               )}
 
-              <div className="space-y-2 group">
+              <div className="space-y-1 group">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">E-MAIL</label>
                 <input
                   type="email"
@@ -316,7 +316,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 />
               </div>
 
-              <div className="space-y-2 group">
+              <div className="space-y-1 group">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">SENHA</label>
                 <input
                   type="password"
@@ -329,7 +329,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               </div>
 
               {!isLogin && (
-                <div className="space-y-2 group">
+                <div className="space-y-1 group">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">CONFIRMAR SENHA</label>
                   <input
                     type="password"
@@ -345,7 +345,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-5 rounded-[1.8rem] font-black text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                className="w-full py-4 mt-2 rounded-[1.8rem] font-black text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>

@@ -6,41 +6,28 @@ interface EssayEditorProps {
   topicTitle: string;
   onCancel: () => void;
   onSubmit: (input: EssayInput) => void;
+  onHandwrittenSubmit?: (base64: string, mimeType: string) => void;
   isSubmitting: boolean;
-  initialMode?: 'text' | 'image';
   startTime: number;
 }
 
 const EssayEditor: React.FC<EssayEditorProps> = ({ 
   topicTitle, 
   onCancel, 
-  onSubmit, 
+  onSubmit,
+  onHandwrittenSubmit,
   isSubmitting, 
-  initialMode = 'text',
   startTime
 }) => {
-  const [mode, setMode] = useState<'text' | 'image'>(initialMode);
-  const [text, setText] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState("00:00");
-  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Controla se foi finalizado (não deve mostrar banner ao desmontar por submit/cancel)
   const finishedRef = useRef(false);
 
-  const wordCount = text.trim().split(/\s+/).filter(w => w.length > 0).length;
-
-  // Carregar rascunho ao montar
+  // Marca redação em andamento ao montar
   useEffect(() => {
-    const draftKey = `draft_${topicTitle}`;
-    const savedDraft = localStorage.getItem(draftKey);
-    if (savedDraft) {
-      setText(savedDraft);
-    }
-
-    // Marca redação em andamento
     localStorage.setItem('littera_essay_in_progress', JSON.stringify({
       topicTitle,
       startTime,
@@ -48,25 +35,9 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
     }));
 
     return () => {
-      // Ao desmontar: remove a marca de progresso (seja por cancel ou submit)
       localStorage.removeItem('littera_essay_in_progress');
     };
   }, [topicTitle]);
-
-  // Auto-save com Debounce
-  useEffect(() => {
-    if (text.length === 0) return;
-    
-    setSaveStatus('saving');
-    const timer = setTimeout(() => {
-      localStorage.setItem(`draft_${topicTitle}`, text);
-      setSaveStatus('saved');
-      // Volta para idle após 2 segundos
-      setTimeout(() => setSaveStatus('idle'), 2000);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [text, topicTitle]);
 
   // Lógica do Cronômetro - Resistente a trocas de aba
   useEffect(() => {
@@ -133,12 +104,14 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   };
 
   const handleSubmit = () => {
-    // Limpa o rascunho ao enviar
+    if (!imageFile || !imagePreview) return;
     localStorage.removeItem(`draft_${topicTitle}`);
-    if (mode === 'text') {
-      onSubmit({ type: 'text', content: text });
+    // Route through handwritten handler for OCR + annotated correction
+    if (onHandwrittenSubmit) {
+      const base64Data = imagePreview.split(',')[1];
+      const mimeType = imageFile.type;
+      onHandwrittenSubmit(base64Data, mimeType);
     } else {
-      if (!imageFile || !imagePreview) return;
       const base64Data = imagePreview.split(',')[1];
       const mimeType = imageFile.type;
       onSubmit({ type: 'image', base64: base64Data, mimeType });
@@ -147,9 +120,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
 
   const canSubmit = () => {
     if (isSubmitting) return false;
-    if (mode === 'text') return wordCount >= 5;
-    if (mode === 'image') return !!imageFile;
-    return false;
+    return !!imageFile;
   };
 
   return (
@@ -163,105 +134,56 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               <span className="material-icons-outlined text-xs text-primary">timer</span>
               <span className="text-xs font-black text-primary font-mono">{elapsedTime}</span>
             </div>
-            
-            {/* Indicador de Auto-save */}
-            <div className={`flex items-center gap-1.5 transition-opacity duration-500 ${saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'}`}>
-              <span className={`material-icons-outlined text-xs ${saveStatus === 'saving' ? 'animate-spin text-amber-500' : 'text-emerald-500'}`}>
-                {saveStatus === 'saving' ? 'sync' : 'cloud_done'}
-              </span>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${saveStatus === 'saving' ? 'text-amber-500' : 'text-emerald-500'}`}>
-                {saveStatus === 'saving' ? 'Salvando...' : 'Rascunho salvo'}
-              </span>
-            </div>
           </div>
           <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white line-clamp-1" title={topicTitle}>{topicTitle}</h2>
         </div>
         
-        <div className="flex bg-gray-200 dark:bg-slate-700 p-1 rounded-lg shrink-0 self-start sm:self-auto">
-          <button
-            onClick={() => setMode('text')}
-            disabled={isSubmitting}
-            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all ${mode === 'text' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
-          >
-            Digitar
-          </button>
-          <button
-            onClick={() => setMode('image')}
-            disabled={isSubmitting}
-            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-bold transition-all ${mode === 'image' ? 'bg-white dark:bg-slate-600 shadow-sm text-primary' : 'text-gray-500 dark:text-gray-400'}`}
-          >
-            Enviar Foto
-          </button>
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-lg shrink-0 self-start sm:self-auto">
+          <span className="material-icons-outlined text-sm text-primary">photo_camera</span>
+          <span className="text-xs font-black text-primary uppercase tracking-widest">Envio por Foto</span>
         </div>
       </div>
 
-      {/* Editor Area */}
+      {/* Photo Upload Area */}
       <div className="flex-grow p-0 relative bg-white dark:bg-slate-900/30 overflow-hidden">
-        {mode === 'text' ? (
-          <div className="h-full relative overflow-auto">
-            <div 
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                backgroundImage: 'linear-gradient(#e5e7eb 1px, transparent 1px)',
-                backgroundSize: '100% 2.25rem',
-                backgroundPosition: '0 2.2rem'
-              }}
-            ></div>
-            
-            <textarea
-              className="w-full h-full p-4 sm:p-8 pt-[0.45rem] resize-none bg-transparent border-0 focus:ring-0 text-gray-800 dark:text-gray-200 text-base sm:text-xl font-serif leading-[2.25rem] placeholder-gray-300 dark:placeholder-slate-600 outline-none relative z-10"
-              placeholder="Comece a escrever sua redação aqui..."
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              disabled={isSubmitting}
-              spellCheck={false}
-            />
-             <div className="absolute bottom-4 right-4 text-right pointer-events-none z-20">
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full shadow-sm bg-white/90 dark:bg-black/40 backdrop-blur-sm border border-gray-100 dark:border-slate-800 ${wordCount < 100 ? 'text-amber-600' : 'text-green-600'}`}>
-                {wordCount} palavras
-              </span>
-            </div>
+        <div className="h-full flex flex-col items-center justify-center p-6 bg-gray-50/30 dark:bg-slate-900/30">
+          <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 relative overflow-hidden">
+             <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                disabled={isSubmitting}
+             />
+             
+             {imagePreview ? (
+               <div className="relative w-full h-full group">
+                 <img src={imagePreview} alt="Preview" className="w-full h-full object-contain p-4" />
+                 {!isSubmitting && (
+                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold shadow-lg hover:scale-105 transition-transform"
+                      >
+                        Trocar Imagem
+                      </button>
+                   </div>
+                 )}
+               </div>
+             ) : (
+               <div 
+                  onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                  className={`flex flex-col items-center cursor-pointer p-10 text-center ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
+               >
+                 <span className="material-icons-outlined text-5xl text-gray-300 dark:text-slate-600 mb-4">add_a_photo</span>
+                 <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Clique para tirar uma foto da sua redação</p>
+                 <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Certifique-se de que o texto esteja legível e bem iluminado</p>
+               </div>
+             )}
           </div>
-        ) : (
-          <div className="h-full flex flex-col items-center justify-center p-6 bg-gray-50/30 dark:bg-slate-900/30">
-            <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 relative overflow-hidden">
-               <input 
-                  type="file" 
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  disabled={isSubmitting}
-               />
-               
-               {imagePreview ? (
-                 <div className="relative w-full h-full group">
-                   <img src={imagePreview} alt="Preview" className="w-full h-full object-contain p-4" />
-                   {!isSubmitting && (
-                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button 
-                          onClick={() => fileInputRef.current?.click()}
-                          className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold shadow-lg hover:scale-105 transition-transform"
-                        >
-                          Trocar Imagem
-                        </button>
-                     </div>
-                   )}
-                 </div>
-               ) : (
-                 <div 
-                    onClick={() => !isSubmitting && fileInputRef.current?.click()}
-                    className={`flex flex-col items-center cursor-pointer p-10 text-center ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
-                 >
-                   <span className="material-icons-outlined text-5xl text-gray-300 dark:text-slate-600 mb-4">add_a_photo</span>
-                   <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Clique para tirar uma foto da sua folha</p>
-                   <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Certifique-se de que o texto esteja legível e bem iluminado</p>
-                 </div>
-               )}
-            </div>
-          </div>
-        )}
+        </div>
       </div>
       
       {/* Loading Overlay — Professional Correction UX */}
@@ -339,13 +261,15 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
             {/* Steps */}
             <div className="w-full max-w-sm mx-auto space-y-2 sm:space-y-3 mb-6 sm:mb-8">
               {[
-                { label: 'Leitura e compreensão do texto', threshold: 15, icon: 'auto_stories' },
-                { label: 'Avaliação das 5 competências ENEM', threshold: 40, icon: 'checklist_rtl' },
-                { label: 'Análise de coerência e coesão', threshold: 65, icon: 'hub' },
+                { label: 'Lendo caligrafia da foto', threshold: 10, icon: 'photo_camera' },
+                { label: 'Transcrevendo texto manuscrito', threshold: 30, icon: 'draw' },
+                { label: 'Avaliação das 5 competências ENEM', threshold: 50, icon: 'checklist_rtl' },
+                { label: 'Mapeando trechos por competência', threshold: 70, icon: 'palette' },
                 { label: 'Gerando feedback personalizado', threshold: 85, icon: 'rate_review' },
               ].map((step, i) => {
                 const isComplete = progress > step.threshold;
-                const isActive = !isComplete && (i === 0 || progress > [0, 15, 40, 65][i]);
+                const thresholds = [0, 10, 30, 50, 70];
+                const isActive = !isComplete && (i === 0 || progress > (thresholds[i] || 0));
                 return (
                   <div 
                     key={i} 

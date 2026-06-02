@@ -8,7 +8,7 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const { planId, planPrice, frequency, customer, creditCard, schoolId, password } = req.body;
+        const { planId, planPrice, frequency, customer, schoolId, password } = req.body;
 
         const API_KEY = process.env.ASAAS_API_KEY;
         if (!API_KEY) {
@@ -58,35 +58,22 @@ export default async function handler(req: any, res: any) {
         if (frequency === 6) cycle = 'SEMIANNUALLY';
         if (frequency === 12) cycle = 'YEARLY';
 
-        // 3. Criar a assinatura com Cartão de Crédito
-
-        // Asaas exige que o vencimento (nextDueDate) seja no mínimo amanhã ou hoje. Vamos colocar hoje.
+        // 3. Criar a assinatura com tipo UNDEFINED para redirecionamento
         const today = new Date();
         const nextDueDate = today.toISOString().split('T')[0];
 
         const subscriptionPayload: any = {
             customer: asaasCustomerId,
-            billingType: 'CREDIT_CARD',
+            billingType: 'UNDEFINED',
             value: planPrice,
             nextDueDate: nextDueDate,
             cycle: cycle,
-            description: `Assinatura Littera - Plano ${planId}`,
-            creditCard: creditCard,
+            description: `Assinatura Littera - Plano ${planId}`
         };
 
         if (schoolId) {
             subscriptionPayload.externalReference = schoolId;
         }
-
-        subscriptionPayload.creditCardHolderInfo = {
-                name: customer.name,
-                email: customer.email,
-                cpfCnpj: customer.cpfCnpj,
-                postalCode: customer.postalCode,
-                addressNumber: customer.addressNumber,
-                addressComplement: customer.addressComplement,
-                phone: customer.phone
-        };
 
         const createSubRes = await fetch(`${ASAAS_URL}/subscriptions`, {
             method: 'POST',
@@ -97,10 +84,24 @@ export default async function handler(req: any, res: any) {
         const createSubData = await createSubRes.json();
 
         if (!createSubRes.ok) {
-            throw new Error(`Erro no pagamento: ${createSubData.errors?.[0]?.description || 'Erro ao processar cartão'}`);
+            throw new Error(`Erro na assinatura: ${createSubData.errors?.[0]?.description || 'Erro ao processar assinatura'}`);
         }
 
         const subscriptionId = createSubData.id;
+
+        // Buscar a cobrança gerada para obter a URL de pagamento
+        const paymentsRes = await fetch(`${ASAAS_URL}/payments?subscription=${subscriptionId}`, {
+            headers: HEADERS
+        });
+        const paymentsData = await paymentsRes.json();
+        
+        let checkoutUrl = '';
+        if (paymentsData.data && paymentsData.data.length > 0) {
+            checkoutUrl = paymentsData.data[0].invoiceUrl;
+        } else {
+            // Em caso raro de delay no Asaas, usar a URL do cliente (fatura pendente)
+            checkoutUrl = `https://www.asaas.com/c/${asaasCustomerId}`;
+        }
 
         // 4. Salvar o ID da assinatura no Supabase e/ou Criar a Conta
         const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
@@ -120,7 +121,8 @@ export default async function handler(req: any, res: any) {
                     .from('schools')
                     .update({
                         subscription_id: subscriptionId,
-                        subscription_status: 'active'
+                        subscription_status: 'pending_payment',
+                        asaas_customer_id: asaasCustomerId
                     })
                     .eq('id', schoolId);
             } else if (password) {
@@ -146,8 +148,9 @@ export default async function handler(req: any, res: any) {
                         name: customer.name,
                         slug: cleanName || `escola-${Date.now()}`,
                         city: customer.addressComplement || "Online",
-                        subscription_status: 'active',
-                        subscription_id: subscriptionId
+                        subscription_status: 'pending_payment',
+                        subscription_id: subscriptionId,
+                        asaas_customer_id: asaasCustomerId
                     }).select().single();
 
                     if (schoolData && !schoolError) {
@@ -177,7 +180,8 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json({
             success: true,
             subscriptionId: subscriptionId,
-            message: 'Assinatura criada e pagamento processado com sucesso.'
+            checkoutUrl: checkoutUrl,
+            message: 'Assinatura criada com sucesso. Redirecionando...'
         });
 
     } catch (error: any) {

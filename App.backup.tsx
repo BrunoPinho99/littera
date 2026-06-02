@@ -176,7 +176,6 @@ const App: React.FC = () => {
                   }}
                   isLoading={isLoading}
                   onWrite={() => { setWritingTopicTitle(topic.title); setCurrentView('writing'); }}
-                  onUpload={() => { setWritingTopicTitle(topic.title); setCurrentView('writing'); }}
                 />
                 <CreateTopicCard onTopicGenerated={(t) => { setTopic(t); }} />
               </div>
