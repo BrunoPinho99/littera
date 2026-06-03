@@ -69,15 +69,16 @@ export default async function handler(req: any, res: any) {
 
         if (schoolError) throw new Error('Erro ao salvar escola: ' + schoolError.message);
 
+        // O trigger on_auth_user_created já criou o perfil, então atualizamos com school_id
         const { error: profileError } = await supabaseAdmin
             .from('profiles')
-            .insert([{
+            .upsert({
                 id: userId,
                 school_id: schoolData.id,
-                role: 'gestor',
+                role: 'school_admin',
                 full_name: name,
                 email: email
-            }]);
+            }, { onConflict: 'id' });
 
         if (profileError) throw new Error('Erro ao salvar perfil: ' + profileError.message);
 
