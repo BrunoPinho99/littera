@@ -41,9 +41,9 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const { schoolName, email, password, cpfCnpj, name, phone, planPrice, frequency, planName, creditCardToken, cardHolderName } = req.body;
+        const { schoolName, email, password, cpfCnpj, name, phone, planPrice, frequency, planName, creditCard } = req.body;
 
-        if (!email || !name || !password || !creditCardToken) {
+        if (!schoolName || !email || !password || !cpfCnpj || !name || !phone || !planPrice || !frequency || !planName || !creditCard) {
             return res.status(400).json({ message: 'Campos obrigatórios faltando, incluindo dados do cartão de crédito.' });
         }
 
@@ -102,7 +102,15 @@ export default async function handler(req: any, res: any) {
                 nextDueDate: nextDueDate,
                 cycle: billingCycle,
                 description: `Littera - Plano ${planName || 'Pro'} para ${schoolName || name}`,
-                creditCardToken: creditCardToken
+                creditCard: creditCard,
+                creditCardHolderInfo: {
+                    name: name,
+                    email: email,
+                    cpfCnpj: cpfCnpj,
+                    postalCode: '01001000', // CEP genérico caso não tenha
+                    addressNumber: '1',
+                    phone: phone
+                }
             })
         });
 

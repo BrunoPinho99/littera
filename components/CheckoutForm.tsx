@@ -78,34 +78,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                 throw new Error('Data de validade do cartão inválida. Use o formato MM/AA.');
             }
 
-            // 1. Iniciar Asaas.js
-            const asaasPublicKey = import.meta.env.VITE_ASAAS_PUBLIC_KEY || 'SUA_CHAVE_PUBLICA_AQUI'; // fallback se não configurado
-            if (!window.asaas) {
-                throw new Error('SDK do Asaas não carregou corretamente.');
-            }
-
-            window.asaas.creditCard.setIntegrationKey(asaasPublicKey);
-            
-            // 2. Tokenizar Cartão
-            const creditCardToken = await new Promise<string>((resolve, reject) => {
-                const creditCardData = {
-                    customerName: formData.cardHolderName,
-                    customerEmail: formData.email,
-                    customerCpfCnpj: formData.cpfCnpj,
-                    cardNumber: formData.cardNumber,
-                    cardHolderName: formData.cardHolderName,
-                    cardExpiryMonth: expMonth,
-                    cardExpiryYear: '20' + expYear, // assumindo 2 dígitos para o ano
-                    cardCcv: formData.cardCcv
-                };
-
-                window.asaas.creditCard.tokenize(creditCardData, {
-                    onSuccess: (data: any) => resolve(data.creditCardToken),
-                    onError: (error: any) => reject(new Error('Erro no cartão: ' + (error?.description || 'Dados inválidos.')))
-                });
-            });
-
-            // 3. Enviar para a API Backend (Vercel)
+            // 1. Enviar para a API Backend (Vercel)
             const numericPrice = parseFloat(
                 plan.price.replace('R$ ', '').replace('.', '').replace(',', '.')
             );
@@ -123,8 +96,13 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                     planPrice: numericPrice,
                     frequency: plan.frequency,
                     planName: plan.name,
-                    creditCardToken: creditCardToken,
-                    cardHolderName: formData.cardHolderName
+                    creditCard: {
+                        holderName: formData.cardHolderName,
+                        number: formData.cardNumber,
+                        expiryMonth: expMonth,
+                        expiryYear: '20' + expYear,
+                        ccv: formData.cardCcv
+                    }
                 }),
             });
 
@@ -134,14 +112,14 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                 throw new Error(data.message || 'Erro ao gerar pagamento.');
             }
 
-            // 4. O usuário foi criado e a assinatura foi confirmada na API. 
+            // 2. O usuário foi criado e a assinatura foi confirmada na API. 
             // Fazer login no frontend
             await supabase.auth.signInWithPassword({
                 email: formData.email,
                 password: formData.password
             });
 
-            // 5. Redirecionar para Dashboard
+            // 3. Redirecionar para Dashboard
             window.location.href = '/app/inst-overview';
 
         } catch (error: any) {
