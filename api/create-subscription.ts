@@ -140,11 +140,14 @@ export default async function handler(req: any, res: any) {
                 if (existingUser) {
                     userId = existingUser.id;
                 } else {
-                    return res.status(400).json({ message: 'E-mail já está em uso, e não foi possível localizá-lo.' });
+                    return res.status(400).json({ message: 'E-mail já está em uso, mas não foi possível localizá-lo.' });
                 }
+            } else if (authError.message.includes('rate limit')) {
+                console.error('[create-subscription] Rate limit do Supabase atingido:', authError);
+                return res.status(400).json({ message: 'O Supabase bloqueou temporariamente este e-mail por excesso de tentativas. Por favor, teste usando um e-mail diferente (ex: teste2@escola.com) ou aguarde 60 minutos.' });
             } else {
                 console.error('[create-subscription] Erro ao criar usuário Auth:', authError);
-                return res.status(400).json({ message: 'Erro ao criar conta: ' + authError.message });
+                return res.status(400).json({ message: 'Erro ao criar conta no banco: ' + authError.message });
             }
         } else {
             userId = authData.user.id;
