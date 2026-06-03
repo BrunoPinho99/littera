@@ -41,10 +41,10 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const { userId, schoolName, email, cpfCnpj, name, phone, planPrice, frequency, planName } = req.body;
+        const { schoolName, email, password, cpfCnpj, name, phone, planPrice, frequency, planName } = req.body;
 
-        if (!userId || !email || !name) {
-            return res.status(400).json({ message: 'Campos obrigatórios faltando (userId, email, name).' });
+        if (!email || !name || !password) {
+            return res.status(400).json({ message: 'Campos obrigatórios faltando (email, name, password).' });
         }
 
         const asaasToken = process.env.ASAAS_API_KEY || process.env.VITE_ASAAS_API_KEY || '';
@@ -115,9 +115,42 @@ export default async function handler(req: any, res: any) {
             return res.status(400).json({ message: paymentLink.errors[0]?.description || 'Erro ao gerar link de pagamento.' });
         }
 
-        // 5. Salvar no Supabase
+        // 5. Salvar no Supabase (bypassando o Rate Limit com a Service Role Key)
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+        // 5.a. Criar o usuário Auth
+        let userId;
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email: email,
+            password: password,
+            email_confirm: true,
+            user_metadata: {
+                user_type: 'school_admin',
+                full_name: name
+            }
+        });
+
+        if (authError) {
+            if (authError.message.includes('already exists') || authError.status === 422) {
+                // Usuário já existe (provavelmente uma tentativa falha anterior)
+                // Vamos apenas buscar o ID dele e prosseguir
+                const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+                const existingUser = (listData?.users as any[])?.find(u => u.email === email);
+                
+                if (existingUser) {
+                    userId = existingUser.id;
+                } else {
+                    return res.status(400).json({ message: 'E-mail já está em uso, e não foi possível localizá-lo.' });
+                }
+            } else {
+                console.error('[create-subscription] Erro ao criar usuário Auth:', authError);
+                return res.status(400).json({ message: 'Erro ao criar conta: ' + authError.message });
+            }
+        } else {
+            userId = authData.user.id;
+        }
+
+        // 5.b Salvar Escola
         const { data: schoolData, error: schoolError } = await supabaseAdmin
             .from('schools')
             .insert([{
@@ -135,6 +168,7 @@ export default async function handler(req: any, res: any) {
             return res.status(500).json({ message: 'Erro ao salvar escola: ' + schoolError.message });
         }
 
+        // 5.c Atualizar o Perfil do usuário (que pode ter sido gerado pelo trigger)
         const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .upsert({
@@ -149,6 +183,7 @@ export default async function handler(req: any, res: any) {
             return res.status(500).json({ message: 'Erro ao salvar perfil: ' + profileError.message });
         }
 
+        // 5.d Atualizar metadata com school_id
         await supabaseAdmin.auth.admin.updateUserById(userId, {
             user_metadata: {
                 user_type: 'school_admin',

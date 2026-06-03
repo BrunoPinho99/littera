@@ -50,32 +50,21 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                 throw new Error('A senha deve ter pelo menos 6 caracteres.');
             }
 
-            // 1. Criar o usuário no Supabase Auth (já com metadata de gestor)
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
-                password: formData.password,
-                options: {
-                    data: {
-                        user_type: 'school_admin',
-                        full_name: formData.name,
-                    }
-                }
-            });
-
-            if (authError) throw new Error(authError.message);
-
+            // 1. O frontend não vai mais chamar signUp direto para evitar o erro de Rate Limit por IP.
+            // A API vai criar o usuário com permissões de administrador (que ignora os limites).
+            
             const numericPrice = parseFloat(
                 plan.price.replace('R$ ', '').replace('.', '').replace(',', '.')
             );
 
-            // 2. Chamar a API para gerar o link do Asaas e vincular à escola
+            // 2. Chamar a API para gerar o link do Asaas, vincular à escola E CRIAR O USUÁRIO
             const response = await fetch('/api/create-subscription', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    userId: authData.user?.id,
-                    schoolName: formData.schoolName || formData.name, // Nome da escola
+                    schoolName: formData.schoolName || formData.name,
                     email: formData.email,
+                    password: formData.password, // Enviamos a senha segura via HTTPS
                     cpfCnpj: formData.cpfCnpj,
                     name: formData.name,
                     phone: formData.phone,
@@ -91,7 +80,13 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                 throw new Error(data.message || 'Erro ao gerar pagamento.');
             }
 
-            // 3. Salvar link de pagamento e ir para o Dashboard
+            // 3. O usuário foi criado na API. Agora fazemos o login silencioso dele no frontend.
+            await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password
+            });
+
+            // 4. Salvar link de pagamento e ir para o Dashboard
             if (data.checkoutUrl) {
                 localStorage.setItem('littera_checkout_url', data.checkoutUrl);
             }
