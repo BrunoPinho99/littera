@@ -1,9 +1,39 @@
 // api/create-subscription.ts
 import { createClient } from '@supabase/supabase-js';
-import { applyCors } from './_cors';
+
+// --- CORS HELPER INLINED TO AVOID VERCEL ESM RESOLUTION ISSUES ---
+function applyCors(req: any, res: any): boolean {
+    const origin = req.headers.origin;
+    if (origin) {
+        const isAllowed = origin.startsWith('http://localhost:') || origin.endsWith('.vercel.app') || origin.includes('littera');
+        if (isAllowed) {
+            res.setHeader('Access-Control-Allow-Origin', origin);
+        } else {
+            res.setHeader('Access-Control-Allow-Origin', 'null');
+        }
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader(
+        'Access-Control-Allow-Headers',
+        'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+    );
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).end();
+        return true;
+    }
+    
+    if (origin && !origin.startsWith('http://localhost:') && !origin.endsWith('.vercel.app') && !origin.includes('littera')) {
+        res.status(403).json({ error: 'Forbidden: CORS origin not allowed' });
+        return true;
+    }
+
+    return false;
+}
+// -----------------------------------------------------------------
 
 export default async function handler(req: any, res: any) {
-    // 1. CORS
     if (applyCors(req, res)) return;
 
     if (req.method !== 'POST') {
@@ -13,29 +43,27 @@ export default async function handler(req: any, res: any) {
     try {
         const { userId, schoolName, email, cpfCnpj, name, phone, planPrice, frequency, planName } = req.body;
 
-        // Validação básica
         if (!userId || !email || !name) {
             return res.status(400).json({ message: 'Campos obrigatórios faltando (userId, email, name).' });
         }
 
-        // 2. Validar variáveis de ambiente
         const asaasToken = process.env.ASAAS_API_KEY || process.env.VITE_ASAAS_API_KEY || '';
         const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
         const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
         if (!asaasToken) {
-            console.error('[create-subscription] ASAAS_API_KEY não configurada nas env vars da Vercel');
-            return res.status(500).json({ message: 'Configuração do gateway de pagamento ausente. Contate o administrador.' });
+            console.error('[create-subscription] ASAAS_API_KEY não configurada');
+            return res.status(500).json({ message: 'Configuração do gateway de pagamento ausente.' });
         }
 
         if (!supabaseUrl || !supabaseServiceKey) {
             console.error('[create-subscription] SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurada');
-            return res.status(500).json({ message: 'Configuração do banco de dados ausente. Contate o administrador.' });
+            return res.status(500).json({ message: 'Configuração do banco de dados ausente.' });
         }
 
         const asaasBaseUrl = asaasToken.startsWith('$aact_hmlg') ? 'https://sandbox.asaas.com/api/v3' : 'https://api.asaas.com/v3';
 
-        // 3. Criar o Cliente no Asaas
+        // 3. Criar Cliente no Asaas
         const customerRes = await fetch(`${asaasBaseUrl}/customers`, {
             method: 'POST',
             headers: { 'access_token': asaasToken, 'Content-Type': 'application/json' },
@@ -47,18 +75,16 @@ export default async function handler(req: any, res: any) {
         try {
             customerData = JSON.parse(customerText);
         } catch {
-            console.error('[create-subscription] Resposta inválida do Asaas (customers):', customerText.substring(0, 500));
-            return res.status(502).json({ message: 'Erro na comunicação com o gateway de pagamento. Tente novamente.' });
+            return res.status(502).json({ message: 'Erro na comunicação com o gateway de pagamento.' });
         }
 
         if (customerData.errors) {
-            console.error('[create-subscription] Erro Asaas (customers):', customerData.errors);
             return res.status(400).json({ message: customerData.errors[0]?.description || 'Erro ao criar cliente no Asaas.' });
         }
 
         const asaasCustomerId = customerData.id;
 
-        // 4. Criar Link de Pagamento Recorrente no Asaas
+        // 4. Criar Link de Pagamento no Asaas
         const billingCycle = frequency === 12 ? 'YEARLY' : (frequency === 6 ? 'SEMIANNUALLY' : 'MONTHLY');
         const amount = planPrice ? parseFloat(planPrice) : 29.90;
 
@@ -82,16 +108,14 @@ export default async function handler(req: any, res: any) {
         try {
             paymentLink = JSON.parse(payText);
         } catch {
-            console.error('[create-subscription] Resposta inválida do Asaas (paymentLinks):', payText.substring(0, 500));
-            return res.status(502).json({ message: 'Erro ao gerar link de pagamento. Tente novamente.' });
+            return res.status(502).json({ message: 'Erro ao gerar link de pagamento.' });
         }
 
         if (paymentLink.errors) {
-            console.error('[create-subscription] Erro Asaas (paymentLinks):', paymentLink.errors);
             return res.status(400).json({ message: paymentLink.errors[0]?.description || 'Erro ao gerar link de pagamento.' });
         }
 
-        // 5. Salvar no Supabase usando a chave Admin (ignora RLS)
+        // 5. Salvar no Supabase
         const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
         const { data: schoolData, error: schoolError } = await supabaseAdmin
@@ -108,11 +132,9 @@ export default async function handler(req: any, res: any) {
             .single();
 
         if (schoolError) {
-            console.error('[create-subscription] Erro Supabase (schools):', schoolError);
             return res.status(500).json({ message: 'Erro ao salvar escola: ' + schoolError.message });
         }
 
-        // O trigger on_auth_user_created já criou o perfil, atualizamos com school_id
         const { error: profileError } = await supabaseAdmin
             .from('profiles')
             .upsert({
@@ -124,11 +146,9 @@ export default async function handler(req: any, res: any) {
             }, { onConflict: 'id' });
 
         if (profileError) {
-            console.error('[create-subscription] Erro Supabase (profiles):', profileError);
             return res.status(500).json({ message: 'Erro ao salvar perfil: ' + profileError.message });
         }
 
-        // 5b. Atualizar user_metadata com school_id para o frontend
         await supabaseAdmin.auth.admin.updateUserById(userId, {
             user_metadata: {
                 user_type: 'school_admin',
@@ -137,14 +157,12 @@ export default async function handler(req: any, res: any) {
             }
         });
 
-        // 6. Retornar URL de pagamento do Asaas + schoolId
         return res.status(200).json({
             checkoutUrl: paymentLink.url,
             schoolId: schoolData.id
         });
 
     } catch (error: any) {
-        console.error('[create-subscription] Erro inesperado:', error);
         return res.status(500).json({ message: error.message || 'Erro interno do servidor.' });
     }
 }
