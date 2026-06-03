@@ -75,7 +75,7 @@ export default async function handler(req: any, res: any) {
             .upsert({
                 id: userId,
                 school_id: schoolData.id,
-                role: 'school_admin',
+                role: 'gestor',
                 full_name: name,
                 email: email
             }, { onConflict: 'id' });
