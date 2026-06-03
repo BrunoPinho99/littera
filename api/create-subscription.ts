@@ -41,10 +41,10 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const { schoolName, email, password, cpfCnpj, name, phone, planPrice, frequency, planName } = req.body;
+        const { schoolName, email, password, cpfCnpj, name, phone, planPrice, frequency, planName, creditCardToken, cardHolderName } = req.body;
 
-        if (!email || !name || !password) {
-            return res.status(400).json({ message: 'Campos obrigatórios faltando (email, name, password).' });
+        if (!email || !name || !password || !creditCardToken) {
+            return res.status(400).json({ message: 'Campos obrigatórios faltando, incluindo dados do cartão de crédito.' });
         }
 
         const asaasToken = process.env.ASAAS_API_KEY || process.env.VITE_ASAAS_API_KEY || '';
@@ -84,35 +84,38 @@ export default async function handler(req: any, res: any) {
 
         const asaasCustomerId = customerData.id;
 
-        // 4. Criar Link de Pagamento no Asaas
+        // 4. Criar Assinatura no Asaas com o Cartão Tokenizado
         const billingCycle = frequency === 12 ? 'YEARLY' : (frequency === 6 ? 'SEMIANNUALLY' : 'MONTHLY');
         const amount = planPrice ? parseFloat(planPrice) : 29.90;
 
-        const payRes = await fetch(`${asaasBaseUrl}/paymentLinks`, {
+        // O pagamento da primeira parcela precisa de uma data de vencimento. Usaremos a data atual.
+        const today = new Date();
+        const nextDueDate = today.toISOString().split('T')[0];
+
+        const payRes = await fetch(`${asaasBaseUrl}/subscriptions`, {
             method: 'POST',
             headers: { 'access_token': asaasToken, 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                billingType: 'UNDEFINED',
-                chargeType: 'RECURRENT',
-                name: `Littera - Plano ${planName || 'Pro'}`,
-                description: `Assinatura corporativa para ${schoolName || name}`,
+                customer: asaasCustomerId,
+                billingType: 'CREDIT_CARD',
                 value: amount,
+                nextDueDate: nextDueDate,
                 cycle: billingCycle,
-                dueDateLimitDays: 1,
-                maxInstallmentCount: 1
+                description: `Littera - Plano ${planName || 'Pro'} para ${schoolName || name}`,
+                creditCardToken: creditCardToken
             })
         });
 
         const payText = await payRes.text();
-        let paymentLink: any;
+        let subscription: any;
         try {
-            paymentLink = JSON.parse(payText);
+            subscription = JSON.parse(payText);
         } catch {
-            return res.status(502).json({ message: 'Erro ao gerar link de pagamento.' });
+            return res.status(502).json({ message: 'Erro ao gerar assinatura.' });
         }
 
-        if (paymentLink.errors) {
-            return res.status(400).json({ message: paymentLink.errors[0]?.description || 'Erro ao gerar link de pagamento.' });
+        if (subscription.errors) {
+            return res.status(400).json({ message: subscription.errors[0]?.description || 'Erro ao gerar assinatura no cartão de crédito.' });
         }
 
         // 5. Salvar no Supabase (bypassando o Rate Limit com a Service Role Key)
@@ -162,7 +165,7 @@ export default async function handler(req: any, res: any) {
                 email: email,
                 status: 'pending_payment',
                 asaas_customer_id: asaasCustomerId,
-                asaas_subscription_id: paymentLink.id
+                asaas_subscription_id: subscription.id
             }])
             .select()
             .single();
@@ -196,7 +199,7 @@ export default async function handler(req: any, res: any) {
         });
 
         return res.status(200).json({
-            checkoutUrl: paymentLink.url,
+            subscriptionId: subscription.id,
             schoolId: schoolData.id
         });
 
