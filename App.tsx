@@ -15,7 +15,7 @@ import ProfileView from './components/ProfileView';
 import LoginView from './components/LoginView';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import LandingPage from './components/LandingPage';
-import CheckoutForm from './components/CheckoutForm';
+import SetupAccount from './components/SetupAccount';
 import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
 // Types and Services
@@ -62,8 +62,7 @@ const App: React.FC = () => {
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Checkout
-  const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+
 
   // Banner de redação em andamento
   const [essayDraft, setEssayDraft] = useState<{ topicTitle: string; startTime: number } | null>(null);
@@ -72,9 +71,8 @@ const App: React.FC = () => {
   
   // 1. Initialize Session
   useEffect(() => {
-    if (location.pathname === '/checkout') {
-      const savedPlan = localStorage.getItem('littera_checkout_plan');
-      if (savedPlan) setCheckoutPlan(JSON.parse(savedPlan));
+    if (location.pathname === '/setup-account') {
+      // Logic for setup-account if needed
     }
 
     const init = async () => {
@@ -250,8 +248,7 @@ const App: React.FC = () => {
         {userType === 'school_admin' ? (
           <button 
             onClick={() => {
-              setCheckoutPlan({ id: 'pro_mensal', name: 'Plano B2B', price: 'Consulte' });
-              navigate('/checkout');
+              window.location.href = 'https://www.asaas.com/c/065603714545'; // Redirect directly to Asaas
             }}
             className="w-full py-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-all"
           >
@@ -417,11 +414,7 @@ const App: React.FC = () => {
               setNotifications(notificationsData);
               navigate('/app/practice');
             }}
-            onCheckout={(plan) => {
-              setCheckoutPlan(plan);
-              localStorage.setItem('littera_checkout_plan', JSON.stringify(plan));
-              navigate('/checkout');
-            }}
+            onCheckout={() => {}} // Não mais usado, redireciona direto pelo componente LandingPage
           />
         )
       } />
@@ -443,21 +436,7 @@ const App: React.FC = () => {
           />
         )
       } />
-      <Route path="/checkout" element={
-        checkoutPlan ? (
-          <div className="min-h-screen bg-slate-50 dark:bg-slate-900 font-sans text-slate-900 dark:text-slate-100 transition-colors">
-            <CheckoutForm
-              plan={checkoutPlan}
-              onBack={() => {
-                setCheckoutPlan(null);
-                localStorage.removeItem('littera_checkout_plan');
-                navigate('/');
-              }}
-            />
-          </div>
-        ) : <Navigate to="/" replace />
-      } />
-      <Route path="/sucesso" element={<PaymentSuccess />} />
+      <Route path="/setup-account" element={<SetupAccount />} />
       <Route path="/convite" element={<AcceptInviteView />} />
       <Route path="/app/*" element={<MainAppLayout />} />
       <Route path="*" element={<Navigate to="/" replace />} />

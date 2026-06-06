@@ -1,6 +1,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY')!
+const ASAAS_URL = Deno.env.get('ASAAS_BASE_URL') || 'https://sandbox.asaas.com/api/v3'
+
 serve(async (req) => {
   try {
     const body = await req.json()
@@ -13,10 +16,77 @@ serve(async (req) => {
     )
 
     // A chave para identificar a escola
-    const schoolId = payment?.externalReference || payment?.subscription?.externalReference
+    let schoolId = payment?.externalReference || payment?.subscription?.externalReference
+
+    if (!schoolId && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED')) {
+      // Veio de um Link de Pagamento (sem externalReference)
+      // Precisamos criar a Escola e o Usuário
+      const customerId = payment.customer
+      if (customerId) {
+        // 1. Busca dados do cliente no Asaas
+        const customerRes = await fetch(`${ASAAS_URL}/customers/${customerId}`, {
+          headers: { 'access_token': ASAAS_KEY }
+        })
+        if (customerRes.ok) {
+          const customerData = await customerRes.json()
+          const email = customerData.email
+          const name = customerData.name
+          const cpfCnpj = customerData.cpfCnpj
+
+          if (email) {
+            // Verifica se o usuário já existe
+            const { data: existingUser } = await supabase.from('profiles').select('id, school_id').eq('email', email).single()
+            
+            if (existingUser) {
+              schoolId = existingUser.school_id
+            } else {
+              // Cria Usuário no Auth (com senha aleatória, pois ele vai redefinir depois)
+              const tempPassword = crypto.randomUUID()
+              const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+                email,
+                password: tempPassword,
+                email_confirm: true,
+                user_metadata: { user_type: 'school_admin' }
+              })
+
+              if (!authError && authData.user) {
+                const userId = authData.user.id
+
+                // Cria Escola
+                const { data: schoolData } = await supabase.from('schools').insert({
+                  name: name || 'Escola (Atualize o nome)',
+                  city: 'Não informada',
+                  subscription_status: 'active',
+                  subscription_id: payment.subscription || null
+                }).select().single()
+
+                if (schoolData) {
+                  schoolId = schoolData.id
+                  
+                  // Atualiza metadata do auth
+                  await supabase.auth.admin.updateUserById(userId, {
+                    user_metadata: { user_type: 'school_admin', school_id: schoolId }
+                  })
+
+                  // Cria Profile
+                  await supabase.from('profiles').insert({
+                    id: userId,
+                    firstName: name ? name.split(' ')[0] : 'Gestor',
+                    lastName: name ? name.split(' ').slice(1).join(' ') : '',
+                    email: email,
+                    user_type: 'school_admin',
+                    school_id: schoolId
+                  })
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
     if (!schoolId) {
-      return new Response('ok', { status: 200 }) // ignorar pagamentos sem vínculo
+      return new Response('ok', { status: 200 }) // ignorar pagamentos sem vínculo que não conseguimos criar conta
     }
 
     const atualizacoes: Record<string, unknown> = {}
@@ -48,10 +118,9 @@ serve(async (req) => {
       }
     }
 
-    // Sempre retornar 200 para o Asaas não reenviar o webhook
     return new Response('ok', { status: 200 })
   } catch (error: any) {
     console.error('Erro no processamento do webhook:', error)
-    return new Response('ok', { status: 200 }) // Evitar que Asaas faça retry infinitos
+    return new Response('ok', { status: 200 })
   }
 })
