@@ -543,7 +543,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
 
-                            <button onClick={() => window.location.href = 'https://www.asaas.com/c/065603714545'} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                            <button onClick={onLoginClick} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
                             >
@@ -577,7 +577,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
                             
-                            <button onClick={() => window.location.href = 'https://www.asaas.com/c/1234567890'} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                            <button onClick={onLoginClick} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
                             >

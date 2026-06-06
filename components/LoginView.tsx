@@ -97,22 +97,25 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
             
             // Gera link de pagamento Asaas e redireciona
             try {
-              const subRes = await fetch('/api/create-subscription', {
+              const subRes = await fetch('/api/process-payment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   schoolId: schoolId,
-                  email: email,
-                  name: name,
+                  customer: {
+                    name: name,
+                    email: email,
+                    cpfCnpj: '' // Pode ser preenchido futuramente se adicionar campo no form
+                  },
                   planPrice: 29.90,
                   frequency: 1,
-                  returnUrl: window.location.origin + '/app/inst-overview'
+                  planId: 'starter'
                 })
               });
               const subData = await subRes.json();
               if (subData.checkoutUrl) {
                 setTimeout(() => {
-                  window.open(subData.checkoutUrl, '_blank');
+                  window.open(subData.checkoutUrl, '_self');
                   onLoginSuccess();
                 }, 1500);
               } else {
