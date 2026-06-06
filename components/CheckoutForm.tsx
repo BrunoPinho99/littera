@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 
 interface Plan {
@@ -13,13 +13,6 @@ interface CheckoutFormProps {
     onBack: () => void;
 }
 
-// Declarando tipo global para acessar asaas.js
-declare global {
-    interface Window {
-        asaas: any;
-    }
-}
-
 const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
@@ -31,11 +24,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
         phone: '',
         password: '',
         confirmPassword: '',
-        schoolName: '',
-        cardNumber: '',
-        cardHolderName: '',
-        cardExpiry: '',
-        cardCcv: ''
+        schoolName: ''
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -44,14 +33,6 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
         // Máscaras
         if (name === 'cpfCnpj') value = value.replace(/\D/g, '');
         if (name === 'phone') value = value.replace(/\D/g, '').substring(0, 11);
-        if (name === 'cardNumber') value = value.replace(/\D/g, '').substring(0, 16);
-        if (name === 'cardCcv') value = value.replace(/\D/g, '').substring(0, 4);
-        if (name === 'cardExpiry') {
-            value = value.replace(/\D/g, '').substring(0, 4);
-            if (value.length > 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2, 4);
-            }
-        }
 
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -68,63 +49,85 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
             if (formData.password.length < 6) {
                 throw new Error('A senha deve ter pelo menos 6 caracteres.');
             }
-
-            if (!formData.cardNumber || !formData.cardHolderName || !formData.cardExpiry || !formData.cardCcv) {
-                throw new Error('Preencha todos os dados do cartão de crédito.');
+            if (!formData.cpfCnpj || formData.cpfCnpj.length < 11) {
+                throw new Error('CPF/CNPJ inválido.');
             }
 
-            const [expMonth, expYear] = formData.cardExpiry.split('/');
-            if (!expMonth || !expYear || expYear.length !== 2) {
-                throw new Error('Data de validade do cartão inválida. Use o formato MM/AA.');
-            }
+            // 1. Criar o usuário no Supabase Auth
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email: formData.email,
+                password: formData.password,
+                options: {
+                    data: { full_name: formData.name }
+                }
+            });
 
-            // 1. Enviar para a API Backend (Vercel)
+            if (authError) throw new Error(`Erro ao criar conta: ${authError.message}`);
+            if (!authData.user) throw new Error('Falha ao criar usuário.');
+
+            // 2. Criar a escola
+            const { data: schoolData, error: schoolError } = await supabase
+                .from('schools')
+                .insert({
+                    name: formData.schoolName || formData.name,
+                    city: 'Não informada',
+                    status: 'PENDENTE'
+                })
+                .select()
+                .single();
+
+            if (schoolError || !schoolData) throw new Error('Erro ao registrar a escola no sistema.');
+
+            // 3. Criar perfil do gestor
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                    id: authData.user.id,
+                    email: formData.email,
+                    firstName: formData.name.split(' ')[0],
+                    lastName: formData.name.split(' ').slice(1).join(' '),
+                    school_id: schoolData.id,
+                    user_type: 'school_admin'
+                });
+            
+            if (profileError) console.error('Erro perfil:', profileError); // Não bloqueante
+
+            // 4. Chamar Edge Function para gerar o checkout Asaas
             const numericPrice = parseFloat(
                 plan.price.replace('R$ ', '').replace('.', '').replace(',', '.')
             );
 
-            const response = await fetch('/api/create-subscription', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    schoolName: formData.schoolName || formData.name,
+            const { data: funcData, error: funcError } = await supabase.functions.invoke('criar-checkout', {
+                body: {
+                    schoolId: schoolData.id,
+                    userId: authData.user.id,
+                    nome: formData.name,
                     email: formData.email,
-                    password: formData.password,
                     cpfCnpj: formData.cpfCnpj,
-                    name: formData.name,
-                    phone: formData.phone,
-                    planPrice: numericPrice,
-                    frequency: plan.frequency,
-                    planName: plan.name,
-                    creditCard: {
-                        holderName: formData.cardHolderName,
-                        number: formData.cardNumber,
-                        expiryMonth: expMonth,
-                        expiryYear: '20' + expYear,
-                        ccv: formData.cardCcv
-                    }
-                }),
+                    plano: plan.id,
+                    nomePlano: plan.name,
+                    precoPlano: numericPrice
+                }
             });
 
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Erro ao gerar pagamento.');
+            if (funcError) {
+                throw new Error(`Erro ao conectar com o provedor de pagamentos: ${funcError.message}`);
             }
 
-            // 2. O usuário foi criado e a assinatura foi confirmada na API. 
-            // Fazer login no frontend
-            await supabase.auth.signInWithPassword({
-                email: formData.email,
-                password: formData.password
-            });
+            if (funcData?.error) {
+                throw new Error(`Erro no pagamento: ${funcData.error}`);
+            }
 
-            // 3. Redirecionar para Dashboard
-            window.location.href = '/app/inst-overview';
+            if (funcData?.invoiceUrl) {
+                // Redireciona o usuário para o ambiente de pagamento do Asaas
+                window.location.href = funcData.invoiceUrl;
+            } else {
+                throw new Error('Link de pagamento não foi gerado.');
+            }
 
         } catch (error: any) {
             console.error('Erro no checkout:', error);
-            setErrorMsg(error.message);
+            setErrorMsg(error.message || 'Ocorreu um erro inesperado.');
             setIsProcessing(false);
         }
     };
@@ -136,21 +139,21 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                     <span className="material-icons-outlined text-sm">arrow_back</span> Voltar
                 </button>
                 <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Finalizar Assinatura</h1>
-                <p className="text-gray-500 mt-2">Plano {plan.name} - {plan.price}. Crie sua conta e efetue o pagamento de forma segura.</p>
+                <p className="text-gray-500 mt-2">Plano {plan.name} - {plan.price}. Crie sua conta para prosseguir com o pagamento seguro.</p>
             </div>
 
             <form onSubmit={handleCheckout} className="space-y-6">
                 
                 {/* DADOS DA ESCOLA */}
                 <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white border-b pb-2 mb-4">Dados da Conta</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white border-b pb-2 mb-4">Dados da Conta e Acesso</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome da Escola</label>
                             <input required type="text" name="schoolName" value={formData.schoolName} onChange={handleChange} placeholder="Colégio Exemplo" className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border outline-none dark:text-white" />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">CNPJ da Escola</label>
+                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">CNPJ da Escola (ou CPF)</label>
                             <input required type="text" name="cpfCnpj" value={formData.cpfCnpj} onChange={handleChange} placeholder="Apenas números" className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border outline-none dark:text-white" />
                         </div>
                         <div>
@@ -176,32 +179,6 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                     </div>
                 </div>
 
-                {/* PAGAMENTO (CARTÃO) */}
-                <div className="bg-white dark:bg-surface-dark rounded-2xl p-6 border border-gray-100 dark:border-slate-700 shadow-sm space-y-4">
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white border-b pb-2 mb-4 flex items-center justify-between">
-                        Pagamento Seguro (Asaas)
-                        <span className="material-icons-outlined text-green-600">lock</span>
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Número do Cartão</label>
-                            <input required type="text" name="cardNumber" value={formData.cardNumber} onChange={handleChange} placeholder="0000 0000 0000 0000" className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border outline-none dark:text-white" />
-                        </div>
-                        <div className="md:col-span-2">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Titular do Cartão</label>
-                            <input required type="text" name="cardHolderName" value={formData.cardHolderName} onChange={handleChange} placeholder="NOME COMO ESTÁ NO CARTÃO" className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border outline-none dark:text-white uppercase" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Validade (MM/AA)</label>
-                            <input required type="text" name="cardExpiry" value={formData.cardExpiry} onChange={handleChange} placeholder="12/30" className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border outline-none dark:text-white" />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">CVV</label>
-                            <input required type="text" name="cardCcv" value={formData.cardCcv} onChange={handleChange} placeholder="123" className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-slate-800 border outline-none dark:text-white" />
-                        </div>
-                    </div>
-                </div>
-
                 {errorMsg && (
                     <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium border border-red-100 flex items-start gap-2">
                         <span className="material-icons-outlined text-base mt-0.5">error_outline</span> <span>{errorMsg}</span>
@@ -210,10 +187,10 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
 
                 <div className="pt-4 flex flex-col items-end gap-4">
                     <button disabled={isProcessing} type="submit" className="w-full md:w-auto px-10 py-4 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 text-lg">
-                        {isProcessing ? 'Processando Pagamento...' : `Assinar por ${plan.price}`}
-                        {!isProcessing && <span className="material-icons-outlined">payment</span>}
+                        {isProcessing ? 'Gerando Pagamento...' : `Ir para Pagamento (${plan.price})`}
+                        {!isProcessing && <span className="material-icons-outlined">exit_to_app</span>}
                     </button>
-                    <p className="text-xs text-gray-400 text-center w-full md:text-right">Pagamento criptografado e seguro via Asaas.</p>
+                    <p className="text-xs text-gray-400 text-center w-full md:text-right">Você será redirecionado para o ambiente seguro do Asaas.</p>
                 </div>
             </form>
         </div>
