@@ -90,7 +90,7 @@ serve(async (req) => {
       asaas_customer_id: asaasCustomerId,
       asaas_subscription_id: assinatura.id,
       plano: plano,
-      status: 'PENDENTE'
+      subscription_status: 'pending_payment'
     }).eq('id', schoolId)
 
     if (dbError) {

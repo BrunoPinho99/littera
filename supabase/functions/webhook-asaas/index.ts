@@ -24,16 +24,16 @@ serve(async (req) => {
     switch (event) {
       case 'PAYMENT_CONFIRMED':
       case 'PAYMENT_RECEIVED':
-        atualizacoes.status = 'active'
+        atualizacoes.subscription_status = 'active'
         atualizacoes.plano_ativado_em = new Date().toISOString()
         break
       case 'PAYMENT_OVERDUE':
-        atualizacoes.status = 'INADIMPLENTE'
+        atualizacoes.subscription_status = 'inactive'
         break
       case 'PAYMENT_DELETED':
       case 'SUBSCRIPTION_INACTIVATED':
       case 'PAYMENT_REFUNDED':
-        atualizacoes.status = 'INATIVA'
+        atualizacoes.subscription_status = 'inactive'
         atualizacoes.plano = 'free'
         break
     }

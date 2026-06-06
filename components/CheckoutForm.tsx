@@ -71,7 +71,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ plan, onBack }) => {
                 .insert({
                     name: formData.schoolName || formData.name,
                     city: 'Não informada',
-                    status: 'PENDENTE'
+                    subscription_status: 'pending_payment'
                 })
                 .select()
                 .single();
