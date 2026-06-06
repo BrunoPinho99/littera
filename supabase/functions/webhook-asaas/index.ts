@@ -18,10 +18,22 @@ serve(async (req) => {
     // A chave para identificar a escola
     let schoolId = payment?.externalReference || payment?.subscription?.externalReference
 
+    if (!schoolId) {
+        // Tentar encontrar a escola através do asaas_customer_id ou subscription_id (pois a escola pode ter sido criada logo após a subscription)
+        if (payment?.subscription) {
+            const { data } = await supabase.from('schools').select('id').eq('subscription_id', payment.subscription).single();
+            if (data) schoolId = data.id;
+        }
+        if (!schoolId && payment?.customer) {
+            const { data } = await supabase.from('schools').select('id').eq('asaas_customer_id', payment.customer).single();
+            if (data) schoolId = data.id;
+        }
+    }
+
     if (!schoolId && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED')) {
       // Veio de um Link de Pagamento (sem externalReference)
       // Precisamos criar a Escola e o Usuário
-      const customerId = payment.customer
+      const customerId = payment?.customer || payment?.customer_id;
       if (customerId) {
         // 1. Busca dados do cliente no Asaas
         const customerRes = await fetch(`${ASAAS_URL}/customers/${customerId}`, {

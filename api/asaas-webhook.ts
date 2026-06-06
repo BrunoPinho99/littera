@@ -52,13 +52,22 @@ export default async function handler(req: any, res: any) {
 
         if (nsStatus) {
             // Tentar achar a escola por asaas_customer_id, payment_link_id ou subscription_id
-            let query = supabase.from('schools').select('id');
-            if (customerId) query = query.or(`asaas_customer_id.eq.${customerId},payment_link_id.eq.${paymentLinkId || 'null'},subscription_id.eq.${subscriptionId || 'null'}`);
-            else query = query.or(`payment_link_id.eq.${paymentLinkId || 'null'},subscription_id.eq.${subscriptionId || 'null'}`);
+            let schoolIdToUpdate: string | null = null;
 
-            const { data: schools } = await query.limit(1);
+            if (customerId) {
+                const { data } = await supabase.from('schools').select('id').eq('asaas_customer_id', customerId).limit(1);
+                if (data && data.length > 0) schoolIdToUpdate = data[0].id;
+            }
+            if (!schoolIdToUpdate && subscriptionId) {
+                const { data } = await supabase.from('schools').select('id').eq('subscription_id', subscriptionId).limit(1);
+                if (data && data.length > 0) schoolIdToUpdate = data[0].id;
+            }
+            if (!schoolIdToUpdate && paymentLinkId) {
+                const { data } = await supabase.from('schools').select('id').eq('payment_link_id', paymentLinkId).limit(1);
+                if (data && data.length > 0) schoolIdToUpdate = data[0].id;
+            }
 
-            if (schools && schools.length > 0) {
+            if (schoolIdToUpdate) {
                 const { error } = await supabase
                     .from('schools')
                     .update({ 
@@ -66,7 +75,7 @@ export default async function handler(req: any, res: any) {
                         asaas_customer_id: customerId || undefined,
                         subscription_id: subscriptionId || undefined
                     })
-                    .eq('id', schools[0].id);
+                    .eq('id', schoolIdToUpdate);
 
                 if (error) {
                     console.error('Error updating Supabase:', error);
