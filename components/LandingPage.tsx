@@ -11,29 +11,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);
     const [isLeadSuccess, setIsLeadSuccess] = useState(false);
-    const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-
-    const handleSubscribe = async (planId: string) => {
-        if (loadingPlan) return;
-        setLoadingPlan(planId);
-        try {
-            const response = await fetch('/api/create-checkout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ planId })
-            });
-            const data = await response.json();
-            if (data.success && data.checkoutUrl) {
-                window.location.href = data.checkoutUrl;
-            } else {
-                alert('Erro ao gerar checkout: ' + (data.message || 'Tente novamente.'));
-                setLoadingPlan(null);
-            }
-        } catch (err) {
-            alert('Erro de conexão. Verifique sua internet e tente novamente.');
-            setLoadingPlan(null);
-        }
-    };
 
 
     useEffect(() => {
@@ -566,11 +543,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
 
-                            <button onClick={() => handleSubscribe('starter')} disabled={!!loadingPlan} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: loadingPlan === 'starter' ? '#374151' : '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loadingPlan ? 'wait' : 'pointer', transition: 'all 0.2s', opacity: loadingPlan && loadingPlan !== 'starter' ? 0.5 : 1 }}
-                                onMouseEnter={e => { if (!loadingPlan) e.currentTarget.style.background = '#1e293b'; }}
-                                onMouseLeave={e => { if (!loadingPlan) e.currentTarget.style.background = '#131b2e'; }}
+                            <button onClick={() => window.location.href = 'https://www.asaas.com/c/dxyzqdvphaeeupgr'} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
                             >
-                                {loadingPlan === 'starter' ? '⏳ Gerando checkout...' : 'Assinar Starter'}
+                                Assinar Starter
                             </button>
                         </div>
 
@@ -600,11 +577,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
                             
-                            <button onClick={() => handleSubscribe('school')} disabled={!!loadingPlan} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: loadingPlan === 'school' ? '#1d4ed8' : '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: loadingPlan ? 'wait' : 'pointer', transition: 'background 0.2s', opacity: loadingPlan && loadingPlan !== 'school' ? 0.5 : 1 }}
-                                onMouseEnter={e => { if (!loadingPlan) e.currentTarget.style.background = '#2563eb'; }}
-                                onMouseLeave={e => { if (!loadingPlan) e.currentTarget.style.background = '#3b82f6'; }}
+                            <button onClick={() => window.location.href = 'https://www.asaas.com/c/ptio0yymxzgz4bn8'} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                                onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
                             >
-                                {loadingPlan === 'school' ? '⏳ Gerando checkout...' : 'Assinar School'}
+                                Assinar School
                             </button>
                         </div>
 
