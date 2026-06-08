@@ -599,7 +599,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     );
   }
 
-  if (school?.subscription_status === 'pending_payment') {
+  if (school?.subscription_status === 'unpaid') {
     const checkoutUrl = localStorage.getItem('littera_checkout_url');
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium border border-gray-100 dark:border-white/5 p-8 text-center animate-fade-in mt-8">
