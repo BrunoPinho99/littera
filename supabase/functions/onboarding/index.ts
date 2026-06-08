@@ -3,7 +3,9 @@
 // Cria: Auth User → School → Profile → Asaas Customer → Subscription → Retorna checkout URL
 // Deno Deploy runtime (Supabase Edge Functions)
 
+// @ts-ignore
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
@@ -72,9 +74,17 @@ serve(async (req: Request) => {
   }
 
   // Variáveis de ambiente
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY')!
+  // @ts-ignore
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  // @ts-ignore
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  // @ts-ignore
+  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY')
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('[onboarding] SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurada')
+    return jsonResponse({ error: 'Configuração de banco de dados ausente no servidor.' }, 500)
+  }
 
   if (!ASAAS_KEY) {
     console.error('[onboarding] ASAAS_API_KEY não configurada')
@@ -133,16 +143,7 @@ serve(async (req: Request) => {
       return jsonResponse({ error: 'Quantidade de alunos deve ser pelo menos 1.' }, 400)
     }
 
-    // ── 2. Verificar se email já existe ─────────────────────────────────────
-    const { data: existingUsers } = await supabase.auth.admin.listUsers()
-    const emailExists = existingUsers?.users?.some(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    )
-    if (emailExists) {
-      return jsonResponse({ error: 'Este e-mail já está cadastrado. Faça login.' }, 409)
-    }
-
-    // ── 3. Criar usuário no Supabase Auth ───────────────────────────────────
+    // ── 2. Criar usuário no Supabase Auth ───────────────────────────────────
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: email.toLowerCase().trim(),
       password,
@@ -179,7 +180,6 @@ serve(async (req: Request) => {
         slug: slug || `escola-${Date.now()}`,
         cnpj: cleanCnpj,
         student_count: studentCount,
-        subscription_status: 'unpaid',
       })
       .select()
       .single()
@@ -219,18 +219,22 @@ serve(async (req: Request) => {
     })
 
     // ── 7. Criar Customer no Asaas ──────────────────────────────────────────
-    let asaasCustomerId: string
+    let asaasCustomerId: string | null = null
 
     // Tenta encontrar por CNPJ primeiro
     const searchRes = await fetch(
       `${ASAAS_BASE}/customers?cpfCnpj=${cleanCnpj}`,
       { headers: asaasHeaders }
     )
-    const searchData = await searchRes.json()
+    
+    if (searchRes.ok) {
+      const searchData = await searchRes.json()
+      if (searchData.data?.length > 0) {
+        asaasCustomerId = searchData.data[0].id
+      }
+    }
 
-    if (searchData.data?.length > 0) {
-      asaasCustomerId = searchData.data[0].id
-    } else {
+    if (!asaasCustomerId) {
       const createCustomerRes = await fetch(`${ASAAS_BASE}/customers`, {
         method: 'POST',
         headers: asaasHeaders,
@@ -306,13 +310,14 @@ serve(async (req: Request) => {
       `${ASAAS_BASE}/payments?subscription=${subscriptionId}`,
       { headers: asaasHeaders }
     )
-    const paymentsData = await paymentsRes.json()
+    
+    let checkoutUrl = `https://www.asaas.com/c/${asaasCustomerId}`
 
-    let checkoutUrl = ''
-    if (paymentsData.data?.length > 0) {
-      checkoutUrl = paymentsData.data[0].invoiceUrl
-    } else {
-      checkoutUrl = `https://www.asaas.com/c/${asaasCustomerId}`
+    if (paymentsRes.ok) {
+      const paymentsData = await paymentsRes.json()
+      if (paymentsData.data?.length > 0) {
+        checkoutUrl = paymentsData.data[0].invoiceUrl
+      }
     }
 
     console.log(`[onboarding] Onboarding completo! School: ${createdSchoolId}, Checkout: ${checkoutUrl}`)

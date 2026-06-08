@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
 interface LandingPageProps {
     onLoginClick: () => void;
     onDemoClick: (type: 'student' | 'teacher') => void;
@@ -549,32 +548,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                         </div>
                     </div>
 
-                    {/* ROI Block */}
-                    <div className="sl-reveal" style={{
-                        background: '#131b2e', borderRadius: 24, padding: '24px',
-                        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 160px), 1fr))', gap: 20,
-                        marginBottom: 40, position: 'relative', overflow: 'hidden'
-                    }}>
-                        {/* decorative background element */}
-                        <div style={{ position: 'absolute', top: '-50%', right: '-10%', width: 300, height: 300, background: '#004ac6', filter: 'blur(100px)', opacity: 0.3, pointerEvents: 'none' }}></div>
 
-                        <div>
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Custo mensal do Littera</p>
-                            <p style={{ fontSize: 24, fontWeight: 900, color: '#ffffff' }}>R$ 2.800</p>
-                        </div>
-                        <div>
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Horas de correção salvas/mês</p>
-                            <p style={{ fontSize: 24, fontWeight: 900, color: '#3b82f6' }}>~200h</p>
-                        </div>
-                        <div>
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Custo equivalente (R$ 80/h)</p>
-                            <p style={{ fontSize: 24, fontWeight: 900, color: '#f87171', textDecoration: 'line-through' }}>R$ 16.000</p>
-                        </div>
-                        <div>
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600, marginBottom: 8 }}>Economia líquida mensal</p>
-                            <p style={{ fontSize: 32, fontWeight: 900, color: '#10b981' }}>R$ 13.200</p>
-                        </div>
-                    </div>
 
                     {/* Pricing Cards */}
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24, alignItems: 'center' }}>
@@ -601,7 +575,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
 
-                            <button onClick={() => navigate(`/cadastro?plan=starter&students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
+                            <button onClick={() => navigate(`/cadastro?students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
                             >
@@ -635,7 +609,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
                             
-                            <button onClick={() => navigate(`/cadastro?plan=school&students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
+                            <button onClick={() => navigate(`/cadastro?students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
                             >
@@ -870,6 +844,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

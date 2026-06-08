@@ -19,6 +19,7 @@ import SetupAccount from './components/SetupAccount';
 import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
 import OnboardingView from './components/OnboardingView';
+import FinalizarCadastroView from './components/FinalizarCadastroView';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
@@ -467,7 +468,12 @@ const App: React.FC = () => {
       <Route path="/cadastro" element={
         session || isDemoMode
           ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-          : <OnboardingView onBack={() => navigate('/login')} />
+          : <OnboardingView onBack={() => navigate('/')} onLogin={() => navigate('/login')} />
+      } />
+      <Route path="/cadastro/finalizar" element={
+        session || isDemoMode
+          ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+          : <FinalizarCadastroView />
       } />
       <Route path="/setup-account" element={<SetupAccount />} />
       <Route path="/convite" element={<AcceptInviteView />} />

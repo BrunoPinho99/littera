@@ -60,19 +60,19 @@ interface FieldError {
 
 interface OnboardingViewProps {
   onBack: () => void;
+  onLogin: () => void;
 }
 
 // ── Steps ───────────────────────────────────────────────────────────────────────
 
 const STEPS = [
-  { id: 1, label: 'Seus Dados', icon: 'person' },
-  { id: 2, label: 'Sua Escola', icon: 'school' },
-  { id: 3, label: 'Confirmar', icon: 'check_circle' },
+  { id: 1, label: 'Dados Escolares', icon: 'school' },
+  { id: 2, label: 'Plano', icon: 'payments' },
 ] as const;
 
 // ── Componente ──────────────────────────────────────────────────────────────────
 
-const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
+const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack, onLogin }) => {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,25 +133,11 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
     if (!form.directorName.trim() || form.directorName.trim().length < 3) {
       errors.directorName = 'Nome deve ter pelo menos 3 caracteres.';
     }
-    if (!validateEmail(form.email)) {
-      errors.email = 'Formato de e-mail inválido.';
-    }
-    if (form.password.length < 6) {
-      errors.password = 'Mínimo de 6 caracteres.';
-    }
-    if (form.password !== form.confirmPassword) {
-      errors.confirmPassword = 'As senhas não coincidem.';
-    }
-
-    setFieldErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  const validateStep2 = (): boolean => {
-    const errors: FieldError = {};
-
     if (!form.schoolName.trim() || form.schoolName.trim().length < 2) {
       errors.schoolName = 'Nome da escola é obrigatório.';
+    }
+    if (!validateEmail(form.email)) {
+      errors.email = 'Formato de e-mail inválido.';
     }
     if (!validateCNPJ(form.cnpj)) {
       errors.cnpj = 'CNPJ inválido.';
@@ -165,10 +151,46 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
     return Object.keys(errors).length === 0;
   };
 
-  const handleNext = () => {
-    if (step === 1 && validateStep1()) setStep(2);
-    else if (step === 2 && validateStep2()) setStep(3);
+  const validateStep2 = (): boolean => {
+    return true;
   };
+
+  const handleSubmit = useCallback(async () => {
+    if (!validateStep1() || !validateStep2()) return;
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          directorName: form.directorName.trim(),
+          email: form.email.toLowerCase().trim(),
+          schoolName: form.schoolName.trim(),
+          cnpj: form.cnpj.replace(/\D/g, ''),
+          studentCount: parseInt(form.studentCount),
+          billingCycle: form.billingCycle,
+        },
+      });
+
+      if (fnError || data?.error) throw new Error(fnError?.message || data?.error || 'Erro ao gerar pagamento.');
+
+      // Save form data to recover in the final step
+      localStorage.setItem('littera_onboarding_form', JSON.stringify(form));
+      if (data.asaasCustomerId) {
+        localStorage.setItem('littera_asaas_customer', data.asaasCustomerId);
+      }
+      if (data.subscriptionId) {
+        localStorage.setItem('littera_asaas_subscription', data.subscriptionId);
+      }
+
+      window.location.href = data.checkoutUrl;
+
+    } catch (err: any) {
+      console.error('[OnboardingView] Error:', err);
+      setError(err.message || 'Falha ao processar checkout. Verifique os dados.');
+      setIsLoading(false);
+    }
+  }, [form]);
 
   const handleBack = () => {
     if (step > 1) {
@@ -179,66 +201,6 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
       onBack();
     }
   };
-
-  // ── Submit final ────────────────────────────────────────────────────────────
-
-  const handleSubmit = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error: fnError } = await supabase.functions.invoke('onboarding', {
-        body: {
-          directorName: form.directorName.trim(),
-          email: form.email.toLowerCase().trim(),
-          password: form.password,
-          schoolName: form.schoolName.trim(),
-          cnpj: form.cnpj.replace(/\D/g, ''),
-          studentCount: parseInt(form.studentCount),
-          billingCycle: form.billingCycle
-        },
-      });
-
-      if (fnError) {
-        throw new Error(fnError.message || 'Erro ao processar cadastro.');
-      }
-
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data?.checkoutUrl) {
-        // Conta criada mas sem checkout — loga e manda para o app
-        if (data?.partialSuccess) {
-          // Fazer login automático
-          await supabase.auth.signInWithPassword({
-            email: form.email.toLowerCase().trim(),
-            password: form.password,
-          });
-          window.location.href = '/app/inst-overview';
-          return;
-        }
-        throw new Error('Erro inesperado ao gerar link de pagamento.');
-      }
-
-      // Salvar URL de checkout para recuperação futura
-      localStorage.setItem('littera_checkout_url', data.checkoutUrl);
-
-      // Login automático antes do redirecionamento
-      await supabase.auth.signInWithPassword({
-        email: form.email.toLowerCase().trim(),
-        password: form.password,
-      });
-
-      // Redireciona para o checkout externo do Asaas
-      window.location.href = data.checkoutUrl;
-
-    } catch (err: any) {
-      console.error('[OnboardingView] Error:', err);
-      setError(err.message || 'Erro inesperado. Tente novamente.');
-      setIsLoading(false);
-    }
-  }, [form]);
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
@@ -258,7 +220,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
         value={form[field]}
         onChange={(e) => updateField(field, field === 'cnpj' ? formatCNPJ(e.target.value) : e.target.value)}
         placeholder={placeholder}
-        className={`w-full px-5 py-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 border font-bold text-sm transition-all outline-none ${
+        className={`w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border font-bold text-sm transition-all outline-none ${
           fieldErrors[field]
             ? 'border-rose-300 focus:border-rose-400 bg-rose-50/50 dark:bg-rose-900/10'
             : 'border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10'
@@ -274,64 +236,74 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
     </div>
   );
 
-  // ── Render steps ──────────────────────────────────────────────────────────
-
   return (
-    <div className="h-screen w-full flex bg-background-light dark:bg-background-dark overflow-hidden font-sans">
+    <div className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row bg-background-light dark:bg-background-dark font-sans overflow-hidden relative animate-slide-up-full z-[100]">
+      
+      {/* ── Botão Fechar (X) ────────────────────────────────────────────── */}
+      <button 
+        onClick={onBack}
+        className="absolute top-4 right-4 lg:top-8 lg:right-8 z-50 w-12 h-12 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-300 rounded-full flex items-center justify-center transition-all hover:scale-105 shadow-sm backdrop-blur-md border border-gray-200 dark:border-white/10"
+        title="Voltar"
+      >
+        <span className="material-icons-outlined">close</span>
+      </button>
 
       {/* ── Lado Esquerdo — Branding ──────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[45%] relative bg-primary items-center justify-center p-16 overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2" />
+      <div className="hidden lg:flex lg:w-[35%] xl:w-[30%] relative bg-primary overflow-hidden">
+        <div className="min-h-full w-full flex items-center justify-center p-6 lg:p-8 xl:p-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
-        <div className="relative z-10 text-white max-w-xl text-left">
-          {/* Logo */}
-          <div className="flex items-center gap-4 mb-16 animate-fade-in">
-            <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center shadow-2xl">
-              <div className="flex flex-col items-center translate-y-[2px]">
-                <span className="text-primary font-black text-4xl leading-none tracking-tighter">L</span>
-                <div className="w-7 h-[6px] bg-primary mt-[1px] rounded-full" />
-              </div>
-            </div>
-            <span className="font-black text-6xl tracking-tighter text-white">
-              Littera<span className="text-white/40">.</span>
-            </span>
-          </div>
-
-          <div className="space-y-8 animate-fade-in-up">
-            <h1 className="text-5xl font-black leading-[1.1] tracking-tight">
-              Cadastre sua escola em minutos
-            </h1>
-            <p className="text-xl opacity-80 leading-relaxed font-medium max-w-md">
-              Correção de redações por I.A., gestão de turmas e relatórios completos. Tudo pronto para uso imediato.
-            </p>
-
-            {/* Features */}
-            <div className="space-y-4 mt-10">
-              {[
-                { icon: 'bolt', text: 'Correção instantânea com Google Gemini' },
-                { icon: 'shield', text: 'Dados seguros — LGPD compliant' },
-                { icon: 'trending_up', text: 'Relatórios de evolução por turma' },
-              ].map(({ icon, text }) => (
-                <div key={icon} className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                    <span className="material-icons-outlined text-white text-lg">{icon}</span>
-                  </div>
-                  <span className="font-semibold text-white/90">{text}</span>
+          <div className="relative z-10 text-white w-full max-w-sm text-left py-8">
+            {/* Logo */}
+            <div className="flex items-center gap-3 mb-10 animate-fade-in">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl shrink-0">
+                <div className="flex flex-col items-center translate-y-[1px]">
+                  <span className="text-primary font-black text-2xl leading-none tracking-tighter">L</span>
+                  <div className="w-5 h-[4px] bg-primary mt-[1px] rounded-full" />
                 </div>
-              ))}
+              </div>
+              <span className="font-black text-3xl lg:text-4xl tracking-tighter text-white">
+                Littera<span className="text-white/40">.</span>
+              </span>
+            </div>
+
+            <div className="space-y-5 animate-fade-in-up">
+              <h1 className="text-2xl lg:text-3xl font-black leading-[1.1] tracking-tight">
+                Cadastre sua escola em minutos
+              </h1>
+              <p className="text-sm lg:text-base opacity-80 leading-relaxed font-medium">
+                Correção de redações por I.A., gestão de turmas e relatórios completos. Tudo pronto para uso imediato.
+              </p>
+
+              {/* Features */}
+              <div className="space-y-3 mt-6">
+                {[
+                  { icon: 'bolt', text: 'Correção instantânea com Google Gemini' },
+                  { icon: 'shield', text: 'Dados seguros — LGPD compliant' },
+                  { icon: 'trending_up', text: 'Relatórios de evolução por turma' },
+                ].map(({ icon, text }) => (
+                  <div key={icon} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center backdrop-blur-sm shrink-0">
+                      <span className="material-icons-outlined text-white text-base">{icon}</span>
+                    </div>
+                    <span className="font-semibold text-white/90 text-xs lg:text-sm leading-tight">{text}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ── Lado Direito — Formulário ─────────────────────────────────────── */}
-      <div className="w-full lg:w-[55%] flex items-center justify-center p-4 sm:p-6 bg-grid overflow-y-auto">
-        <div className="w-full max-w-lg animate-fade-in-up py-8">
-          <div className="bg-white dark:bg-surface-dark rounded-[2.5rem] p-6 sm:p-10 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
+      <div className="w-full lg:w-[65%] xl:w-[70%] h-full bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar">
+        <div className="min-h-full flex items-center justify-center p-4 sm:p-8 lg:p-12">
+          <div className="w-full max-w-lg animate-fade-in-up py-6">
+            <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 sm:p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
 
-            {/* Step indicator */}
-            <div className="flex items-center justify-between mb-8">
+              {/* Step indicator */}
+              <div className="flex items-center justify-between mb-6">
               {STEPS.map((s, i) => (
                 <React.Fragment key={s.id}>
                   <div className="flex flex-col items-center gap-1.5">
@@ -369,83 +341,51 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
               </div>
             )}
 
-            {/* ── Step 1: Dados do Diretor ──────────────────────────────────── */}
+            {/* ── Step 1: Dados da Escola ───────────────────────────────────── */}
             {step === 1 && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="mb-2">
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                    Dados do Diretor
+              <div className="space-y-4 animate-fade-in">
+                <div className="mb-4">
+                  <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                    Sobre sua Instituição
                   </h2>
-                  <p className="text-gray-400 text-xs font-bold mt-1">
-                    Estas credenciais serão usadas para acessar o painel administrativo.
+                  <p className="text-gray-400 text-[11px] sm:text-xs font-bold mt-1">
+                    Vamos começar conhecendo sua escola.
                   </p>
                 </div>
 
-                {renderInput('Nome Completo', 'directorName', 'text', 'Maria Helena Silva')}
-                {renderInput('E-mail Institucional', 'email', 'email', 'diretoria@colegio.com.br')}
-                {renderInput('Senha de Acesso', 'password', 'password', '••••••••',
-                  <p className="text-gray-300 text-[10px] font-bold ml-1">Mínimo 6 caracteres</p>
-                )}
-                {renderInput('Confirmar Senha', 'confirmPassword', 'password', '••••••••')}
-              </div>
-            )}
-
-            {/* ── Step 2: Dados da Escola ───────────────────────────────────── */}
-            {step === 2 && (
-              <div className="space-y-5 animate-fade-in">
-                <div className="mb-2">
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                    Dados da Escola
-                  </h2>
-                  <p className="text-gray-400 text-xs font-bold mt-1">
-                    Informações da instituição para registro e emissão de nota fiscal.
-                  </p>
-                </div>
-
-                {renderInput('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual Dom Pedro II')}
+                {renderInput('Nome do Responsável', 'directorName', 'text', 'Nome Completo')}
+                {renderInput('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
                 {renderInput('CNPJ', 'cnpj', 'text', '00.000.000/0000-00')}
+                {renderInput('E-mail Institucional', 'email', 'email', 'diretoria@colegio.com.br')}
                 {renderInput('Quantidade de Alunos', 'studentCount', 'number', 'Ex: 350')}
               </div>
             )}
 
-            {/* ── Step 3: Confirmação ───────────────────────────────────────── */}
-            {step === 3 && (
-              <div className="space-y-6 animate-fade-in">
-                <div className="mb-2">
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                    Confirme os Dados
+            {/* ── Step 2: Pagamento e Cálculo ───────────────────────────────────── */}
+            {step === 2 && (
+              <div className="space-y-4 animate-fade-in">
+                <div className="mb-4">
+                  <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                    Escolha seu Plano
                   </h2>
-                  <p className="text-gray-400 text-xs font-bold mt-1">
-                    Revise as informações antes de prosseguir para o pagamento.
+                  <p className="text-gray-400 text-[11px] sm:text-xs font-bold mt-1">
+                    Preço calculado com base em {form.studentCount || 0} alunos.
                   </p>
                 </div>
 
-                {/* Summary card */}
-                <div className="bg-gray-50 dark:bg-white/5 rounded-2xl p-6 space-y-4">
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <span className="material-icons-outlined text-primary text-xl">person</span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Diretor(a)</p>
-                      <p className="font-bold text-gray-900 dark:text-white">{form.directorName}</p>
-                      <p className="text-sm text-gray-400">{form.email}</p>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-gray-200 dark:border-white/10" />
-
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <span className="material-icons-outlined text-emerald-500 text-xl">school</span>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Escola</p>
-                      <p className="font-bold text-gray-900 dark:text-white">{form.schoolName}</p>
-                      <p className="text-sm text-gray-400">CNPJ: {form.cnpj}</p>
-                      <p className="text-sm text-gray-400">{form.studentCount} alunos</p>
-                    </div>
-                  </div>
+                <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl mb-6">
+                  <button 
+                    onClick={() => updateField('billingCycle', 'MONTHLY')}
+                    className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${form.billingCycle === 'MONTHLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
+                  >
+                    Mensal
+                  </button>
+                  <button 
+                    onClick={() => updateField('billingCycle', 'YEARLY')}
+                    className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${form.billingCycle === 'YEARLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
+                  >
+                    Anual <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">-20%</span>
+                  </button>
                 </div>
 
                 {/* Price */}
@@ -453,30 +393,18 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
                   const priceInfo = getDynamicPrice();
                   const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                   return (
-                    <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-5 flex items-center justify-between">
+                    <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-5 flex items-center justify-between mb-4">
                       <div>
                         <p className="text-[10px] font-black text-primary uppercase tracking-widest">Plano {priceInfo.planName}</p>
-                        <p className="text-sm text-gray-500 font-medium mt-0.5">Cobrança {priceInfo.isYearly ? 'anual (à vista)' : 'mensal'} via Asaas</p>
+                        <p className="text-sm text-gray-500 font-medium mt-0.5">Cobrança {priceInfo.isYearly ? 'anual (à vista)' : 'mensal'}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-black text-gray-900 dark:text-white">R$ {formatBRL(priceInfo.finalTotal)}</p>
+                        <p className="text-3xl font-black text-gray-900 dark:text-white">R$ {formatBRL(priceInfo.finalTotal)}</p>
                         <p className="text-xs text-gray-400">/{priceInfo.isYearly ? 'ano' : 'mês'}</p>
                       </div>
                     </div>
                   );
                 })()}
-
-                {/* Security badges */}
-                <div className="flex items-center justify-center gap-4 text-gray-300">
-                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest">
-                    <span className="material-icons-outlined text-emerald-400 text-sm">lock</span>
-                    Dados criptografados
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest">
-                    <span className="material-icons-outlined text-emerald-400 text-sm">verified</span>
-                    PCI-DSS Asaas
-                  </div>
-                </div>
               </div>
             )}
 
@@ -492,7 +420,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
 
               <button
                 type="button"
-                onClick={step === 3 ? handleSubmit : handleNext}
+                onClick={step === 2 ? handleSubmit : () => { if (validateStep1()) setStep(2); }}
                 disabled={isLoading}
                 className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
               >
@@ -501,10 +429,10 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     <span>Criando sua conta...</span>
                   </>
-                ) : step === 3 ? (
+                ) : step === 2 ? (
                   <>
                     <span className="material-icons-outlined text-lg">payment</span>
-                    <span className="uppercase tracking-widest">Ir para Pagamento</span>
+                    <span className="uppercase tracking-widest">Ir para Pagamento Seguro</span>
                   </>
                 ) : (
                   <span className="uppercase tracking-widest">Próximo</span>
@@ -515,22 +443,16 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
             {/* Login link */}
             <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-6">
               Já possui cadastro?{' '}
-              <button onClick={onBack} className="text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4">
+              <button onClick={onLogin} className="text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4">
                 Fazer Login
               </button>
             </p>
+            </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        .bg-grid {
-          background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
-          background-size: 30px 30px;
-        }
-        .dark .bg-grid {
-          background-image: radial-gradient(circle, #1f2937 1px, transparent 1px);
-        }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
           25% { transform: translateX(-4px); }
@@ -538,6 +460,29 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
         }
         .animate-shake {
           animation: shake 0.4s ease-in-out;
+        }
+        
+        @keyframes slideUpFull {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up-full {
+          animation: slideUpFull 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        /* Custom scrollbar to prevent layout shift */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.3);
+          border-radius: 20px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(255, 255, 255, 0.1);
         }
       `}</style>
     </div>
