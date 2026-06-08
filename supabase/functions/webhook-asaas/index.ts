@@ -19,6 +19,13 @@ interface AsaasWebhookPayload {
     value?: number
     status?: string
   }
+  subscription?: {
+    id: string
+    customer: string
+    externalReference?: string
+    value?: number
+    status?: string
+  }
 }
 
 type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'inactive'
@@ -29,6 +36,7 @@ function mapEventToStatus(event: string): SubscriptionStatus | null {
   switch (event) {
     case 'PAYMENT_RECEIVED':
     case 'PAYMENT_CONFIRMED':
+    case 'SUBSCRIPTION_CREATED':
       return 'active'
 
     case 'PAYMENT_OVERDUE':
@@ -81,17 +89,21 @@ serve(async (req: Request) => {
 
     // ── 2. Parse do payload ───────────────────────────────────────────────────
     const body: AsaasWebhookPayload = await req.json()
-    const { event, payment } = body
+    const { event, payment, subscription } = body
+
+    // Asaas envia os dados no campo 'payment' para eventos de cobrança
+    // E no campo 'subscription' para eventos de assinatura
+    const entity = payment || subscription
 
     console.log(`[webhook-asaas] Evento recebido: ${event}`, {
-      paymentId: payment?.id,
-      customer: payment?.customer,
-      subscription: payment?.subscription,
-      externalReference: payment?.externalReference,
+      entityId: entity?.id,
+      customer: entity?.customer,
+      subscription: payment?.subscription || subscription?.id,
+      externalReference: entity?.externalReference,
     })
 
-    if (!payment) {
-      console.log('[webhook-asaas] Payload sem payment, ignorando.')
+    if (!entity) {
+      console.log('[webhook-asaas] Payload sem payment/subscription, ignorando.')
       return new Response('ok', { status: 200, headers: corsHeaders })
     }
 
@@ -100,31 +112,33 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    let schoolId: string | null = payment.externalReference || null
+    let schoolId: string | null = entity.externalReference || null
+
+    const subIdToSearch = payment?.subscription || subscription?.id
 
     // Fallback 1: buscar por subscription_id
-    if (!schoolId && payment.subscription) {
+    if (!schoolId && subIdToSearch) {
       const { data } = await supabase
         .from('schools')
         .select('id')
-        .eq('subscription_id', payment.subscription)
+        .eq('subscription_id', subIdToSearch)
         .single()
       if (data) schoolId = data.id
     }
 
     // Fallback 2: buscar por asaas_customer_id
-    if (!schoolId && payment.customer) {
+    if (!schoolId && entity.customer) {
       const { data } = await supabase
         .from('schools')
         .select('id')
-        .eq('asaas_customer_id', payment.customer)
+        .eq('asaas_customer_id', entity.customer)
         .single()
       if (data) schoolId = data.id
     }
 
     // ── 4. Auto-provisionamento (pagamento de Payment Link sem escola) ────────
-    if (!schoolId && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED')) {
-      schoolId = await autoProvisionSchool(supabase, payment)
+    if (!schoolId && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED' || event === 'SUBSCRIPTION_CREATED')) {
+      schoolId = await autoProvisionSchool(supabase, entity)
     }
 
     if (!schoolId) {
