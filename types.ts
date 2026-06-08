@@ -77,12 +77,16 @@ export interface Notification {
   read: boolean;
 }
 
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'inactive';
+
 export interface School {
   id: string;
   name: string;
   city: string;
-  subscription_status?: string;
+  asaas_customer_id?: string;
   subscription_id?: string;
+  subscription_status?: SubscriptionStatus;
+  plano_ativado_em?: string;
 }
 
 export interface UserProfile {
