@@ -15,8 +15,7 @@ interface OnboardingPayload {
   schoolName: string
   cnpj: string
   studentCount: number
-  planId?: string
-  planPrice?: number
+  billingCycle?: 'MONTHLY' | 'YEARLY'
 }
 
 // ── CORS ────────────────────────────────────────────────────────────────────────
@@ -101,9 +100,15 @@ serve(async (req: Request) => {
     // ── 1. Parse e validação do payload ──────────────────────────────────────
     const body: OnboardingPayload = await req.json()
 
-    const { directorName, email, password, schoolName, cnpj, studentCount } = body
-    const planId = body.planId || 'starter'
-    const planPrice = body.planPrice || 149.90
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle } = body
+
+    // Cálculo do preço no servidor
+    const isYearly = billingCycle === 'YEARLY'
+    const discount = isYearly ? 0.8 : 1
+    const pricePerStudent = studentCount <= 200 ? 9 * discount : 7 * discount
+    const planId = studentCount <= 200 ? 'starter' : 'school'
+    const monthlyTotal = studentCount * pricePerStudent
+    const planPrice = isYearly ? monthlyTotal * 12 : monthlyTotal
 
     // Validações
     if (!directorName || directorName.trim().length < 3) {
@@ -270,7 +275,7 @@ serve(async (req: Request) => {
         billingType: 'UNDEFINED',
         value: planPrice,
         nextDueDate: today,
-        cycle: 'MONTHLY',
+        cycle: isYearly ? 'YEARLY' : 'MONTHLY',
         description: `Assinatura Littera – Plano ${planId} (${studentCount} alunos)`,
         externalReference: createdSchoolId,
       }),

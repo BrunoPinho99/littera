@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface LandingPageProps {
     onLoginClick: () => void;
@@ -11,6 +12,23 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);
     const [isLeadSuccess, setIsLeadSuccess] = useState(false);
+
+    const navigate = useNavigate();
+    const [simStudents, setSimStudents] = useState(300);
+    const [simBillingCycle, setSimBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('YEARLY');
+
+    // Cálculo dinâmico
+    const getPlanPrices = () => {
+        const discount = simBillingCycle === 'YEARLY' ? 0.8 : 1;
+        const starterMonthly = 9 * discount;
+        const schoolMonthly = 7 * discount;
+        
+        return { starterMonthly, schoolMonthly };
+    };
+
+    const prices = getPlanPrices();
+    const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 
 
     useEffect(() => {
@@ -491,6 +509,46 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                         </p>
                     </div>
 
+                    {/* Simulador Controls */}
+                    <div className="sl-reveal" style={{ background: '#f8fafc', borderRadius: 24, padding: '32px', marginBottom: '40px', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px rgba(0,0,0,0.02)' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', alignItems: 'center', justifyContent: 'center' }}>
+                            {/* Students Slider */}
+                            <div style={{ flex: '1 1 300px', maxWidth: '500px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                    <label style={{ fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>Número de Alunos</label>
+                                    <span style={{ fontSize: '15px', fontWeight: 800, color: '#004ac6' }}>{simStudents} alunos</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    min="50" max="1500" step="10" 
+                                    value={simStudents}
+                                    onChange={(e) => setSimStudents(Number(e.target.value))}
+                                    style={{ width: '100%', accentColor: '#004ac6' }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
+                                    <span>50</span>
+                                    <span>1000+ (Enterprise)</span>
+                                </div>
+                            </div>
+
+                            {/* Billing Cycle Toggle */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '6px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                                <button 
+                                    onClick={() => setSimBillingCycle('MONTHLY')}
+                                    style={{ padding: '8px 24px', borderRadius: '99px', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: simBillingCycle === 'MONTHLY' ? '#004ac6' : 'transparent', color: simBillingCycle === 'MONTHLY' ? '#fff' : '#64748b' }}
+                                >
+                                    Mensal
+                                </button>
+                                <button 
+                                    onClick={() => setSimBillingCycle('YEARLY')}
+                                    style={{ padding: '8px 24px', borderRadius: '99px', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: simBillingCycle === 'YEARLY' ? '#004ac6' : 'transparent', color: simBillingCycle === 'YEARLY' ? '#fff' : '#64748b' }}
+                                >
+                                    Anual <span style={{ color: simBillingCycle === 'YEARLY' ? '#bfdbfe' : '#10b981', fontSize: '11px', verticalAlign: 'middle', marginLeft: '4px' }}>-20%</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* ROI Block */}
                     <div className="sl-reveal" style={{
                         background: '#131b2e', borderRadius: 24, padding: '24px',
@@ -524,9 +582,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                         <div className="sl-reveal sl-d1" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 24, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
                             <p style={{ fontSize: 18, fontWeight: 700, color: '#131b2e', marginBottom: 16 }}>Starter</p>
                             <div style={{ marginBottom: 8 }}>
-                                <span style={{ fontSize: 48, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.03em' }}>R$ 9</span>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.03em' }}>R$ {formatBRL(prices.starterMonthly)}</span>
                             </div>
-                            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 32 }}>/aluno/mês · até 200 alunos</p>
+                            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 32 }}>/aluno/mês · total: R$ {formatBRL(prices.starterMonthly * Math.min(simStudents, 1000))}/mês</p>
                             
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
                                 {[
@@ -543,11 +601,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
 
-                            <button onClick={() => window.location.href = 'https://www.asaas.com/c/dxyzqdvphaeeupgr'} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
+                            <button onClick={() => navigate(`/cadastro?plan=starter&students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
                             >
-                                Assinar Starter
+                                {simStudents > 1000 ? 'Apenas até 1000 alunos' : 'Assinar Starter'}
                             </button>
                         </div>
 
@@ -558,9 +616,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                             </div>
                             <p style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginBottom: 16 }}>School</p>
                             <div style={{ marginBottom: 8 }}>
-                                <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>R$ 7</span>
+                                <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>R$ {formatBRL(prices.schoolMonthly)}</span>
                             </div>
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>/aluno/mês · 200-1.000 alunos</p>
+                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>/aluno/mês · total: R$ {formatBRL(prices.schoolMonthly * Math.min(simStudents, 1000))}/mês</p>
                             
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
                                 {[
@@ -577,11 +635,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                                 ))}
                             </ul>
                             
-                            <button onClick={() => window.location.href = 'https://www.asaas.com/c/ptio0yymxzgz4bn8'} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                            <button onClick={() => navigate(`/cadastro?plan=school&students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
                                 onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
                                 onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
                             >
-                                Assinar School
+                                {simStudents > 1000 ? 'Apenas até 1000 alunos' : 'Assinar School'}
                             </button>
                         </div>
 

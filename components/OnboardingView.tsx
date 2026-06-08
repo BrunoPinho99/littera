@@ -45,6 +45,7 @@ interface FormData {
   schoolName: string;
   cnpj: string;
   studentCount: string;
+  billingCycle: 'MONTHLY' | 'YEARLY';
 }
 
 interface FieldError {
@@ -85,7 +86,38 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
     schoolName: '',
     cnpj: '',
     studentCount: '',
+    billingCycle: 'MONTHLY',
   });
+
+  // Extract initial values from URL if present
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const studentsParam = params.get('students');
+    const cycleParam = params.get('cycle');
+    
+    setForm(prev => ({
+      ...prev,
+      studentCount: studentsParam || prev.studentCount,
+      billingCycle: (cycleParam === 'YEARLY' ? 'YEARLY' : 'MONTHLY')
+    }));
+  }, []);
+
+  // Helper para cálculo dinâmico de preço
+  const getDynamicPrice = () => {
+    const students = parseInt(form.studentCount) || 0;
+    const isYearly = form.billingCycle === 'YEARLY';
+    const discount = isYearly ? 0.8 : 1;
+    const pricePerStudent = students <= 200 ? 9 * discount : 7 * discount;
+    const monthlyTotal = students * pricePerStudent;
+    const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
+    
+    return {
+      monthlyEquivalent: monthlyTotal,
+      finalTotal,
+      planName: students <= 200 ? 'Starter' : 'School',
+      isYearly
+    };
+  };
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -163,8 +195,7 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
           schoolName: form.schoolName.trim(),
           cnpj: form.cnpj.replace(/\D/g, ''),
           studentCount: parseInt(form.studentCount),
-          planId: 'starter',
-          planPrice: 149.90,
+          billingCycle: form.billingCycle
         },
       });
 
@@ -418,16 +449,22 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack }) => {
                 </div>
 
                 {/* Price */}
-                <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-5 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] font-black text-primary uppercase tracking-widest">Plano Escolar</p>
-                    <p className="text-sm text-gray-500 font-medium mt-0.5">Cobrança mensal via Asaas</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-black text-gray-900 dark:text-white">R$ 149,90</p>
-                    <p className="text-xs text-gray-400">/mês</p>
-                  </div>
-                </div>
+                {(() => {
+                  const priceInfo = getDynamicPrice();
+                  const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                  return (
+                    <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-5 flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-black text-primary uppercase tracking-widest">Plano {priceInfo.planName}</p>
+                        <p className="text-sm text-gray-500 font-medium mt-0.5">Cobrança {priceInfo.isYearly ? 'anual (à vista)' : 'mensal'} via Asaas</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-black text-gray-900 dark:text-white">R$ {formatBRL(priceInfo.finalTotal)}</p>
+                        <p className="text-xs text-gray-400">/{priceInfo.isYearly ? 'ano' : 'mês'}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Security badges */}
                 <div className="flex items-center justify-center gap-4 text-gray-300">
