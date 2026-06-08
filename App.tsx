@@ -18,6 +18,7 @@ import LandingPage from './components/LandingPage';
 import SetupAccount from './components/SetupAccount';
 import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
+import OnboardingView from './components/OnboardingView';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
@@ -233,38 +234,65 @@ const App: React.FC = () => {
   // --- TRAVA DE ASSINATURA (PAYWALL B2B) ---
   const isSuspended = session && !isDemoMode && schoolStatus !== 'active' && schoolStatus !== null;
 
-  const renderSuspended = () => (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center font-sans">
-      <div className="bg-white dark:bg-slate-800 p-10 rounded-[2rem] shadow-premium max-w-lg text-center border border-gray-100 dark:border-slate-700">
-        <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4">
-          {userType === 'school_admin' ? 'Acesso Interrompido' : 'Plataforma Suspensa'}
-        </h2>
-        <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium">
-          {userType === 'school_admin' 
-            ? 'Para habilitar as correções com I.A. e o acesso aos seus alunos e professores, é necessário ativar sua assinatura.' 
-            : 'A assinatura da sua instituição encontra-se inativa ou pendente. Por favor, avise a secretaria ou coordenação da sua escola.'}
-        </p>
-        
-        {userType === 'school_admin' ? (
-          <button 
-            onClick={() => {
-              window.location.href = 'https://www.asaas.com/c/065603714545'; // Redirect directly to Asaas
-            }}
-            className="w-full py-4 bg-primary text-white font-bold rounded-2xl hover:bg-primary-dark transition-all"
-          >
-            Regularizar Assinatura
-          </button>
-        ) : (
-          <button 
-            onClick={handleLogout}
-            className="px-6 py-2 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 font-bold rounded-xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
-          >
-            Sair da Conta
-          </button>
-        )}
+  const renderSuspended = () => {
+    const savedCheckoutUrl = localStorage.getItem('littera_checkout_url');
+
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center font-sans p-4">
+        <div className="bg-white dark:bg-slate-800 p-10 rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border border-gray-100 dark:border-slate-700 relative overflow-hidden">
+          {/* Decorative glow */}
+          <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary/10 rounded-full blur-[60px] pointer-events-none" />
+
+          <div className="relative z-10">
+            <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-3xl flex items-center justify-center mx-auto mb-6">
+              <span className="material-icons-outlined text-4xl">hourglass_empty</span>
+            </div>
+
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
+              {userType === 'school_admin' ? 'Pagamento Pendente' : 'Plataforma Suspensa'}
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium leading-relaxed">
+              {userType === 'school_admin'
+                ? 'Sua conta foi criada com sucesso! Para liberar o acesso completo — correções por I.A., turmas e relatórios — finalize o pagamento da assinatura.'
+                : 'A assinatura da sua instituição encontra-se inativa ou pendente. Por favor, avise a secretaria ou coordenação da sua escola.'}
+            </p>
+
+            {userType === 'school_admin' ? (
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    if (savedCheckoutUrl) {
+                      window.location.href = savedCheckoutUrl;
+                    } else {
+                      // Tenta gerar novo checkout via Edge Function
+                      navigate('/app/inst-overview');
+                    }
+                  }}
+                  className="w-full py-4 bg-primary text-white font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <span className="material-icons-outlined text-lg">payment</span>
+                  Retomar Pagamento
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="w-full py-3 text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600 transition-colors"
+                >
+                  Sair da Conta
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={handleLogout}
+                className="px-8 py-3 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
+              >
+                Sair da Conta
+              </button>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const MainAppLayout = () => {
     if (isSuspended) return renderSuspended();
@@ -435,6 +463,11 @@ const App: React.FC = () => {
             }}
           />
         )
+      } />
+      <Route path="/cadastro" element={
+        session || isDemoMode
+          ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+          : <OnboardingView onBack={() => navigate('/login')} />
       } />
       <Route path="/setup-account" element={<SetupAccount />} />
       <Route path="/convite" element={<AcceptInviteView />} />
