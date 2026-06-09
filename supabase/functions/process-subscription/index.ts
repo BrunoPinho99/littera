@@ -47,7 +47,7 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCard, phone, postalCode } = body
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCard, phone, postalCode, addressNumber } = body
 
     if (!creditCard) {
       return jsonResponse({ error: 'Dados do cartão de crédito não fornecidos.' }, 400)
@@ -83,7 +83,8 @@ serve(async (req: Request) => {
           cpfCnpj: cnpj,
           email: email,
           phone: phone,
-          postalCode: postalCode
+          postalCode: postalCode,
+          addressNumber: addressNumber || "0"
         }),
       })
       const customerData = await createCustomerRes.json()
@@ -102,7 +103,7 @@ serve(async (req: Request) => {
       email: email,
       cpfCnpj: cnpj,
       postalCode: postalCode || "01001000",
-      addressNumber: "0",
+      addressNumber: addressNumber || "0",
       phone: phone || "11999999999"
     }
 

@@ -78,6 +78,7 @@ const step3Schema = z.object({
   ccExpiry: z.string().regex(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/, "Validade inválida (MM/AA)"),
   ccCvv: z.string().min(3, "CVV inválido").max(4, "CVV inválido"),
   ccPostalCode: z.string().min(8, "CEP inválido"),
+  ccAddressNumber: z.string().min(1, "Obrigatório"),
 });
 
 // We create a combined schema for the full form types with a refinement to compare passwords
@@ -124,6 +125,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       ccExpiry: '',
       ccCvv: '',
       ccPostalCode: '',
+      ccAddressNumber: '',
     }
   });
 
@@ -190,6 +192,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           email: data.email.toLowerCase().trim(),
           phone: data.phone.replace(/\D/g, ''),
           postalCode: data.ccPostalCode.replace(/\D/g, ''),
+          addressNumber: data.ccAddressNumber,
           password: data.password,
           schoolName: data.schoolName.trim(),
           cnpj: data.cnpj.replace(/\D/g, ''),
@@ -516,7 +519,14 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                       </div>
                     </div>
 
-                    {renderField('CEP de Cobrança do Cartão', 'ccPostalCode', 'text', '00000-000')}
+                    <div className="flex gap-4">
+                      <div className="flex-[2]">
+                        {renderField('CEP de Cobrança do Cartão', 'ccPostalCode', 'text', '00000-000')}
+                      </div>
+                      <div className="flex-1">
+                        {renderField('Número', 'ccAddressNumber', 'text', 'Ex: 123')}
+                      </div>
+                    </div>
                     
                     <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
                       <span className="material-icons-outlined text-sm">lock</span>
