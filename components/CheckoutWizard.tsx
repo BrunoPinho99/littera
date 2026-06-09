@@ -72,17 +72,7 @@ const step2Schema = z.object({
   billingCycle: z.enum(['MONTHLY', 'YEARLY']),
 });
 
-const step3Schema = z.object({
-  ccName: z.string().min(3, "Nome no cartão é obrigatório"),
-  ccNumber: z.string().refine(v => v.replace(/\D/g, '').length === 16, "Número de cartão inválido (16 dígitos)"),
-  ccExpiry: z.string().regex(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/, "Validade inválida (MM/AA)"),
-  ccCvv: z.string().min(3, "CVV inválido").max(4, "CVV inválido"),
-  ccPostalCode: z.string().min(8, "CEP inválido"),
-  ccAddressNumber: z.string().min(1, "Obrigatório"),
-});
-
-// We create a combined schema for the full form types with a refinement to compare passwords
-const checkoutSchema = step1Schema.and(step2Schema).and(step3Schema).refine(
+const checkoutSchema = step1Schema.and(step2Schema).refine(
   (data) => data.password === data.confirmPassword,
   {
     message: "As senhas não coincidem",
@@ -120,12 +110,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       cnpj: '',
       studentCount: '',
       billingCycle: 'MONTHLY',
-      ccName: '',
-      ccNumber: '',
-      ccExpiry: '',
-      ccCvv: '',
-      ccPostalCode: '',
-      ccAddressNumber: '',
     }
   });
 
@@ -180,31 +164,16 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     setGlobalError(null);
 
     try {
-      const cardNumber = data.ccNumber.replace(/\D/g, '');
-      const [expiryMonth, expiryYearRaw] = data.ccExpiry.split('/');
-      const expiryYear = expiryYearRaw.length === 2 ? `20${expiryYearRaw}` : expiryYearRaw;
-
-      // Chama a Edge Function que fará a comunicação blindada (Server-to-Server) com o Asaas
-      // Garantindo PCI-Compliance pois os dados do cartão nunca são salvos no banco.
       const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
         body: {
           directorName: data.directorName.trim(),
           email: data.email.toLowerCase().trim(),
           phone: data.phone.replace(/\D/g, ''),
-          postalCode: data.ccPostalCode.replace(/\D/g, ''),
-          addressNumber: data.ccAddressNumber,
           password: data.password,
           schoolName: data.schoolName.trim(),
           cnpj: data.cnpj.replace(/\D/g, ''),
           studentCount: parseInt(data.studentCount),
           billingCycle: data.billingCycle,
-          creditCard: {
-            holderName: data.ccName,
-            number: cardNumber,
-            expiryMonth,
-            expiryYear,
-            ccv: data.ccCvv,
-          }
         },
       });
 
@@ -226,16 +195,19 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      setValue('ccNumber', '');
-      setValue('ccCvv', '');
-      navigate('/dashboard');
+      // Redireciona para o Checkout Hosted do Asaas usando a URL retornada pela API
+      if (fnData?.invoiceUrl) {
+        window.location.href = fnData.invoiceUrl;
+      } else {
+        navigate('/dashboard');
+      }
       
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
-      setGlobalError(err.message || 'Falha ao processar checkout. Verifique os dados.');
+      setGlobalError(err.message || 'Falha ao gerar o checkout. Tente novamente.');
       setIsLoading(false);
     }
-  }, [navigate, setValue]);
+  }, [navigate]);
 
   const renderField = (
     label: string,
@@ -500,37 +472,51 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                   <div className="space-y-4 animate-fade-in">
                     <div className="mb-4">
                       <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                        Pagamento Seguro
+                        Quase lá!
                       </h2>
-                      <p className="text-gray-400 text-[11px] sm:text-xs font-bold mt-1">
-                        Seus dados são criptografados. R$ {getDynamicPrice().finalTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} {formValues.billingCycle === 'YEARLY' ? '/ano' : '/mês'}.
+                      <p className="text-gray-400 text-sm font-medium mt-1">
+                        Você será redirecionado para o ambiente 100% seguro do Asaas para finalizar sua assinatura.
                       </p>
                     </div>
 
-                    {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
-                    {renderField('Nome impresso no Cartão', 'ccName', 'text', 'Ex: JOAO M SILVA')}
-                    
-                    <div className="flex gap-4">
-                      <div className="flex-[2]">
-                        {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
-                      </div>
-                      <div className="flex-1">
-                        {renderField('CVV', 'ccCvv', 'password', '123')}
-                      </div>
-                    </div>
+                    {(() => {
+                      const priceInfo = getDynamicPrice();
+                      const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                      return (
+                        <div className="bg-primary/5 border border-primary/20 dark:bg-primary/10 rounded-2xl p-5 mb-4">
+                          <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Resumo</p>
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-gray-600 dark:text-gray-300 font-bold">Plano {priceInfo.planName}</span>
+                            <span className="text-gray-900 dark:text-white font-black">R$ {formatBRL(priceInfo.finalTotal)}</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-400">Cobrança {priceInfo.isYearly ? 'Anual' : 'Mensal'}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
-                    <div className="flex gap-4">
-                      <div className="flex-[2]">
-                        {renderField('CEP de Cobrança do Cartão', 'ccPostalCode', 'text', '00000-000')}
-                      </div>
-                      <div className="flex-1">
-                        {renderField('Número', 'ccAddressNumber', 'text', 'Ex: 123')}
-                      </div>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSubmit(onSubmit)}
+                      disabled={isLoading}
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 mt-4"
+                    >
+                      {isLoading ? (
+                        <span className="material-icons-outlined animate-spin">refresh</span>
+                      ) : (
+                        <>
+                          <span className="material-icons-outlined">lock</span>
+                          Ir para Pagamento Seguro
+                        </>
+                      )}
+                    </button>
                     
                     <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
-                      <span className="material-icons-outlined text-sm">lock</span>
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Transação Segura &middot; PCI Compliant</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
+                        <span className="material-icons-outlined text-xs">verified_user</span>
+                        Ambiente Seguro Asaas
+                      </span>
                     </div>
                   </div>
                 )}

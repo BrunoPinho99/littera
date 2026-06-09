@@ -47,16 +47,7 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCard, phone, postalCode, addressNumber } = body
-
-    if (!creditCard) {
-      return jsonResponse({ error: 'Dados do cartão de crédito não fornecidos.' }, 400)
-    }
-
-    // Capturar o IP do cliente (remoteIp é obrigatório no Asaas para cartão de crédito)
-    const remoteIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() 
-                  || req.headers.get('cf-connecting-ip') 
-                  || '127.0.0.1';
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, phone, postalCode, addressNumber } = body
 
     // 1. Cálculo de preço
     const isYearly = billingCycle === 'YEARLY'
@@ -94,28 +85,15 @@ serve(async (req: Request) => {
       asaasCustomerId = customerData.id
     }
 
-    // 3. Processar Pagamento (Assinatura com creditCard)
+    // 3. Criar Assinatura no Asaas (UNDEFINED = Cliente escolhe a forma de pagamento)
     const today = new Date().toISOString().split('T')[0]
     
-    // Configura os detalhes do cartão
-    const creditCardHolderInfo = {
-      name: directorName,
-      email: email,
-      cpfCnpj: cnpj,
-      postalCode: postalCode || "01001000",
-      addressNumber: addressNumber || "0",
-      phone: phone || "11999999999"
-    }
-
     const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
       method: 'POST',
       headers: asaasHeaders,
       body: JSON.stringify({
         customer: asaasCustomerId,
-        billingType: 'CREDIT_CARD',
-        creditCard: creditCard,
-        creditCardHolderInfo: creditCardHolderInfo,
-        remoteIp: remoteIp,
+        billingType: 'UNDEFINED',
         value: planPrice,
         nextDueDate: today,
         cycle: isYearly ? 'YEARLY' : 'MONTHLY',
@@ -126,13 +104,28 @@ serve(async (req: Request) => {
     const subData = await subRes.json()
 
     if (!subRes.ok) {
-      // Falha no pagamento (recusado, sem limite, token inválido)
-      return jsonResponse({ error: subData.errors?.[0]?.description || 'Falha ao processar o cartão de crédito.' })
+      return jsonResponse({ error: subData.errors?.[0]?.description || 'Falha ao criar assinatura no Asaas.' })
     }
 
     const subscriptionId = subData.id
 
-    // PAGAMENTO APROVADO! Agora criamos o usuário no banco.
+    // 4. Buscar a cobrança gerada para obter o Link de Pagamento (invoiceUrl)
+    let invoiceUrl = null
+    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, {
+      headers: asaasHeaders
+    })
+    if (paymentsRes.ok) {
+      const paymentsData = await paymentsRes.json()
+      if (paymentsData.data && paymentsData.data.length > 0) {
+        invoiceUrl = paymentsData.data[0].invoiceUrl
+      }
+    }
+
+    if (!invoiceUrl) {
+      return jsonResponse({ error: 'Erro ao gerar link de pagamento.' })
+    }
+
+    // CONTA CRIADA E ASSINATURA PENDENTE! Agora criamos o usuário no banco.
 
     // 4. Criar usuário no Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -163,7 +156,7 @@ serve(async (req: Request) => {
         student_count: studentCount,
         asaas_customer_id: asaasCustomerId,
         subscription_id: subscriptionId,
-        subscription_status: 'active'
+        subscription_status: 'pending'
       })
       .select()
       .single()
@@ -192,7 +185,8 @@ serve(async (req: Request) => {
       success: true,
       schoolId: createdSchoolId,
       userId: createdAuthUserId,
-      message: 'Pagamento aprovado e conta criada com sucesso!',
+      message: 'Conta criada com sucesso! Redirecionando para pagamento...',
+      invoiceUrl: invoiceUrl,
     })
 
   } catch (err: unknown) {
