@@ -233,7 +233,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     name: keyof CheckoutFormData,
     type: string = 'text',
     placeholder: string = '',
-    formatter?: (val: string) => string
+    formatter?: (val: string) => string,
+    extraContent?: React.ReactNode
   ) => {
     const errorMsg = errors[name]?.message;
     return (
@@ -267,8 +268,20 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
             {errorMsg}
           </p>
         )}
+        {extraContent}
       </div>
     );
+  };
+
+  const getPasswordStrength = (password: string) => {
+    if (!password) return 0;
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[a-z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+    return score;
   };
 
   return (
@@ -375,22 +388,49 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
 
               <form onSubmit={handleSubmit(onSubmit)}>
                 {/* ── Step 1: Dados da Escola ───────────────────────────────────── */}
-                {step === 1 && (
-                  <div className="space-y-4 animate-fade-in">
-                    <div className="mb-4">
-                      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                        Sobre sua Instituição
-                      </h2>
+                {step === 1 && (() => {
+                  const passwordValue = formValues.password;
+                  const strengthScore = getPasswordStrength(passwordValue);
+                  const strengthLabels = ['Muito Fraca', 'Fraca', 'Razoável', 'Forte', 'Muito Forte', 'Excelente'];
+                  const strengthColors = ['bg-rose-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-400', 'bg-emerald-500', 'bg-emerald-600'];
+                  
+                  const passwordStrengthIndicator = passwordValue ? (
+                    <div className="mt-2 space-y-1.5 px-1">
+                      <div className="flex h-1.5 w-full gap-1">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <div
+                            key={level}
+                            className={`flex-1 rounded-full transition-all duration-500 ${
+                              strengthScore >= level ? strengthColors[strengthScore] : 'bg-gray-200 dark:bg-gray-700'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className={`text-[10px] font-black uppercase tracking-widest text-right transition-colors ${
+                         strengthScore <= 2 ? 'text-orange-500' : 'text-emerald-500'
+                      }`}>
+                        {strengthLabels[strengthScore]}
+                      </p>
                     </div>
+                  ) : null;
 
-                    {renderField('Nome do Responsável', 'directorName', 'text', 'Nome Completo')}
-                    {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
-                    {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres, com maiúsculas, minúsculas, números e símbolos')}
-                    {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
-                    {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
-                    {renderField('CNPJ', 'cnpj', 'text', '00.000.000/0000-00', formatCNPJ)}
-                  </div>
-                )}
+                  return (
+                    <div className="space-y-4 animate-fade-in">
+                      <div className="mb-4">
+                        <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                          Sobre sua Instituição
+                        </h2>
+                      </div>
+
+                      {renderField('Nome do Responsável', 'directorName', 'text', 'Nome Completo')}
+                      {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
+                      {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres, letras e números', undefined, passwordStrengthIndicator)}
+                      {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
+                      {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
+                      {renderField('CNPJ', 'cnpj', 'text', '00.000.000/0000-00', formatCNPJ)}
+                    </div>
+                  );
+                })()}
 
                 {/* ── Step 2: Plano ───────────────────────────────────── */}
                 {step === 2 && (
