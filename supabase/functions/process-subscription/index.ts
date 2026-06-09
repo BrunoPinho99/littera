@@ -53,6 +53,11 @@ serve(async (req: Request) => {
       return jsonResponse({ error: 'Dados do cartão de crédito não fornecidos.' })
     }
 
+    // Capturar o IP do cliente (remoteIp é obrigatório no Asaas para cartão de crédito)
+    const remoteIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() 
+                  || req.headers.get('cf-connecting-ip') 
+                  || '127.0.0.1';
+
     // 1. Cálculo de preço
     const isYearly = billingCycle === 'YEARLY'
     const discount = isYearly ? 0.8 : 1
@@ -86,7 +91,7 @@ serve(async (req: Request) => {
       asaasCustomerId = customerData.id
     }
 
-    // 3. Processar Pagamento (Assinatura com creditCardToken)
+    // 3. Processar Pagamento (Assinatura com creditCard)
     const today = new Date().toISOString().split('T')[0]
     
     // Configura os detalhes do cartão
@@ -107,6 +112,7 @@ serve(async (req: Request) => {
         billingType: 'CREDIT_CARD',
         creditCard: creditCard,
         creditCardHolderInfo: creditCardHolderInfo,
+        remoteIp: remoteIp,
         value: planPrice,
         nextDueDate: today,
         cycle: isYearly ? 'YEARLY' : 'MONTHLY',
