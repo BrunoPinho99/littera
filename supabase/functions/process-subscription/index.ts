@@ -47,10 +47,10 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCardToken } = body
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCard } = body
 
-    if (!creditCardToken) {
-      return jsonResponse({ error: 'Token do cartão de crédito não fornecido.' })
+    if (!creditCard) {
+      return jsonResponse({ error: 'Dados do cartão de crédito não fornecidos.' })
     }
 
     // 1. Cálculo de preço
@@ -88,6 +88,16 @@ serve(async (req: Request) => {
 
     // 3. Processar Pagamento (Assinatura com creditCardToken)
     const today = new Date().toISOString().split('T')[0]
+    
+    // Configura os detalhes do cartão
+    const creditCardHolderInfo = {
+      name: directorName,
+      email: email,
+      cpfCnpj: cnpj,
+      postalCode: "01001-000", // CEP genérico se não coletado
+      addressNumber: "0",
+      phone: "11999999999" // Telefone genérico se não coletado
+    }
 
     const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
       method: 'POST',
@@ -95,7 +105,8 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         customer: asaasCustomerId,
         billingType: 'CREDIT_CARD',
-        creditCardToken: creditCardToken,
+        creditCard: creditCard,
+        creditCardHolderInfo: creditCardHolderInfo,
         value: planPrice,
         nextDueDate: today,
         cycle: isYearly ? 'YEARLY' : 'MONTHLY',

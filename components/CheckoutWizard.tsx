@@ -132,28 +132,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     
     if (studentsParam) setValue('studentCount', studentsParam);
     if (cycleParam === 'YEARLY' || cycleParam === 'MONTHLY') setValue('billingCycle', cycleParam);
-
-    // Carregar dinamicamente o script do Asaas
-    const isSandbox = import.meta.env.VITE_ASAAS_API_KEY?.includes('hmlg');
-    const scriptSrc = isSandbox 
-      ? 'https://sandbox.asaas.com/sandbox/js/asaas.js' 
-      : 'https://www.asaas.com/js/asaas.js';
-
-    let script = document.querySelector(`script[src="${scriptSrc}"]`) as HTMLScriptElement;
-    if (!script) {
-      script = document.createElement('script');
-      script.src = scriptSrc;
-      script.async = true;
-      document.body.appendChild(script);
-    }
-    
-    script.onload = () => {
-      // @ts-ignore
-      if (typeof asaas !== 'undefined') {
-        // @ts-ignore
-        asaas.setEnvironment(isSandbox ? 'homologacao' : 'producao');
-      }
-    };
   }, [setValue]);
 
   const getDynamicPrice = () => {
@@ -200,73 +178,48 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       const [expiryMonth, expiryYearRaw] = data.ccExpiry.split('/');
       const expiryYear = expiryYearRaw.length === 2 ? `20${expiryYearRaw}` : expiryYearRaw;
 
-      // @ts-ignore
-      if (typeof asaas === 'undefined' || !asaas.creditCard) {
-        throw new Error('Script de pagamento (Asaas) não carregado.');
+      // Chama a Edge Function que fará a comunicação blindada (Server-to-Server) com o Asaas
+      // Garantindo PCI-Compliance pois os dados do cartão nunca são salvos no banco.
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
+        body: {
+          directorName: data.directorName.trim(),
+          email: data.email.toLowerCase().trim(),
+          password: data.password,
+          schoolName: data.schoolName.trim(),
+          cnpj: data.cnpj.replace(/\D/g, ''),
+          studentCount: parseInt(data.studentCount),
+          billingCycle: data.billingCycle,
+          creditCard: {
+            holderName: data.ccName,
+            number: cardNumber,
+            expiryMonth,
+            expiryYear,
+            ccv: data.ccCvv,
+          }
+        },
+      });
+
+      if (fnError || fnData?.error) {
+        setIsLoading(false);
+        setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar assinatura.');
+        return;
       }
 
-      const tokenizationPayload = {
-        creditCard: {
-          holderName: data.ccName,
-          number: cardNumber,
-          expiryMonth,
-          expiryYear,
-          ccv: data.ccCvv
-        },
-        creditCardHolderInfo: {
-          name: data.directorName,
-          email: data.email,
-          cpfCnpj: data.cnpj.replace(/\D/g, ''),
-          postalCode: '01001000',
-          addressNumber: '0',
-          phone: '11999999999'
-        }
-      };
-
-      // @ts-ignore
-      asaas.creditCard.tokenize(tokenizationPayload, {
-        onSuccess: async (asaasData: any) => {
-          const token = asaasData.creditCardToken;
-
-          const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
-            body: {
-              directorName: data.directorName.trim(),
-              email: data.email.toLowerCase().trim(),
-              password: data.password,
-              schoolName: data.schoolName.trim(),
-              cnpj: data.cnpj.replace(/\D/g, ''),
-              studentCount: parseInt(data.studentCount),
-              billingCycle: data.billingCycle,
-              creditCardToken: token,
-            },
-          });
-
-          if (fnError || fnData?.error) {
-            setIsLoading(false);
-            setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar assinatura.');
-            return;
-          }
-
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: data.email.toLowerCase().trim(),
-            password: data.password,
-          });
-
-          if (signInError) {
-            setGlobalError('Conta criada, mas falha ao fazer login automático. Vá para a página de login.');
-            setIsLoading(false);
-            return;
-          }
-
-          setValue('ccNumber', '');
-          setValue('ccCvv', '');
-          navigate('/dashboard');
-        },
-        onError: (errors: any) => {
-          setIsLoading(false);
-          setGlobalError(errors?.[0]?.description || 'Erro ao validar o cartão de crédito no Asaas.');
-        }
+      // Auto-login com o usuário recém criado
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email.toLowerCase().trim(),
+        password: data.password,
       });
+
+      if (signInError) {
+        setGlobalError('Conta criada, mas falha ao fazer login automático. Vá para a página de login.');
+        setIsLoading(false);
+        return;
+      }
+
+      setValue('ccNumber', '');
+      setValue('ccCvv', '');
+      navigate('/dashboard');
       
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
