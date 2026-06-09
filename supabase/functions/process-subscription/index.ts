@@ -145,24 +145,25 @@ serve(async (req: Request) => {
     createdAuthUserId = authData.user.id
 
     // 5. Inserir Escola
-    const slug = schoolName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    const slugBase = schoolName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    const slug = `${slugBase}-${Math.random().toString(36).substring(2, 6)}`
     
     const { data: schoolData, error: schoolError } = await supabase
       .from('schools')
       .insert({
         name: schoolName.trim(),
-        slug: slug || `escola-${Date.now()}`,
+        slug: slug,
         cnpj: cnpj,
         student_count: studentCount,
         asaas_customer_id: asaasCustomerId,
         subscription_id: subscriptionId,
-        subscription_status: 'pending'
+        subscription_status: 'inactive'
       })
       .select()
       .single()
 
     if (schoolError || !schoolData) {
-      return jsonResponse({ error: 'Conta criada, mas falhou ao vincular escola.' })
+      return jsonResponse({ error: `Conta de usuário criada, mas erro ao salvar escola: ${schoolError?.message || 'Desconhecido'}` })
     }
 
     const createdSchoolId = schoolData.id
