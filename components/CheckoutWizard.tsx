@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useCallback, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { supabase } from '../supabaseClient';
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Helpers de validação ────────────────────────────────────────────────────────
+
 function validateCNPJ(value: string): boolean {
   const cleaned = value.replace(/\D/g, '');
   if (cleaned.length !== 14) return false;
@@ -33,358 +35,568 @@ function formatCNPJ(value: string): string {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
-const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function formatCardNumber(value: string): string {
+  return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
+}
 
-// ── Schema Zod ───────────────────────────────────────────────────────────────
-const checkoutSchema = z.object({
-  directorName: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
-  email: z.string().email('E-mail inválido'),
-  password: z.string().min(6, 'Senha deve ter pelo menos 6 caracteres'),
-  schoolName: z.string().min(2, 'Nome da escola é obrigatório'),
-  cnpj: z.string().refine(validateCNPJ, 'CNPJ inválido'),
-  studentCount: z.number().min(1, 'No mínimo 1 aluno').max(50000, 'Limite excedido'),
+function formatExpiry(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+  if (digits.length >= 3) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  return digits;
+}
+
+// ── Zod Schemas ─────────────────────────────────────────────────────────────────
+
+const step1Schema = z.object({
+  directorName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  schoolName: z.string().min(2, "Nome da escola é obrigatório"),
+  email: z.string().email("E-mail inválido"),
+  password: z.string()
+    .min(8, "A senha deve ter pelo menos 8 caracteres")
+    .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
+    .regex(/[a-z]/, "A senha deve conter pelo menos uma letra minúscula")
+    .regex(/\d/, "A senha deve conter pelo menos um número")
+    .regex(/[^a-zA-Z0-9]/, "A senha deve conter pelo menos um caractere especial"),
+  confirmPassword: z.string().min(1, "A confirmação da senha é obrigatória"),
+  cnpj: z.string().refine(validateCNPJ, "CNPJ inválido"),
+});
+
+const step2Schema = z.object({
+  studentCount: z.string().refine(val => {
+    const num = parseInt(val, 10);
+    return !isNaN(num) && num > 0 && num <= 50000;
+  }, "Quantidade deve estar entre 1 e 50.000"),
   billingCycle: z.enum(['MONTHLY', 'YEARLY']),
 });
 
+const step3Schema = z.object({
+  ccName: z.string().min(3, "Nome no cartão é obrigatório"),
+  ccNumber: z.string().refine(v => v.replace(/\D/g, '').length === 16, "Número de cartão inválido (16 dígitos)"),
+  ccExpiry: z.string().regex(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/, "Validade inválida (MM/AA)"),
+  ccCvv: z.string().min(3, "CVV inválido").max(4, "CVV inválido"),
+});
+
+// We create a combined schema for the full form types with a refinement to compare passwords
+const checkoutSchema = step1Schema.and(step2Schema).and(step3Schema).refine(
+  (data) => data.password === data.confirmPassword,
+  {
+    message: "As senhas não coincidem",
+    path: ["confirmPassword"],
+  }
+);
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
-// ── Componente ───────────────────────────────────────────────────────────────
-interface CheckoutWizardProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialStudents?: number;
-  initialCycle?: 'MONTHLY' | 'YEARLY';
-}
+// ── Steps Info ──────────────────────────────────────────────────────────────────
 
-export default function CheckoutWizard({ isOpen, onClose, initialStudents = 300, initialCycle = 'YEARLY' }: CheckoutWizardProps) {
+const STEPS = [
+  { id: 1, label: 'Dados Escolares', icon: 'school' },
+  { id: 2, label: 'Plano', icon: 'payments' },
+  { id: 3, label: 'Pagamento', icon: 'lock' },
+] as const;
+
+// ── Componente ──────────────────────────────────────────────────────────────────
+
+const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({ onBack, onLogin }) => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [globalError, setGlobalError] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    trigger,
-    formState: { errors },
-    reset
-  } = useForm<CheckoutFormData>({
+  const { control, handleSubmit, trigger, watch, setValue, formState: { errors } } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
+    mode: 'onChange',
     defaultValues: {
-      studentCount: initialStudents,
-      billingCycle: initialCycle,
       directorName: '',
       email: '',
       password: '',
+      confirmPassword: '',
       schoolName: '',
       cnpj: '',
-    },
-    mode: 'onChange',
+      studentCount: '',
+      billingCycle: 'MONTHLY',
+      ccName: '',
+      ccNumber: '',
+      ccExpiry: '',
+      ccCvv: '',
+    }
   });
 
-  const watchStudents = watch('studentCount') || 0;
-  const watchCycle = watch('billingCycle');
+  const formValues = watch();
 
   useEffect(() => {
-    if (isOpen) {
-      setValue('studentCount', initialStudents);
-      setValue('billingCycle', initialCycle);
-      setStep(1);
-      setServerError(null);
-      // Lock body scroll
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-      // Small delay to reset form after animation
-      setTimeout(() => reset({ studentCount: initialStudents, billingCycle: initialCycle }), 300);
+    // Configurar ambiente do Asaas
+    // @ts-ignore
+    if (typeof asaas !== 'undefined') {
+      // @ts-ignore
+      asaas.setEnvironment('producao');
     }
-    return () => { document.body.style.overflow = ''; };
-  }, [isOpen, initialStudents, initialCycle, setValue, reset]);
 
-  const getPriceInfo = () => {
-    const isYearly = watchCycle === 'YEARLY';
+    const params = new URLSearchParams(window.location.search);
+    const studentsParam = params.get('students');
+    const cycleParam = params.get('cycle');
+    
+    if (studentsParam) setValue('studentCount', studentsParam);
+    if (cycleParam === 'YEARLY' || cycleParam === 'MONTHLY') setValue('billingCycle', cycleParam);
+  }, [setValue]);
+
+  const getDynamicPrice = () => {
+    const students = parseInt(formValues.studentCount) || 0;
+    const isYearly = formValues.billingCycle === 'YEARLY';
     const discount = isYearly ? 0.8 : 1;
-    const pricePerStudent = watchStudents <= 200 ? 9 * discount : 7 * discount;
-    const monthlyTotal = watchStudents * pricePerStudent;
+    const pricePerStudent = students <= 200 ? 9 * discount : 7 * discount;
+    const monthlyTotal = students * pricePerStudent;
     const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
-
+    
     return {
       finalTotal,
-      planName: watchStudents <= 200 ? 'Starter' : 'School',
+      planName: students <= 200 ? 'Starter' : 'School',
       isYearly
     };
   };
 
   const handleNextStep = async () => {
-    let isValid = false;
+    setGlobalError(null);
     if (step === 1) {
-      isValid = await trigger(['directorName', 'email', 'schoolName', 'cnpj']);
+      const isValid = await trigger(['directorName', 'schoolName', 'email', 'password', 'confirmPassword', 'cnpj']);
+      if (isValid) setStep(2);
     } else if (step === 2) {
-      isValid = await trigger(['studentCount', 'billingCycle']);
-    }
-
-    if (isValid) {
-      setStep(prev => prev + 1);
+      const isValid = await trigger(['studentCount', 'billingCycle']);
+      if (isValid) setStep(3);
     }
   };
 
-  const onSubmit = async (data: CheckoutFormData) => {
-    setIsSubmitting(true);
-    setServerError(null);
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+      setGlobalError(null);
+    } else {
+      onBack();
+    }
+  };
+
+  const onSubmit = useCallback(async (data: CheckoutFormData) => {
+    setIsLoading(true);
+    setGlobalError(null);
 
     try {
-      const { data: fnData, error: fnError } = await supabase.functions.invoke('onboarding', {
-        body: {
-          directorName: data.directorName.trim(),
-          email: data.email.toLowerCase().trim(),
-          password: data.password,
-          schoolName: data.schoolName.trim(),
-          cnpj: data.cnpj.replace(/\D/g, ''),
-          studentCount: data.studentCount,
-          billingCycle: data.billingCycle,
-        },
-      });
+      // 1. Validar e formatar dados do cartão
+      const cardNumber = data.ccNumber.replace(/\D/g, '');
+      const [expiryMonth, expiryYearRaw] = data.ccExpiry.split('/');
+      const expiryYear = expiryYearRaw.length === 2 ? `20${expiryYearRaw}` : expiryYearRaw;
 
-      if (fnError) throw new Error(fnError.message || 'Erro ao processar cadastro.');
-      if (fnData?.error) throw new Error(fnData.error);
-
-      if (!fnData?.checkoutUrl) {
-        if (fnData?.partialSuccess) {
-          await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
-          window.location.href = '/app/inst-overview';
-          return;
-        }
-        throw new Error('Erro inesperado ao gerar link de pagamento.');
+      // @ts-ignore
+      if (typeof asaas === 'undefined' || !asaas.creditCard) {
+        throw new Error('Script de pagamento (Asaas) não carregado.');
       }
 
-      localStorage.setItem('littera_checkout_url', fnData.checkoutUrl);
-      
-      // Realiza login no fundo para que o app esteja pronto quando ele voltar
-      await supabase.auth.signInWithPassword({ email: data.email, password: data.password });
-      
-      // Redireciona pro Asaas
-      window.location.href = fnData.checkoutUrl;
+      // Payload exigido pelo Asaas para Tokenização client-side
+      const tokenizationPayload = {
+        creditCard: {
+          holderName: data.ccName,
+          number: cardNumber,
+          expiryMonth,
+          expiryYear,
+          ccv: data.ccCvv
+        },
+        creditCardHolderInfo: {
+          name: data.directorName,
+          email: data.email,
+          cpfCnpj: data.cnpj.replace(/\D/g, ''),
+          postalCode: '01001000', // Preenchimento genérico para by-pass anti-fraude se não coletado
+          addressNumber: '0',
+          phone: '11999999999'
+        }
+      };
 
+      // 2. Tokenizar no Asaas
+      // @ts-ignore
+      asaas.creditCard.tokenize(tokenizationPayload, {
+        onSuccess: async (asaasData: any) => {
+          const token = asaasData.creditCardToken;
+
+          // 3. Chamar nossa Edge Function "process-subscription"
+          const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
+            body: {
+              directorName: data.directorName.trim(),
+              email: data.email.toLowerCase().trim(),
+              password: data.password,
+              schoolName: data.schoolName.trim(),
+              cnpj: data.cnpj.replace(/\D/g, ''),
+              studentCount: parseInt(data.studentCount),
+              billingCycle: data.billingCycle,
+              creditCardToken: token,
+            },
+          });
+
+          if (fnError || fnData?.error) {
+            setIsLoading(false);
+            setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar assinatura.');
+            return;
+          }
+
+          // 4. Auto-login com o usuário recém criado
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: data.email.toLowerCase().trim(),
+            password: data.password,
+          });
+
+          if (signInError) {
+            setGlobalError('Conta criada, mas falha ao fazer login automático. Vá para a página de login.');
+            setIsLoading(false);
+            return;
+          }
+
+          // 5. Sucesso! Descartar campos (opcional, já que react vai unmount)
+          setValue('ccNumber', '');
+          setValue('ccCvv', '');
+
+          // Redireciona
+          navigate('/dashboard');
+        },
+        onError: (errors: any) => {
+          setIsLoading(false);
+          setGlobalError(errors?.[0]?.description || 'Erro ao validar o cartão de crédito.');
+        }
+      });
+      
     } catch (err: any) {
-      setServerError(err.message || 'Erro ao processar cadastro.');
-      setIsSubmitting(false);
+      console.error('[CheckoutWizard] Error:', err);
+      setGlobalError(err.message || 'Falha ao processar checkout. Verifique os dados.');
+      setIsLoading(false);
     }
+  }, [navigate, setValue]);
+
+  const renderField = (
+    label: string,
+    name: keyof CheckoutFormData,
+    type: string = 'text',
+    placeholder: string = '',
+    formatter?: (val: string) => string
+  ) => {
+    const errorMsg = errors[name]?.message;
+    return (
+      <div className="space-y-1.5 group">
+        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">
+          {label}
+        </label>
+        <Controller
+          name={name}
+          control={control}
+          render={({ field }) => (
+            <input
+              {...field}
+              type={type}
+              placeholder={placeholder}
+              onChange={(e) => {
+                const val = formatter ? formatter(e.target.value) : e.target.value;
+                field.onChange(val);
+              }}
+              className={`w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border font-bold text-sm transition-all outline-none ${
+                errorMsg
+                  ? 'border-rose-300 focus:border-rose-400 bg-rose-50/50 dark:bg-rose-900/10'
+                  : 'border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10'
+              }`}
+            />
+          )}
+        />
+        {errorMsg && (
+          <p className="text-rose-500 text-[11px] font-bold ml-1 flex items-center gap-1">
+            <span className="material-icons-outlined text-xs">error_outline</span>
+            {errorMsg}
+          </p>
+        )}
+      </div>
+    );
   };
 
-  if (!isOpen && step === 1) return null; // Wait for animation before completely unmounting if closed
-
-  const priceInfo = getPriceInfo();
-
   return (
-    <>
-      {/* Overlay Escuro */}
-      <div 
-        className={`fixed inset-0 bg-black/40 backdrop-blur-sm z-[99] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-        onClick={onClose}
-      />
+    <div className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row bg-background-light dark:bg-background-dark font-sans overflow-hidden relative animate-slide-up-full z-[100]">
+      
+      {/* ── Botão Fechar (X) ────────────────────────────────────────────── */}
+      <button 
+        onClick={onBack}
+        className="absolute top-4 right-4 lg:top-8 lg:right-8 z-50 w-12 h-12 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-300 rounded-full flex items-center justify-center transition-all hover:scale-105 shadow-sm backdrop-blur-md border border-gray-200 dark:border-white/10"
+        title="Voltar"
+      >
+        <span className="material-icons-outlined">close</span>
+      </button>
 
-      {/* Slide-over Panel */}
-      <div className={`fixed inset-y-0 right-0 w-full max-w-[480px] bg-white shadow-2xl z-[100] transform transition-transform duration-300 ease-in-out flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Assinar Littera</h2>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">Passo {step} de 3</p>
+      {/* ── Lado Esquerdo — Branding ──────────────────────────────────────── */}
+      <div className="hidden lg:flex lg:w-[35%] xl:w-[30%] relative bg-primary overflow-hidden">
+        <div className="min-h-full w-full flex items-center justify-center p-6 lg:p-8 xl:p-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+
+          <div className="relative z-10 text-white w-full max-w-sm text-left py-8">
+            <div className="flex items-center gap-3 mb-10 animate-fade-in">
+              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl shrink-0">
+                <div className="flex flex-col items-center translate-y-[1px]">
+                  <span className="text-primary font-black text-2xl leading-none tracking-tighter">L</span>
+                  <div className="w-5 h-[4px] bg-primary mt-[1px] rounded-full" />
+                </div>
+              </div>
+              <span className="font-black text-3xl lg:text-4xl tracking-tighter text-white">
+                Littera<span className="text-white/40">.</span>
+              </span>
+            </div>
+
+            <div className="space-y-5 animate-fade-in-up">
+              <h1 className="text-2xl lg:text-3xl font-black leading-[1.1] tracking-tight">
+                Cadastre sua escola em minutos
+              </h1>
+              <p className="text-sm lg:text-base opacity-80 leading-relaxed font-medium">
+                Correção de redações por I.A., gestão de turmas e relatórios completos. Tudo pronto para uso imediato.
+              </p>
+
+              <div className="space-y-3 mt-6">
+                {[
+                  { icon: 'bolt', text: 'Correção instantânea com Google Gemini' },
+                  { icon: 'shield', text: 'Dados seguros — LGPD compliant' },
+                  { icon: 'trending_up', text: 'Relatórios de evolução por turma' },
+                ].map(({ icon, text }) => (
+                  <div key={icon} className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center backdrop-blur-sm shrink-0">
+                      <span className="material-icons-outlined text-white text-base">{icon}</span>
+                    </div>
+                    <span className="font-semibold text-white/90 text-xs lg:text-sm leading-tight">{text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
-            <span className="material-icons-outlined text-[20px]">close</span>
-          </button>
-        </div>
-
-        {/* Progress Bar */}
-        <div className="h-1 w-full bg-gray-100">
-          <div className="h-full bg-[#004ac6] transition-all duration-300 ease-out" style={{ width: `${(step / 3) * 100}%` }} />
-        </div>
-
-        {/* Content (Form) */}
-        <div className="flex-1 overflow-y-auto px-6 py-8">
-          {serverError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-600">
-              <span className="material-icons-outlined text-red-500">error_outline</span>
-              <p className="text-sm font-medium">{serverError}</p>
-            </div>
-          )}
-
-          <form id="checkout-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            
-            {/* ── STEP 1: Dados ── */}
-            <div className={`transition-opacity duration-300 ${step === 1 ? 'block opacity-100' : 'hidden opacity-0'}`}>
-              <h3 className="text-lg font-bold text-gray-900 mb-6">Seus Dados e Escola</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nome do Diretor(a)</label>
-                  <input {...register('directorName')} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-none transition-all text-sm font-medium" placeholder="Ex: Maria Helena Silva" />
-                  {errors.directorName && <p className="text-red-500 text-xs mt-1 font-medium">{errors.directorName.message}</p>}
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">E-mail Institucional</label>
-                  <input type="email" {...register('email')} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-none transition-all text-sm font-medium" placeholder="diretoria@colegio.com.br" />
-                  {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nome da Escola</label>
-                  <input {...register('schoolName')} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-none transition-all text-sm font-medium" placeholder="Ex: Colégio Dom Pedro II" />
-                  {errors.schoolName && <p className="text-red-500 text-xs mt-1 font-medium">{errors.schoolName.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">CNPJ</label>
-                  <input 
-                    {...register('cnpj')} 
-                    onChange={(e) => {
-                      setValue('cnpj', formatCNPJ(e.target.value), { shouldValidate: true });
-                    }}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-none transition-all text-sm font-medium" 
-                    placeholder="00.000.000/0000-00" 
-                  />
-                  {errors.cnpj && <p className="text-red-500 text-xs mt-1 font-medium">{errors.cnpj.message}</p>}
-                </div>
-              </div>
-            </div>
-
-            {/* ── STEP 2: Alunos e Plano ── */}
-            <div className={`transition-opacity duration-300 ${step === 2 ? 'block opacity-100' : 'hidden opacity-0'}`}>
-              <h3 className="text-lg font-bold text-gray-900 mb-6">Escopo e Preço</h3>
-
-              <div className="space-y-8">
-                <div>
-                  <div className="flex justify-between mb-3">
-                    <label className="block text-sm font-bold text-gray-700">Quantidade de Alunos</label>
-                    <span className="text-sm font-black text-[#004ac6]">{watchStudents} alunos</span>
-                  </div>
-                  <input 
-                    type="range" min="50" max="1500" step="10"
-                    {...register('studentCount', { valueAsNumber: true })}
-                    className="w-full accent-[#004ac6]"
-                  />
-                  <div className="flex justify-between mt-2 text-xs text-gray-400 font-semibold">
-                    <span>50</span>
-                    <span>1000+</span>
-                  </div>
-                  {errors.studentCount && <p className="text-red-500 text-xs mt-1 font-medium">{errors.studentCount.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-3">Ciclo de Pagamento</label>
-                  <div className="flex p-1 bg-gray-100 rounded-xl">
-                    <button type="button" onClick={() => setValue('billingCycle', 'MONTHLY')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${watchCycle === 'MONTHLY' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Mensal</button>
-                    <button type="button" onClick={() => setValue('billingCycle', 'YEARLY')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${watchCycle === 'YEARLY' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>Anual (-20%)</button>
-                  </div>
-                </div>
-
-                <div className="bg-[#f8fafc] border border-blue-100 rounded-2xl p-5 mt-4">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Plano {priceInfo.planName}</span>
-                    <span className="text-[10px] font-bold bg-[#004ac6] text-white px-2 py-0.5 rounded-full uppercase">{watchCycle === 'YEARLY' ? 'Anual' : 'Mensal'}</span>
-                  </div>
-                  <div className="text-2xl font-black text-[#131b2e] mb-1">
-                    R$ {formatBRL(priceInfo.finalTotal)}
-                  </div>
-                  <p className="text-xs text-gray-500 font-medium">Cobrança {watchCycle === 'YEARLY' ? 'anual (à vista)' : 'mensal recorrente'}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* ── STEP 3: Senha e Confirmação ── */}
-            <div className={`transition-opacity duration-300 ${step === 3 ? 'block opacity-100' : 'hidden opacity-0'}`}>
-              <h3 className="text-lg font-bold text-gray-900 mb-6">Criar Conta</h3>
-              
-              <div className="space-y-4 mb-8">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Crie uma Senha Segura</label>
-                  <input type="password" {...register('password')} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#004ac6] focus:border-transparent outline-none transition-all text-sm font-medium" placeholder="••••••••" />
-                  {errors.password && <p className="text-red-500 text-xs mt-1 font-medium">{errors.password.message}</p>}
-                </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 space-y-3">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Resumo da Assinatura</h4>
-                
-                <div className="flex justify-between items-center text-sm font-medium">
-                  <span className="text-gray-600">Escola</span>
-                  <span className="text-gray-900 truncate max-w-[180px] text-right">{watch('schoolName') || '-'}</span>
-                </div>
-                
-                <div className="flex justify-between items-center text-sm font-medium">
-                  <span className="text-gray-600">Alunos</span>
-                  <span className="text-gray-900">{watchStudents}</span>
-                </div>
-                
-                <div className="border-t border-gray-200 my-2" />
-                
-                <div className="flex justify-between items-end">
-                  <div>
-                    <span className="block text-gray-900 font-bold">Total a pagar</span>
-                    <span className="block text-xs text-gray-400">Via Asaas Checkout</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="block text-lg font-black text-[#004ac6]">R$ {formatBRL(priceInfo.finalTotal)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 flex items-center justify-center gap-2 text-gray-400">
-                <span className="material-icons-outlined text-sm">lock</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest">Ambiente 100% Seguro</span>
-              </div>
-            </div>
-
-          </form>
-        </div>
-
-        {/* Footer / Actions */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50 flex gap-3">
-          {step > 1 && (
-            <button 
-              type="button" 
-              onClick={() => setStep(step - 1)}
-              disabled={isSubmitting}
-              className="px-6 py-3.5 bg-white border border-gray-200 text-gray-700 font-bold text-sm rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Voltar
-            </button>
-          )}
-          
-          {step < 3 ? (
-            <button 
-              type="button"
-              onClick={handleNextStep}
-              className="flex-1 px-6 py-3.5 bg-[#131b2e] text-white font-bold text-sm rounded-xl hover:bg-gray-900 transition-colors shadow-lg shadow-black/5"
-            >
-              Próximo
-            </button>
-          ) : (
-            <button 
-              type="submit"
-              form="checkout-form"
-              disabled={isSubmitting}
-              className="flex-1 px-6 py-3.5 bg-[#004ac6] text-white font-bold text-sm rounded-xl hover:bg-blue-700 transition-colors shadow-lg shadow-blue-900/20 disabled:opacity-70 flex items-center justify-center gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Processando...
-                </>
-              ) : (
-                'Ir para Pagamento'
-              )}
-            </button>
-          )}
         </div>
       </div>
-    </>
+
+      {/* ── Lado Direito — Formulário ─────────────────────────────────────── */}
+      <div className="w-full lg:w-[65%] xl:w-[70%] h-full bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar">
+        <div className="min-h-full flex items-center justify-center p-4 sm:p-8 lg:p-12">
+          <div className="w-full max-w-lg animate-fade-in-up py-6">
+            <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 sm:p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
+
+              {/* Step indicator */}
+              <div className="flex items-center justify-between mb-6">
+                {STEPS.map((s, i) => (
+                  <React.Fragment key={s.id}>
+                    <div className="flex flex-col items-center gap-1.5 z-10">
+                      <div
+                        className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                          step >= s.id
+                            ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
+                            : 'bg-gray-100 dark:bg-white/5 text-gray-300'
+                        }`}
+                      >
+                        <span className="material-icons-outlined text-lg">
+                          {step > s.id ? 'check' : s.icon}
+                        </span>
+                      </div>
+                      <span className={`text-[9px] font-black uppercase tracking-widest transition-colors ${
+                        step >= s.id ? 'text-primary' : 'text-gray-300'
+                      }`}>
+                        {s.label}
+                      </span>
+                    </div>
+                    {i < STEPS.length - 1 && (
+                      <div className={`flex-1 h-0.5 mx-[-10px] rounded-full transition-colors duration-500 z-0 ${
+                        step > s.id ? 'bg-primary' : 'bg-gray-100 dark:bg-white/10'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {globalError && (
+                <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-bold text-center animate-shake">
+                  <span className="material-icons-outlined text-sm mr-1 align-middle">error_outline</span>
+                  {globalError}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit(onSubmit)}>
+                {/* ── Step 1: Dados da Escola ───────────────────────────────────── */}
+                {step === 1 && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="mb-4">
+                      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                        Sobre sua Instituição
+                      </h2>
+                    </div>
+
+                    {renderField('Nome do Responsável', 'directorName', 'text', 'Nome Completo')}
+                    {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
+                    {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres, com maiúsculas, minúsculas, números e símbolos')}
+                    {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
+                    {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
+                    {renderField('CNPJ', 'cnpj', 'text', '00.000.000/0000-00', formatCNPJ)}
+                  </div>
+                )}
+
+                {/* ── Step 2: Plano ───────────────────────────────────── */}
+                {step === 2 && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="mb-4">
+                      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                        Personalize seu Plano
+                      </h2>
+                    </div>
+
+                    {renderField('Quantidade de Alunos', 'studentCount', 'number', 'Ex: 350')}
+
+                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl my-6">
+                      <button 
+                        type="button"
+                        onClick={() => setValue('billingCycle', 'MONTHLY')}
+                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${formValues.billingCycle === 'MONTHLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
+                      >
+                        Mensal
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setValue('billingCycle', 'YEARLY')}
+                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${formValues.billingCycle === 'YEARLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
+                      >
+                        Anual <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">-20%</span>
+                      </button>
+                    </div>
+
+                    {(() => {
+                      const priceInfo = getDynamicPrice();
+                      const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                      return (
+                        <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-5 flex items-center justify-between mb-4">
+                          <div>
+                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">Plano {priceInfo.planName}</p>
+                            <p className="text-sm text-gray-500 font-medium mt-0.5">Cobrança {priceInfo.isYearly ? 'anual (à vista)' : 'mensal'}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-3xl font-black text-gray-900 dark:text-white">R$ {formatBRL(priceInfo.finalTotal)}</p>
+                            <p className="text-xs text-gray-400">/{priceInfo.isYearly ? 'ano' : 'mês'}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* ── Step 3: Pagamento (Cartão) ───────────────────────────────────── */}
+                {step === 3 && (
+                  <div className="space-y-4 animate-fade-in">
+                    <div className="mb-4">
+                      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                        Pagamento Seguro
+                      </h2>
+                      <p className="text-gray-400 text-[11px] sm:text-xs font-bold mt-1">
+                        Seus dados são criptografados. R$ {getDynamicPrice().finalTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} {formValues.billingCycle === 'YEARLY' ? '/ano' : '/mês'}.
+                      </p>
+                    </div>
+
+                    {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
+                    {renderField('Nome impresso no Cartão', 'ccName', 'text', 'Ex: JOAO M SILVA')}
+                    
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
+                      </div>
+                      <div className="w-1/3">
+                        {renderField('CVV', 'ccCvv', 'password', '123')}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
+                      <span className="material-icons-outlined text-sm">lock</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Transação Segura &middot; PCI Compliant</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Actions ──────────────────────────────────────────────────── */}
+                <div className="mt-8 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                  >
+                    {step === 1 ? 'Voltar' : 'Anterior'}
+                  </button>
+
+                  {step < 3 ? (
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all active:scale-[0.97]"
+                    >
+                      Próximo
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Finalizando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-icons-outlined text-lg">check_circle</span>
+                          <span className="uppercase tracking-widest">Finalizar Assinatura</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </form>
+
+              {/* Login link */}
+              <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-6">
+                Já possui cadastro?{' '}
+                <button onClick={onLogin} className="text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4">
+                  Fazer Login
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-4px); }
+          75% { transform: translateX(4px); }
+        }
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+        
+        @keyframes slideUpFull {
+          from { transform: translateY(100%); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up-full {
+          animation: slideUpFull 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        
+        /* Custom scrollbar to prevent layout shift */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.3);
+          border-radius: 20px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+          background-color: rgba(255, 255, 255, 0.1);
+        }
+      `}</style>
+    </div>
   );
-}
+};
+
+export default CheckoutWizard;

@@ -18,7 +18,7 @@ import LandingPage from './components/LandingPage';
 import SetupAccount from './components/SetupAccount';
 import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
-import OnboardingView from './components/OnboardingView';
+import CheckoutWizard from './components/CheckoutWizard';
 import FinalizarCadastroView from './components/FinalizarCadastroView';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult } from './types';
@@ -466,9 +466,11 @@ const App: React.FC = () => {
         )
       } />
       <Route path="/cadastro" element={
-        session || isDemoMode
-          ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-          : <OnboardingView onBack={() => navigate('/')} onLogin={() => navigate('/login')} />
+        session || isDemoMode ? (
+          <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+        ) : (
+          <CheckoutWizard onBack={() => window.location.href = '/'} onLogin={() => window.location.href = '/login'} />
+        )
       } />
       <Route path="/cadastro/finalizar" element={
         session || isDemoMode

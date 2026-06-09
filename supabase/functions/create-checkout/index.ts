@@ -21,7 +21,7 @@ serve(async (req: Request) => {
 
   const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY')
   if (!ASAAS_KEY) {
-    return jsonResponse({ error: 'Configuração de pagamento ausente.' }, 500)
+    return jsonResponse({ error: 'Configuração de pagamento ausente.' })
   }
 
   const ASAAS_BASE = ASAAS_KEY.includes('hmlg')
@@ -65,7 +65,7 @@ serve(async (req: Request) => {
       })
       const customerData = await createCustomerRes.json()
       if (!createCustomerRes.ok) {
-        return jsonResponse({ error: customerData.errors?.[0]?.description || 'Erro ao criar cliente.' }, 400)
+        return jsonResponse({ error: customerData.errors?.[0]?.description || 'Erro ao criar cliente.' })
       }
       asaasCustomerId = customerData.id
     }
@@ -88,7 +88,7 @@ serve(async (req: Request) => {
     const subData = await subRes.json()
 
     if (!subRes.ok) {
-      return jsonResponse({ error: subData.errors?.[0]?.description || 'Falha ao processar a assinatura.' }, 400)
+      return jsonResponse({ error: subData.errors?.[0]?.description || 'Falha ao processar a assinatura.' })
     }
 
     const subscriptionId = subData.id
@@ -113,6 +113,6 @@ serve(async (req: Request) => {
 
   } catch (err: any) {
     console.error('Error create-checkout:', err)
-    return jsonResponse({ error: err.message }, 500)
+    return jsonResponse({ error: err.message || 'Erro interno no servidor de pagamento' })
   }
 })
