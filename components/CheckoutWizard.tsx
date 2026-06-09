@@ -531,7 +531,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     {step === 1 ? 'Voltar' : 'Anterior'}
                   </button>
 
-                  {step < 3 ? (
+                  {step < 3 && (
                     <button
                       type="button"
                       onClick={handleNextStep}
@@ -539,25 +539,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     >
                       Próximo
                     </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {isLoading ? (
-                        <>
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Finalizando...</span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-icons-outlined text-lg">check_circle</span>
-                          <span className="uppercase tracking-widest">Finalizar Assinatura</span>
-                        </>
-                      )}
-                    </button>
-                  )}
                 </div>
               </form>
 
