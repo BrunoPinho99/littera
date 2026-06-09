@@ -53,6 +53,7 @@ const step1Schema = z.object({
   directorName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   schoolName: z.string().min(2, "Nome da escola é obrigatório"),
   email: z.string().email("E-mail inválido"),
+  phone: z.string().min(10, "Telefone inválido"),
   password: z.string()
     .min(8, "A senha deve ter pelo menos 8 caracteres")
     .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
@@ -76,6 +77,7 @@ const step3Schema = z.object({
   ccNumber: z.string().refine(v => v.replace(/\D/g, '').length === 16, "Número de cartão inválido (16 dígitos)"),
   ccExpiry: z.string().regex(/^(0[1-9]|1[0-2])\/?([0-9]{2})$/, "Validade inválida (MM/AA)"),
   ccCvv: z.string().min(3, "CVV inválido").max(4, "CVV inválido"),
+  ccPostalCode: z.string().min(8, "CEP inválido"),
 });
 
 // We create a combined schema for the full form types with a refinement to compare passwords
@@ -110,6 +112,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     defaultValues: {
       directorName: '',
       email: '',
+      phone: '',
       password: '',
       confirmPassword: '',
       schoolName: '',
@@ -120,6 +123,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       ccNumber: '',
       ccExpiry: '',
       ccCvv: '',
+      ccPostalCode: '',
     }
   });
 
@@ -152,7 +156,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const handleNextStep = async () => {
     setGlobalError(null);
     if (step === 1) {
-      const isValid = await trigger(['directorName', 'schoolName', 'email', 'password', 'confirmPassword', 'cnpj']);
+      const isValid = await trigger(['directorName', 'schoolName', 'email', 'phone', 'password', 'confirmPassword', 'cnpj']);
       if (isValid) setStep(2);
     } else if (step === 2) {
       const isValid = await trigger(['studentCount', 'billingCycle']);
@@ -184,6 +188,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         body: {
           directorName: data.directorName.trim(),
           email: data.email.toLowerCase().trim(),
+          phone: data.phone.replace(/\D/g, ''),
+          postalCode: data.ccPostalCode.replace(/\D/g, ''),
           password: data.password,
           schoolName: data.schoolName.trim(),
           cnpj: data.cnpj.replace(/\D/g, ''),
@@ -423,7 +429,14 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                       </div>
 
                       {renderField('Nome do Responsável', 'directorName', 'text', 'Nome Completo')}
-                      {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
+                      <div className="flex gap-4">
+                        <div className="flex-[2]">
+                          {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
+                        </div>
+                        <div className="flex-1">
+                          {renderField('Celular', 'phone', 'text', '(11) 99999-9999')}
+                        </div>
+                      </div>
                       {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres, letras e números', undefined, passwordStrengthIndicator)}
                       {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
                       {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
@@ -495,13 +508,15 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     {renderField('Nome impresso no Cartão', 'ccName', 'text', 'Ex: JOAO M SILVA')}
                     
                     <div className="flex gap-4">
-                      <div className="flex-1">
+                      <div className="flex-[2]">
                         {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
                       </div>
-                      <div className="w-1/3">
+                      <div className="flex-1">
                         {renderField('CVV', 'ccCvv', 'password', '123')}
                       </div>
                     </div>
+
+                    {renderField('CEP de Cobrança do Cartão', 'ccPostalCode', 'text', '00000-000')}
                     
                     <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
                       <span className="material-icons-outlined text-sm">lock</span>

@@ -47,10 +47,10 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCard } = body
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCard, phone, postalCode } = body
 
     if (!creditCard) {
-      return jsonResponse({ error: 'Dados do cartão de crédito não fornecidos.' })
+      return jsonResponse({ error: 'Dados do cartão de crédito não fornecidos.' }, 400)
     }
 
     // Capturar o IP do cliente (remoteIp é obrigatório no Asaas para cartão de crédito)
@@ -82,6 +82,8 @@ serve(async (req: Request) => {
           name: schoolName,
           cpfCnpj: cnpj,
           email: email,
+          phone: phone,
+          postalCode: postalCode
         }),
       })
       const customerData = await createCustomerRes.json()
@@ -99,9 +101,9 @@ serve(async (req: Request) => {
       name: directorName,
       email: email,
       cpfCnpj: cnpj,
-      postalCode: "01001-000", // CEP genérico se não coletado
+      postalCode: postalCode || "01001000",
       addressNumber: "0",
-      phone: "11999999999" // Telefone genérico se não coletado
+      phone: phone || "11999999999"
     }
 
     const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
