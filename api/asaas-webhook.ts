@@ -88,8 +88,9 @@ export default async function handler(req: any, res: any) {
 
         return res.status(200).json({ message: 'Asaas Webhook Processed' });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Webhook error:', error);
-        return res.status(500).json({ message: 'Internal Server Error', error: error.message });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return res.status(500).json({ message: 'Internal Server Error', error: message });
     }
 }

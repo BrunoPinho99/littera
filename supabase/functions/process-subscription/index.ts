@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -46,10 +47,10 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCardToken } = body
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, creditCard } = body
 
-    if (!creditCardToken) {
-      return jsonResponse({ error: 'Token de cartão de crédito não fornecido.' })
+    if (!creditCard) {
+      return jsonResponse({ error: 'Dados do cartão de crédito não fornecidos.' })
     }
 
     // 1. Cálculo de preço
@@ -104,7 +105,7 @@ serve(async (req: Request) => {
       body: JSON.stringify({
         customer: asaasCustomerId,
         billingType: 'CREDIT_CARD',
-        creditCardToken: creditCardToken,
+        creditCard: creditCard,
         creditCardHolderInfo: creditCardHolderInfo,
         value: planPrice,
         nextDueDate: today,
@@ -185,8 +186,9 @@ serve(async (req: Request) => {
       message: 'Pagamento aprovado e conta criada com sucesso!',
     })
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error process-subscription:', err)
-    return jsonResponse({ error: err.message || 'Erro interno no servidor de pagamento' })
+    const message = err instanceof Error ? err.message : 'Erro interno no servidor de pagamento'
+    return jsonResponse({ error: message || 'Erro interno no servidor de pagamento' })
   }
 })

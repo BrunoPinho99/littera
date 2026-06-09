@@ -203,9 +203,10 @@ const App: React.FC = () => {
       navigate('/app/result');
       // Small delay before hiding overlay to prevent flash
       setTimeout(() => setIsCorrecting(false), 100);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsCorrecting(false);
-      alert('Erro ao corrigir: ' + err.message);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      alert('Erro ao corrigir: ' + message);
     }
   };
 
@@ -216,9 +217,10 @@ const App: React.FC = () => {
       setHandwrittenResult({ ...result, topicTitle: writingTopicTitle, timeTaken: '0m' });
       navigate('/app/handwritten-result');
       setTimeout(() => setIsCorrecting(false), 100);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsCorrecting(false);
-      alert('Erro ao corrigir manuscrito: ' + err.message);
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      alert('Erro ao corrigir manuscrito: ' + message);
     }
   };
 

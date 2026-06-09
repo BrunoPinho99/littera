@@ -126,13 +126,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const formValues = watch();
 
   useEffect(() => {
-    // Configurar ambiente do Asaas
-    // @ts-ignore
-    if (typeof asaas !== 'undefined') {
-      // @ts-ignore
-      asaas.setEnvironment('producao');
-    }
-
     const params = new URLSearchParams(window.location.search);
     const studentsParam = params.get('students');
     const cycleParam = params.get('cycle');
@@ -186,80 +179,51 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       const [expiryMonth, expiryYearRaw] = data.ccExpiry.split('/');
       const expiryYear = expiryYearRaw.length === 2 ? `20${expiryYearRaw}` : expiryYearRaw;
 
-      // @ts-ignore
-      if (typeof asaas === 'undefined' || !asaas.creditCard) {
-        throw new Error('Script de pagamento (Asaas) não carregado.');
+      // 2. Chamar nossa Edge Function "process-subscription"
+      // A própria Edge Function se comunicará de forma segura (Server-to-Server) com a API do Asaas
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
+        body: {
+          directorName: data.directorName.trim(),
+          email: data.email.toLowerCase().trim(),
+          password: data.password,
+          schoolName: data.schoolName.trim(),
+          cnpj: data.cnpj.replace(/\D/g, ''),
+          studentCount: parseInt(data.studentCount),
+          billingCycle: data.billingCycle,
+          creditCard: {
+            holderName: data.ccName,
+            number: cardNumber,
+            expiryMonth,
+            expiryYear,
+            ccv: data.ccCvv,
+          }
+        },
+      });
+
+      if (fnError || fnData?.error) {
+        setIsLoading(false);
+        setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar assinatura.');
+        return;
       }
 
-      // Payload exigido pelo Asaas para Tokenização client-side
-      const tokenizationPayload = {
-        creditCard: {
-          holderName: data.ccName,
-          number: cardNumber,
-          expiryMonth,
-          expiryYear,
-          ccv: data.ccCvv
-        },
-        creditCardHolderInfo: {
-          name: data.directorName,
-          email: data.email,
-          cpfCnpj: data.cnpj.replace(/\D/g, ''),
-          postalCode: '01001000', // Preenchimento genérico para by-pass anti-fraude se não coletado
-          addressNumber: '0',
-          phone: '11999999999'
-        }
-      };
-
-      // 2. Tokenizar no Asaas
-      // @ts-ignore
-      asaas.creditCard.tokenize(tokenizationPayload, {
-        onSuccess: async (asaasData: any) => {
-          const token = asaasData.creditCardToken;
-
-          // 3. Chamar nossa Edge Function "process-subscription"
-          const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
-            body: {
-              directorName: data.directorName.trim(),
-              email: data.email.toLowerCase().trim(),
-              password: data.password,
-              schoolName: data.schoolName.trim(),
-              cnpj: data.cnpj.replace(/\D/g, ''),
-              studentCount: parseInt(data.studentCount),
-              billingCycle: data.billingCycle,
-              creditCardToken: token,
-            },
-          });
-
-          if (fnError || fnData?.error) {
-            setIsLoading(false);
-            setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar assinatura.');
-            return;
-          }
-
-          // 4. Auto-login com o usuário recém criado
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: data.email.toLowerCase().trim(),
-            password: data.password,
-          });
-
-          if (signInError) {
-            setGlobalError('Conta criada, mas falha ao fazer login automático. Vá para a página de login.');
-            setIsLoading(false);
-            return;
-          }
-
-          // 5. Sucesso! Descartar campos (opcional, já que react vai unmount)
-          setValue('ccNumber', '');
-          setValue('ccCvv', '');
-
-          // Redireciona
-          navigate('/dashboard');
-        },
-        onError: (errors: any) => {
-          setIsLoading(false);
-          setGlobalError(errors?.[0]?.description || 'Erro ao validar o cartão de crédito.');
-        }
+      // 3. Auto-login com o usuário recém criado
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email.toLowerCase().trim(),
+        password: data.password,
       });
+
+      if (signInError) {
+        setGlobalError('Conta criada, mas falha ao fazer login automático. Vá para a página de login.');
+        setIsLoading(false);
+        return;
+      }
+
+      // 4. Sucesso! Descartar campos (opcional, já que react vai unmount)
+      setValue('ccNumber', '');
+      setValue('ccCvv', '');
+
+      // Redireciona
+      navigate('/dashboard');
       
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);

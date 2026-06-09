@@ -105,8 +105,9 @@ serve(async (req: Request) => {
 
     return jsonResponse({ success: true, schoolId: schoolData.id })
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Complete onboarding error:', err)
-    return jsonResponse({ error: err.message }, 500)
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return jsonResponse({ error: message }, 500)
   }
 })

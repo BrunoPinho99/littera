@@ -111,8 +111,9 @@ serve(async (req: Request) => {
       checkoutUrl
     })
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error create-checkout:', err)
-    return jsonResponse({ error: err.message || 'Erro interno no servidor de pagamento' })
+    const message = err instanceof Error ? err.message : 'Erro interno no servidor de pagamento'
+    return jsonResponse({ error: message })
   }
 })
