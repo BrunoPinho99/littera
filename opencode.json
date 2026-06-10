@@ -1,0 +1,9 @@
+{
+  "mcp": {
+    "docs": {
+      "type": "remote",
+      "url": "https://docs.asaas.com/mcp",
+      "enabled": true
+    }
+  }
+}

@@ -1,0 +1,3 @@
+[mcp_servers.docs]
+type = "http"
+url = "https://docs.asaas.com/mcp"

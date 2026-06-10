@@ -90,12 +90,14 @@ serve(async (req: Request) => {
     // 3. Criar Assinatura no Asaas (UNDEFINED = Cliente escolhe a forma de pagamento)
     const today = new Date().toISOString().split('T')[0]
     
+    const asaasBillingType = isYearly ? 'UNDEFINED' : 'CREDIT_CARD'
+
     const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
       method: 'POST',
       headers: asaasHeaders,
       body: JSON.stringify({
         customer: asaasCustomerId,
-        billingType: 'UNDEFINED',
+        billingType: asaasBillingType,
         value: planPrice,
         nextDueDate: today,
         cycle: isYearly ? 'YEARLY' : 'MONTHLY',
