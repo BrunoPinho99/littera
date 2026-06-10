@@ -127,7 +127,8 @@ serve(async (req: Request) => {
 
     // CONTA CRIADA E ASSINATURA PENDENTE! Agora criamos o usuário no banco.
 
-    // 4. Criar usuário no Supabase Auth
+    // 4. Criar ou Recuperar usuário no Supabase Auth
+    let createdAuthUserId = null;
     const { data: authData, error: authError } = await supabase.auth.admin.createUser({
       email: email.toLowerCase().trim(),
       password,
@@ -138,31 +139,55 @@ serve(async (req: Request) => {
       },
     })
 
-    if (authError || !authData.user) {
-      return jsonResponse({ error: authError?.message || 'Erro ao criar conta no sistema.' })
+    if (authError) {
+      // Se o usuário já existe, tentamos fazer login para validar a senha
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase().trim(),
+        password,
+      });
+
+      if (signInError) {
+        return jsonResponse({ error: 'Este e-mail já está cadastrado. Se for você, a senha está incorreta. Faça login ou recupere a senha.' })
+      }
+      createdAuthUserId = signInData.user.id;
+    } else {
+      createdAuthUserId = authData.user.id;
     }
 
-    createdAuthUserId = authData.user.id
+    if (!createdAuthUserId) {
+      return jsonResponse({ error: 'Erro crítico ao obter ID do usuário.' })
+    }
 
-    // 5. Inserir Escola
-    const { data: schoolData, error: schoolError } = await supabase
-      .from('schools')
-      .insert({
-        name: schoolName.trim(),
-        cnpj: cnpj,
-        student_count: studentCount,
+    // 5. Verificar se o usuário já tem uma escola vinculada
+    const { data: existingProfile } = await supabase.from('profiles').select('school_id').eq('id', createdAuthUserId).single();
+    let createdSchoolId = existingProfile?.school_id;
+
+    if (!createdSchoolId) {
+      // Inserir Escola Nova
+      const { data: schoolData, error: schoolError } = await supabase
+        .from('schools')
+        .insert({
+          name: schoolName.trim(),
+          cnpj: cnpj,
+          student_count: studentCount,
+          asaas_customer_id: asaasCustomerId,
+          subscription_id: subscriptionId,
+          subscription_status: 'inactive'
+        })
+        .select()
+        .single()
+
+      if (schoolError || !schoolData) {
+        return jsonResponse({ error: `Usuário autenticado, mas erro ao salvar escola: ${schoolError?.message || 'Desconhecido'}` })
+      }
+      createdSchoolId = schoolData.id;
+    } else {
+      // Usuário já tem escola, apenas atualizamos a assinatura
+      await supabase.from('schools').update({
         asaas_customer_id: asaasCustomerId,
         subscription_id: subscriptionId,
-        subscription_status: 'inactive'
-      })
-      .select()
-      .single()
-
-    if (schoolError || !schoolData) {
-      return jsonResponse({ error: `Conta de usuário criada, mas erro ao salvar escola: ${schoolError?.message || 'Desconhecido'}` })
+      }).eq('id', createdSchoolId);
     }
-
-    const createdSchoolId = schoolData.id
 
     // 6. Atualizar profile
     await supabase.from('profiles').upsert({
