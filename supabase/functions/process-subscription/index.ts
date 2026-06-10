@@ -49,7 +49,7 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cpfCnpj, studentCount, billingCycle, phone, postalCode, addressNumber } = body
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, phone, postalCode, addressNumber } = body
 
     // 1. Cálculo de preço
     const isYearly = billingCycle === 'YEARLY'
@@ -61,7 +61,7 @@ serve(async (req: Request) => {
 
     // 2. Buscar ou Criar Customer no Asaas
     let asaasCustomerId = null
-    const searchRes = await fetch(`${ASAAS_BASE}/customers?cpfCnpj=${cpfCnpj}`, { headers: asaasHeaders })
+    const searchRes = await fetch(`${ASAAS_BASE}/customers?cpfCnpj=${cnpj}`, { headers: asaasHeaders })
     if (searchRes.ok) {
       const searchData = await searchRes.json()
       if (searchData.data?.length > 0) asaasCustomerId = searchData.data[0].id
@@ -73,7 +73,7 @@ serve(async (req: Request) => {
         headers: asaasHeaders,
         body: JSON.stringify({
           name: schoolName,
-          cpfCnpj: cpfCnpj,
+          cpfCnpj: cnpj,
           email: email,
           phone: phone,
           postalCode: postalCode,
@@ -174,7 +174,7 @@ serve(async (req: Request) => {
         .from('schools')
         .insert({
           name: schoolName.trim(),
-          cnpj: cpfCnpj,
+          cnpj: cnpj,
           email: email.toLowerCase().trim(),
           student_count: studentCount,
           asaas_customer_id: asaasCustomerId,
