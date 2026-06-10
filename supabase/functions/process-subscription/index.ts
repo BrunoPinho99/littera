@@ -32,7 +32,9 @@ serve(async (req: Request) => {
     return jsonResponse({ error: 'Configuração de pagamento ausente.' })
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  })
 
   const ASAAS_BASE = ASAAS_KEY.includes('hmlg')
     ? 'https://sandbox.asaas.com/api/v3'
@@ -141,7 +143,11 @@ serve(async (req: Request) => {
 
     if (authError) {
       // Se o usuário já existe, tentamos fazer login para validar a senha
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      // IMPORTANTE: Usa um client separado para não alterar a sessão do client admin
+      const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: { persistSession: false, autoRefreshToken: false }
+      })
+      const { data: signInData, error: signInError } = await supabaseAuth.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
       });
