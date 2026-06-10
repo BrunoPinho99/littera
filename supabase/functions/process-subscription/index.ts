@@ -145,14 +145,10 @@ serve(async (req: Request) => {
     createdAuthUserId = authData.user.id
 
     // 5. Inserir Escola
-    const slugBase = schoolName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-    const slug = `${slugBase}-${Math.random().toString(36).substring(2, 6)}`
-    
     const { data: schoolData, error: schoolError } = await supabase
       .from('schools')
       .insert({
         name: schoolName.trim(),
-        slug: slug,
         cnpj: cnpj,
         student_count: studentCount,
         asaas_customer_id: asaasCustomerId,
