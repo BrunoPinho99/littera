@@ -196,15 +196,21 @@ serve(async (req: Request) => {
       }).eq('id', createdSchoolId);
     }
 
-    // 6. Atualizar profile
-    await supabase.from('profiles').upsert({
-      id: createdAuthUserId,
-      full_name: directorName.trim(),
-      email: email.toLowerCase().trim(),
-      role: 'owner',
-      school_id: createdSchoolId,
-      status: 'active',
-    })
+    // 6. Criar ou Atualizar Profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: createdAuthUserId,
+        school_id: createdSchoolId,
+        email: email.toLowerCase().trim(),
+        full_name: directorName.trim(),
+        role: 'owner',
+        updated_at: new Date().toISOString()
+      })
+      
+    if (profileError) {
+      return jsonResponse({ error: `Usuário criado, escola salva, mas erro no perfil: ${profileError.message}` })
+    }
 
     await supabase.auth.admin.updateUserById(createdAuthUserId, {
       user_metadata: { school_id: createdSchoolId },
