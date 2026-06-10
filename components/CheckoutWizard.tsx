@@ -7,34 +7,6 @@ import { z } from 'zod';
 
 // ── Helpers de validação ────────────────────────────────────────────────────────
 
-function validateCNPJ(value: string): boolean {
-  const cleaned = value.replace(/\D/g, '');
-  if (cleaned.length !== 14) return false;
-  if (/^(\d)\1{13}$/.test(cleaned)) return false;
-
-  const calcDigit = (digits: string, weights: number[]): number => {
-    const sum = digits.split('').reduce((acc, d, i) => acc + parseInt(d) * weights[i], 0);
-    const rem = sum % 11;
-    return rem < 2 ? 0 : 11 - rem;
-  };
-
-  const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-  const d1 = calcDigit(cleaned.substring(0, 12), w1);
-  const d2 = calcDigit(cleaned.substring(0, 12) + d1, w2);
-
-  return cleaned.endsWith(`${d1}${d2}`);
-}
-
-function formatCNPJ(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 14);
-  if (digits.length <= 2) return digits;
-  if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
-  if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
-  if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
-  return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
-}
-
 function formatCardNumber(value: string): string {
   return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
 }
@@ -61,7 +33,6 @@ const step1Schema = z.object({
     .regex(/\d/, "A senha deve conter pelo menos um número")
     .regex(/[^a-zA-Z0-9]/, "A senha deve conter pelo menos um caractere especial"),
   confirmPassword: z.string().min(1, "A confirmação da senha é obrigatória"),
-  cnpj: z.string().refine(validateCNPJ, "CNPJ inválido"),
 });
 
 const step2Schema = z.object({
@@ -130,7 +101,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       password: '',
       confirmPassword: '',
       schoolName: '',
-      cnpj: '',
       studentCount: '',
       billingCycle: 'MONTHLY',
     }
@@ -165,7 +135,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const handleNextStep = async () => {
     setGlobalError(null);
     if (step === 1) {
-      const isValid = await trigger(['directorName', 'schoolName', 'email', 'phone', 'password', 'confirmPassword', 'cnpj']);
+      const isValid = await trigger(['directorName', 'schoolName', 'email', 'phone', 'password', 'confirmPassword']);
       if (isValid) setStep(2);
     } else if (step === 2) {
       const isValid = await trigger(['studentCount', 'billingCycle']);
@@ -194,7 +164,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           phone: data.phone.replace(/\D/g, ''),
           password: data.password,
           schoolName: data.schoolName.trim(),
-          cnpj: data.cnpj.replace(/\D/g, ''),
           studentCount: parseInt(data.studentCount),
           billingCycle: data.billingCycle,
         },
@@ -441,7 +410,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                       {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres, letras e números', undefined, passwordStrengthIndicator)}
                       {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
                       {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
-                      {renderField('CNPJ', 'cnpj', 'text', '00.000.000/0000-00', formatCNPJ)}
                     </div>
                   );
                 })()}
