@@ -96,6 +96,29 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState<{ score: number; label: string; color: string } | null>(null);
+  const [createdSchoolId, setCreatedSchoolId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (step === 4 && createdSchoolId) {
+      interval = setInterval(async () => {
+        const { data } = await supabase
+          .from('schools')
+          .select('subscription_status')
+          .eq('id', createdSchoolId)
+          .single();
+        
+        if (data && data.subscription_status === 'active') {
+          clearInterval(interval);
+          navigate('/dashboard');
+        }
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [step, createdSchoolId, navigate]);
 
   const { control, handleSubmit, trigger, watch, setValue, formState: { errors } } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -195,9 +218,12 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Redireciona para o Checkout Hosted do Asaas usando a URL retornada pela API
+      // Redireciona para o Checkout Hosted do Asaas em nova guia e entra em Polling
       if (fnData?.invoiceUrl) {
-        window.location.href = fnData.invoiceUrl;
+        setCreatedSchoolId(fnData.schoolId);
+        window.open(fnData.invoiceUrl, '_blank');
+        setIsLoading(false);
+        setStep(4);
       } else {
         navigate('/dashboard');
       }
@@ -521,34 +547,63 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                   </div>
                 )}
 
-                {/* ── Actions ──────────────────────────────────────────────────── */}
-                <div className="mt-8 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={handleBack}
-                    className="px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
-                  >
-                    {step === 1 ? 'Voltar' : 'Anterior'}
-                  </button>
+                {/* ── Step 4: Aguardando Pagamento ───────────────────────────────── */}
+                {step === 4 && (
+                  <div className="space-y-6 animate-fade-in text-center py-8">
+                    <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                      <span className="material-icons-outlined text-4xl text-primary animate-pulse">
+                        hourglass_empty
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                      Aguardando Pagamento
+                    </h2>
+                    <p className="text-gray-500 text-sm font-medium">
+                      O checkout foi aberto em uma nova guia. Assim que o pagamento for concluído lá, você será redirecionado automaticamente para o seu painel!
+                    </p>
+                    
+                    <div className="mt-8 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
+                      <div className="flex items-center justify-center gap-3 text-sm text-gray-600 dark:text-gray-300 font-bold">
+                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                        Verificando status em tempo real...
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-                  {step < 3 && (
+                {/* ── Actions ──────────────────────────────────────────────────── */}
+                {step < 4 && (
+                  <div className="mt-8 flex gap-3">
                     <button
                       type="button"
-                      onClick={handleNextStep}
-                      className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all active:scale-[0.97]"
+                      onClick={handleBack}
+                      className="px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
                     >
-                      Próximo
+                      {step === 1 ? 'Voltar' : 'Anterior'}
                     </button>
-                </div>
+
+                    {step < 3 && (
+                      <button
+                        type="button"
+                        onClick={handleNextStep}
+                        className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all active:scale-[0.97]"
+                      >
+                        Próximo
+                      </button>
+                    )}
+                  </div>
+                )}
               </form>
 
               {/* Login link */}
-              <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-6">
-                Já possui cadastro?{' '}
-                <button onClick={onLogin} className="text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4">
-                  Fazer Login
-                </button>
-              </p>
+              {step < 4 && (
+                <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-6">
+                  Já possui cadastro?{' '}
+                  <button type="button" onClick={onLogin} className="text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4">
+                    Fazer Login
+                  </button>
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -194,7 +194,7 @@ serve(async (req: Request) => {
       id: createdAuthUserId,
       full_name: directorName.trim(),
       email: email.toLowerCase().trim(),
-      role: 'school_admin',
+      role: 'owner',
       school_id: createdSchoolId,
       status: 'active',
     })
