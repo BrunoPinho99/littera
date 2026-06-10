@@ -204,8 +204,7 @@ serve(async (req: Request) => {
         school_id: createdSchoolId,
         email: email.toLowerCase().trim(),
         full_name: directorName.trim(),
-        role: 'owner',
-        updated_at: new Date().toISOString()
+        role: 'owner'
       })
       
     if (profileError) {
