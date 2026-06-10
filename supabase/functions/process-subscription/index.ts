@@ -175,6 +175,7 @@ serve(async (req: Request) => {
         .insert({
           name: schoolName.trim(),
           cnpj: cnpj,
+          email: email.toLowerCase().trim(),
           student_count: studentCount,
           asaas_customer_id: asaasCustomerId,
           subscription_id: subscriptionId,
