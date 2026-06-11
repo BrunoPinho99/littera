@@ -113,9 +113,9 @@ serve(async (req: Request) => {
         name: directorName,
         email: email,
         cpfCnpj: cnpj,
-        postalCode: postalCode,
-        addressNumber: addressNumber || "0",
-        phone: phone || ""
+        postalCode: postalCode || "01310900",
+        addressNumber: addressNumber || "157",
+        phone: phone || "11999999999"
       }
     }
 
