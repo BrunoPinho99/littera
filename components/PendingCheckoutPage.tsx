@@ -72,8 +72,12 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
       if (school) {
         setSchoolData(school);
         if (school.subscription_status === 'active') {
-          // Yay! Redirect to dashboard!
-          window.location.reload(); // App.tsx will route correctly
+          // Pagamento aprovado! Limpar localStorage do checkout e redirecionar para login
+          localStorage.removeItem('checkout_studentCount');
+          localStorage.removeItem('checkout_billingCycle');
+          await supabase.auth.signOut();
+          window.location.href = '/login?activated=true';
+          return;
         }
       }
     };

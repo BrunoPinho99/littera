@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 interface LoginViewProps {
@@ -10,8 +11,11 @@ interface LoginViewProps {
 type UserTypeSelection = 'student' | 'teacher' | 'school_admin';
 
 const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) => {
+  const [searchParams] = useSearchParams();
+  const isActivated = searchParams.get('activated') === 'true';
+
   const [isLogin, setIsLogin] = useState(true);
-  const [userType, setUserType] = useState<UserTypeSelection>('student');
+  const [userType, setUserType] = useState<UserTypeSelection>(isActivated ? 'school_admin' : 'student');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +23,15 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showActivatedBanner, setShowActivatedBanner] = useState(isActivated);
+
+  // Auto-dismiss activated banner after 8 seconds
+  useEffect(() => {
+    if (showActivatedBanner) {
+      const timer = setTimeout(() => setShowActivatedBanner(false), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [showActivatedBanner]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -279,6 +292,18 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
+              {showActivatedBanner && (
+                <div className="p-5 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-900/20 rounded-2xl text-center animate-fade-in-up">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="material-icons-outlined text-emerald-500 text-2xl">check_circle</span>
+                    <span className="text-emerald-700 dark:text-emerald-400 font-black text-sm">Pagamento Confirmado!</span>
+                  </div>
+                  <p className="text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+                    Sua assinatura foi ativada com sucesso. Faça login para acessar o painel completo.
+                  </p>
+                </div>
+              )}
+
               {errorMessage && (
                 <div className="p-5 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-bold text-center animate-shake">
                   {errorMessage}
