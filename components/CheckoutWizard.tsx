@@ -72,38 +72,14 @@ const step2Schema = z.object({
   billingCycle: z.enum(['MONTHLY', 'YEARLY']),
 });
 
-const step3Schema = z.object({
-  paymentMethod: z.enum(['CREDIT_CARD', 'PIX', 'BOLETO']).default('CREDIT_CARD'),
-  ccHolderName: z.string().optional(),
-  ccNumber: z.string().optional(),
-  ccExpiry: z.string().optional(),
-  ccCvv: z.string().optional(),
-});
-
-const checkoutSchema = step1Schema.and(step2Schema).and(step3Schema)
+const checkoutSchema = step1Schema.and(step2Schema)
   .refine(
     (data) => data.password === data.confirmPassword,
     {
       message: "As senhas não coincidem",
       path: ["confirmPassword"],
     }
-  )
-  .superRefine((data, ctx) => {
-    if (data.paymentMethod === 'CREDIT_CARD') {
-      if (!data.ccHolderName || data.ccHolderName.trim().length < 3) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nome do titular obrigatório", path: ["ccHolderName"] });
-      }
-      if (!data.ccNumber || data.ccNumber.replace(/\D/g, '').length < 13) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Número do cartão inválido", path: ["ccNumber"] });
-      }
-      if (!data.ccExpiry || data.ccExpiry.replace(/\D/g, '').length < 4) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Validade inválida (MM/AA)", path: ["ccExpiry"] });
-      }
-      if (!data.ccCvv || data.ccCvv.replace(/\D/g, '').length < 3) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CVV inválido", path: ["ccCvv"] });
-      }
-    }
-  });
+  );
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
@@ -204,17 +180,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     setGlobalError(null);
 
     try {
-      let creditCardData = undefined;
-      if (data.paymentMethod === 'CREDIT_CARD') {
-        const expiryClean = data.ccExpiry?.replace(/\D/g, '') || '';
-        creditCardData = {
-          holderName: data.ccHolderName,
-          number: data.ccNumber?.replace(/\D/g, ''),
-          expiryMonth: expiryClean.slice(0, 2),
-          expiryYear: expiryClean.length === 4 ? `20${expiryClean.slice(2, 4)}` : expiryClean.slice(2),
-          ccv: data.ccCvv?.replace(/\D/g, '')
-        };
-      }
 
       const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
         body: {
