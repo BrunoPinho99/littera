@@ -19,6 +19,7 @@ import SetupAccount from './components/SetupAccount';
 import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
 import CheckoutWizard from './components/CheckoutWizard';
+import { PendingCheckoutPage } from './components/PendingCheckoutPage';
 import FinalizarCadastroView from './components/FinalizarCadastroView';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult } from './types';
@@ -238,7 +239,9 @@ const App: React.FC = () => {
   const isSuspended = session && !isDemoMode && schoolStatus !== 'active' && schoolStatus !== null;
 
   const renderSuspended = () => {
-    const savedCheckoutUrl = localStorage.getItem('littera_checkout_url');
+    if (userType === 'school_admin') {
+      return <PendingCheckoutPage onLogout={handleLogout} session={session} />;
+    }
 
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col items-center justify-center font-sans p-4">
@@ -252,45 +255,18 @@ const App: React.FC = () => {
             </div>
 
             <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight">
-              {userType === 'school_admin' ? 'Pagamento Pendente' : 'Plataforma Suspensa'}
+              Plataforma Suspensa
             </h2>
             <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium leading-relaxed">
-              {userType === 'school_admin'
-                ? 'Sua conta foi criada com sucesso! Para liberar o acesso completo — correções por I.A., turmas e relatórios — finalize o pagamento da assinatura.'
-                : 'A assinatura da sua instituição encontra-se inativa ou pendente. Por favor, avise a secretaria ou coordenação da sua escola.'}
+              A assinatura da sua instituição encontra-se inativa ou pendente. Por favor, avise a secretaria ou coordenação da sua escola.
             </p>
 
-            {userType === 'school_admin' ? (
-              <div className="space-y-3">
-                <button
-                  onClick={() => {
-                    if (savedCheckoutUrl) {
-                      window.location.href = savedCheckoutUrl;
-                    } else {
-                      // Tenta gerar novo checkout via Edge Function
-                      navigate('/app/inst-overview');
-                    }
-                  }}
-                  className="w-full py-4 bg-primary text-white font-black text-sm uppercase tracking-widest rounded-2xl hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95"
-                >
-                  <span className="material-icons-outlined text-lg">payment</span>
-                  Retomar Pagamento
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full py-3 text-gray-400 font-bold text-xs uppercase tracking-widest hover:text-gray-600 transition-colors"
-                >
-                  Sair da Conta
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={handleLogout}
-                className="px-8 py-3 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
-              >
-                Sair da Conta
-              </button>
-            )}
+            <button
+              onClick={handleLogout}
+              className="px-8 py-3 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-gray-300 font-bold rounded-2xl hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
+            >
+              Sair da Conta
+            </button>
           </div>
         </div>
       </div>
