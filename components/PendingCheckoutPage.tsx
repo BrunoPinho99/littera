@@ -315,11 +315,17 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                       Escaneie o QR Code abaixo para liberar seu acesso imediatamente.
                     </p>
                     <div className="bg-white p-4 rounded-2xl inline-block shadow-md border border-gray-100">
-                      <img 
-                        src={paymentResult.pixQrCode?.startsWith('data:') ? paymentResult.pixQrCode : `data:image/jpeg;base64,${paymentResult.pixQrCode}`} 
-                        alt="PIX QR Code" 
-                        className="w-48 h-48 mx-auto" 
-                      />
+                      {paymentResult.pixQrCode ? (
+                        <img 
+                          src={paymentResult.pixQrCode.startsWith('data:') ? paymentResult.pixQrCode : `data:image/jpeg;base64,${paymentResult.pixQrCode}`} 
+                          alt="PIX QR Code" 
+                          className="w-48 h-48 mx-auto" 
+                        />
+                      ) : (
+                        <div className="w-48 h-48 flex items-center justify-center text-gray-400 text-sm">
+                          Gerando PIX...
+                        </div>
+                      )}
                     </div>
                     <div className="mt-6">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2">Ou use o Copia e Cola:</p>

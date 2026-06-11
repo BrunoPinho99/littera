@@ -113,34 +113,64 @@ serve(async (req: Request) => {
       }
     }
 
-    // 3. Buscar os dados do pagamento pendente para exibir na tela (QR Code / Boleto)
-    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments?status=PENDING`, {
+    // 3. Buscar os pagamentos da assinatura para ver o status real da primeira cobrança
+    // Adicionamos um pequeno delay para dar tempo do Asaas processar a transação do cartão
+    if (paymentMethod === 'CREDIT_CARD') {
+      await new Promise(resolve => setTimeout(resolve, 2000))
+    }
+
+    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, {
       headers: asaasHeaders
     })
     
     if (!paymentsRes.ok) {
-      return jsonResponse({ error: 'Erro ao buscar pagamento pendente.' })
+      return jsonResponse({ error: 'Erro ao buscar pagamento.' })
     }
 
     const paymentsData = await paymentsRes.json()
-    const pendingPayments = paymentsData.data || []
+    const allPayments = paymentsData.data || []
     
-    if (pendingPayments.length === 0) {
-      // Se não houver pendente, talvez já esteja pago ou aguardando gerar
-      return jsonResponse({ message: 'Nenhum pagamento pendente no momento.', status: 'NO_PENDING' })
+    if (allPayments.length === 0) {
+      return jsonResponse({ message: 'Nenhum pagamento encontrado.', status: 'NO_PAYMENT' })
     }
 
-    const firstPayment = pendingPayments[0]
+    const firstPayment = allPayments[0]
+
+    // Se for cartão de crédito e já foi rejeitado/falhou
+    if (paymentMethod === 'CREDIT_CARD') {
+      if (firstPayment.status === 'FAILED' || firstPayment.status === 'REJECTED' || firstPayment.status === 'AUTHORIZED_ERROR') {
+        return jsonResponse({ error: 'Cartão recusado pelo banco ou dados inválidos.' })
+      }
+      
+      if (firstPayment.status === 'CONFIRMED' || firstPayment.status === 'RECEIVED') {
+        // Já aprovou! Vamos atualizar o banco por garantia para liberar a tela imediatamente
+        await supabase.from('schools').update({ subscription_status: 'active' }).eq('id', profile.school_id)
+        return jsonResponse({ message: 'Pagamento aprovado.', status: 'PAID' })
+      }
+    }
+
+    // Remove old firstPayment declaration
     let pixQrCode = null
     let pixCopyPaste = null
     let bankSlipUrl = firstPayment.bankSlipUrl
 
     if (paymentMethod === 'PIX') {
+      // Opcional: tentar forçar a atualização do pagamento em si para PIX, caso o Asaas não tenha feito
+      await fetch(`${ASAAS_BASE}/payments/${firstPayment.id}`, {
+        method: 'POST',
+        headers: asaasHeaders,
+        body: JSON.stringify({ billingType: 'PIX' })
+      })
+
       const pixRes = await fetch(`${ASAAS_BASE}/payments/${firstPayment.id}/pixQrCode`, { headers: asaasHeaders })
       if (pixRes.ok) {
         const pixData = await pixRes.json()
         pixQrCode = pixData.encodedImage
         pixCopyPaste = pixData.payload
+      } else {
+        const pixErr = await pixRes.json()
+        console.error('[pay-subscription] Asaas Pix error:', pixErr)
+        return jsonResponse({ error: `Erro ao gerar Pix no Asaas: ${pixErr.errors?.[0]?.description || 'Tente Boleto ou Cartão.'}` })
       }
     }
 
