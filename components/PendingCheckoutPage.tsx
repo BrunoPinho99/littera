@@ -59,12 +59,16 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   useEffect(() => {
     let interval: any;
     const checkStatus = async () => {
-      if (!session?.user?.id) return;
-      
-      const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', session.user.id).single();
-      if (!profile?.school_id) return;
+      const schoolId = session?.user?.user_metadata?.school_id;
+      if (!schoolId) return;
 
-      const { data: school } = await supabase.from('schools').select('*').eq('id', profile.school_id).single();
+      const { data: school, error } = await supabase.from('schools').select('*').eq('id', schoolId).single();
+      
+      if (error) {
+        console.error('Erro ao buscar status da escola:', error);
+        return;
+      }
+
       if (school) {
         setSchoolData(school);
         if (school.subscription_status === 'active') {
