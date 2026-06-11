@@ -129,9 +129,28 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         }
       });
 
+      // Erro da invocação ou erro retornado pela função
       if (fnError || fnData?.error) {
         setIsLoading(false);
-        setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar assinatura.');
+        setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar pagamento.');
+        return;
+      }
+
+      // Cartão aprovado imediatamente
+      if (fnData.status === 'PAID') {
+        setIsLoading(false);
+        // Limpar dados e redirecionar para login
+        localStorage.removeItem('checkout_studentCount');
+        localStorage.removeItem('checkout_billingCycle');
+        await supabase.auth.signOut();
+        window.location.href = '/login?activated=true';
+        return;
+      }
+
+      // Cartão em análise (PENDING)
+      if (fnData.status === 'PENDING_CARD') {
+        setCheckingStatus(true);
+        setIsLoading(false);
         return;
       }
 
@@ -139,7 +158,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         setPaymentResult(fnData);
         setIsLoading(false);
       } else {
-        // Cartão processado, agora aguardamos o webhook
+        // Fallback: aguardar polling
         setCheckingStatus(true);
         setIsLoading(false);
       }
@@ -299,10 +318,20 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
                  </div>
-                 <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-3">Processando Cartão</h2>
-                 <p className="text-gray-500 font-medium text-sm">
-                   Estamos confirmando o seu pagamento com o banco de forma segura. Assim que for aprovado, seu acesso será liberado automaticamente.
+                 <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-3">Aguardando Confirmação</h2>
+                 <p className="text-gray-500 font-medium text-sm mb-6">
+                   O banco está analisando seu pagamento. Assim que for aprovado, seu acesso será liberado automaticamente.
                  </p>
+                 <p className="text-gray-400 text-xs mb-6">
+                   Isso pode levar de alguns segundos até alguns minutos.
+                 </p>
+                 <button
+                   type="button"
+                   onClick={() => { setCheckingStatus(false); setIsLoading(false); setGlobalError(null); }}
+                   className="text-xs font-black text-primary hover:text-primary-dark uppercase tracking-widest transition-colors"
+                 >
+                   ← Voltar e tentar outro método
+                 </button>
                </div>
             ) : paymentResult ? (
               <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 shadow-premium border border-gray-100 dark:border-white/5 text-center animate-fade-in-up">

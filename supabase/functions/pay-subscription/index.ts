@@ -113,40 +113,43 @@ serve(async (req: Request) => {
       }
     }
 
-    // 3. Buscar os pagamentos da assinatura para ver o status real da primeira cobrança
-    // Adicionamos um pequeno delay para dar tempo do Asaas processar a transação do cartão
+    // 3. Para cartão de crédito, fazer polling no Asaas até obter resposta definitiva
     if (paymentMethod === 'CREDIT_CARD') {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-    }
-
-    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, {
-      headers: asaasHeaders
-    })
-    
-    if (!paymentsRes.ok) {
-      return jsonResponse({ error: 'Erro ao buscar pagamento.' })
-    }
-
-    const paymentsData = await paymentsRes.json()
-    const allPayments = paymentsData.data || []
-    
-    if (allPayments.length === 0) {
-      return jsonResponse({ message: 'Nenhum pagamento encontrado.', status: 'NO_PAYMENT' })
-    }
-
-    const firstPayment = allPayments[0]
-
-    // Se for cartão de crédito e já foi rejeitado/falhou
-    if (paymentMethod === 'CREDIT_CARD') {
-      if (firstPayment.status === 'FAILED' || firstPayment.status === 'REJECTED' || firstPayment.status === 'AUTHORIZED_ERROR') {
-        return jsonResponse({ error: 'Cartão recusado pelo banco ou dados inválidos.' })
+      // Esperar até 5 tentativas (3s cada = ~15s total) para o Asaas processar
+      for (let attempt = 0; attempt < 5; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        
+        const checkRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, {
+          headers: asaasHeaders
+        })
+        
+        if (!checkRes.ok) continue
+        
+        const checkData = await checkRes.json()
+        const payments = checkData.data || []
+        if (payments.length === 0) continue
+        
+        const latestPayment = payments[0]
+        console.log(`[pay-subscription] Attempt ${attempt + 1}: payment status = ${latestPayment.status}`)
+        
+        if (latestPayment.status === 'CONFIRMED' || latestPayment.status === 'RECEIVED') {
+          await supabase.from('schools').update({ subscription_status: 'active' }).eq('id', profile.school_id)
+          return jsonResponse({ message: 'Pagamento aprovado!', status: 'PAID', billingType: 'CREDIT_CARD' })
+        }
+        
+        if (latestPayment.status === 'FAILED' || latestPayment.status === 'REJECTED' || latestPayment.status === 'REFUNDED') {
+          return jsonResponse({ error: 'Cartão recusado pelo banco. Verifique os dados e tente novamente.' })
+        }
+        
+        // Se PENDING, continua tentando...
       }
       
-      if (firstPayment.status === 'CONFIRMED' || firstPayment.status === 'RECEIVED') {
-        // Já aprovou! Vamos atualizar o banco por garantia para liberar a tela imediatamente
-        await supabase.from('schools').update({ subscription_status: 'active' }).eq('id', profile.school_id)
-        return jsonResponse({ message: 'Pagamento aprovado.', status: 'PAID' })
-      }
+      // Após 5 tentativas (~15s), retornar que está em análise
+      return jsonResponse({ 
+        message: 'Pagamento em análise pelo banco. Aguarde alguns instantes e a tela será liberada automaticamente.', 
+        status: 'PENDING_CARD',
+        billingType: 'CREDIT_CARD'
+      })
     }
 
     // Remove old firstPayment declaration
