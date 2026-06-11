@@ -190,8 +190,26 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   
   // Calculate price to display based on student count
   const studentCount = schoolData?.student_count || 0;
-  const isYearly = schoolData?.subscription_id ? true : false; // For now assume we don't know easily unless we check billing cycle. Actually if it's monthly it's CC.
-  // We can just show generic until paid, or if we saved plan info in schools
+  
+  // Retrieve billingCycle from localStorage
+  const savedCycle = localStorage.getItem('checkout_billingCycle');
+  const isYearly = savedCycle === 'YEARLY';
+  
+  // Dynamic pricing
+  let basePrice = 299;
+  if (studentCount > 200) {
+    if (studentCount <= 500) basePrice = 499;
+    else if (studentCount <= 1000) basePrice = 799;
+    else if (studentCount <= 2000) basePrice = 1299;
+    else basePrice = 1999;
+  }
+  
+  let finalTotal = basePrice;
+  if (isYearly) {
+    finalTotal = basePrice * 12 * 0.8;
+  }
+  
+  const planName = studentCount <= 200 ? 'Starter' : 'School';
   
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background-light dark:bg-background-dark font-sans overflow-hidden">
@@ -225,10 +243,19 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
               </p>
 
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mt-8 backdrop-blur-sm">
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-4">Seu Plano Atual</p>
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-4xl font-black text-white">{studentCount}</span>
-                  <span className="text-gray-400 font-bold mb-1">Alunos</span>
+                <div className="flex justify-between items-center mb-4">
+                  <p className="text-[10px] font-black text-primary uppercase tracking-widest">Seu Plano Atual</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isYearly ? 'ANUAL (-20%)' : 'MENSAL'}</p>
+                </div>
+                <div className="flex justify-between items-end mb-2">
+                  <div className="flex items-end gap-2">
+                    <span className="text-4xl font-black text-white">{studentCount}</span>
+                    <span className="text-gray-400 font-bold mb-1">Alunos</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-white">R$ {formatBRL(finalTotal)}</span>
+                    <span className="text-xs text-gray-400 block mt-1">/{isYearly ? 'ano' : 'mês'}</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-gray-300">
                   <span className="material-icons-outlined text-primary text-base">verified</span>

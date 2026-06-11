@@ -181,7 +181,10 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       if (isValid) setStep(2);
     } else if (step === 2) {
       const isValid = await trigger(['studentCount', 'billingCycle']);
-      if (isValid) setStep(3);
+      if (isValid) {
+        // Envia o form diretamente do passo 2
+        handleSubmit(onSubmit)();
+      }
     }
   };
 
@@ -223,8 +226,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           cnpj: data.cnpj.replace(/\D/g, ''),
           studentCount: parseInt(data.studentCount),
           billingCycle: data.billingCycle,
-          paymentMethod: data.billingCycle === 'MONTHLY' ? 'CREDIT_CARD' : data.paymentMethod,
-          creditCardData
+          paymentMethod: 'BOLETO', // Default inicial. O usuário escolhe na próxima tela.
         },
       });
 
@@ -246,15 +248,12 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Checkout Transparente:
-      if (fnData?.billingType === 'PIX' || fnData?.billingType === 'BOLETO') {
-        setPaymentResult(fnData);
-        setIsLoading(false);
-        setStep(4);
-      } else {
-        // Se for cartão, e deu sucesso, apenas vai pro painel!
-        navigate('/app/inst-overview');
-      }
+      // Salva no localStorage para a página PendingCheckoutPage saber a escolha
+      localStorage.setItem('checkout_billingCycle', data.billingCycle);
+
+      // Como removemos a tela de pagamento daqui, a próxima tela será a PendingCheckoutPage
+      // através do recarregamento / navegação do App.tsx.
+      window.location.href = '/app/inst-overview';
       
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
@@ -377,15 +376,13 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         </div>
       </div>
 
-      {/* ── Lado Direito — Formulário ─────────────────────────────────────── */}
       <div className="w-full lg:w-[65%] xl:w-[70%] h-full bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar">
         <div className="min-h-full flex items-center justify-center p-4 sm:p-8 lg:p-12">
           <div className="w-full max-w-lg animate-fade-in-up py-6">
             <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 sm:p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
 
-              {/* Step indicator */}
               <div className="flex items-center justify-between mb-6">
-                {STEPS.map((s, i) => (
+                {STEPS.slice(0, 2).map((s, i) => (
                   <React.Fragment key={s.id}>
                     <div className="flex flex-col items-center gap-1.5 z-10">
                       <div
@@ -405,7 +402,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                         {s.label}
                       </span>
                     </div>
-                    {i < STEPS.length - 1 && (
+                    {i < 1 && (
                       <div className={`flex-1 h-0.5 mx-[-10px] rounded-full transition-colors duration-500 z-0 ${
                         step > s.id ? 'bg-primary' : 'bg-gray-100 dark:bg-white/10'
                       }`} />
@@ -422,7 +419,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
               )}
 
               <form onSubmit={handleSubmit(onSubmit)}>
-                {/* ── Step 1: Dados da Escola ───────────────────────────────────── */}
                 {step === 1 && (() => {
                   const passwordValue = formValues.password;
                   const strengthScore = getPasswordStrength(passwordValue);
@@ -474,7 +470,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                   );
                 })()}
 
-                {/* ── Step 2: Plano ───────────────────────────────────── */}
                 {step === 2 && (
                   <div className="space-y-4 animate-fade-in">
                     <div className="mb-4">
@@ -518,190 +513,33 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                         </div>
                       );
                     })()}
-                  </div>
-                )}
 
-                {/* ── Step 3: Pagamento (Cartão) ───────────────────────────────────── */}
-                {step === 3 && (
-                  <div className="space-y-4 animate-fade-in">
-                    <div className="mb-4">
-                      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                        Finalizar Assinatura
-                      </h2>
-                    </div>
-
-                    {(() => {
-                      const priceInfo = getDynamicPrice();
-                      const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      return (
-                        <div className="bg-primary/5 border border-primary/20 dark:bg-primary/10 rounded-2xl p-5 mb-4">
-                          <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-2">Resumo</p>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-gray-600 dark:text-gray-300 font-bold">Plano {priceInfo.planName}</span>
-                            <span className="text-gray-900 dark:text-white font-black">R$ {formatBRL(priceInfo.finalTotal)}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-gray-400">Cobrança {priceInfo.isYearly ? 'Anual' : 'Mensal'}</span>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {formValues.billingCycle === 'YEARLY' && (
-                      <div className="mb-6">
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
-                          Forma de Pagamento
-                        </label>
-                        <div className="flex gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-2xl">
-                          {['CREDIT_CARD', 'PIX', 'BOLETO'].map(method => (
-                            <button
-                              key={method}
-                              type="button"
-                              onClick={() => setValue('paymentMethod', method as any)}
-                              className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${
-                                formValues.paymentMethod === method
-                                  ? 'bg-white dark:bg-surface-dark shadow text-primary'
-                                  : 'text-gray-500'
-                              }`}
-                            >
-                              {method === 'CREDIT_CARD' ? 'Cartão' : method === 'PIX' ? 'PIX' : 'Boleto'}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {(formValues.billingCycle === 'MONTHLY' || formValues.paymentMethod === 'CREDIT_CARD') && (
-                      <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-white/5">
-                        {renderField('Nome impresso no cartão', 'ccHolderName', 'text', 'Nome como no cartão')}
-                        {renderField('Número do cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
-                        <div className="flex gap-4">
-                          <div className="flex-[2]">
-                            {renderField('Validade (MM/AA)', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
-                          </div>
-                          <div className="flex-1">
-                            {renderField('CVV', 'ccCvv', 'text', '123')}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      onClick={handleSubmit(onSubmit)}
-                      disabled={isLoading}
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 mt-4"
-                    >
-                      {isLoading ? (
-                        <span className="material-icons-outlined animate-spin">refresh</span>
-                      ) : (
-                        <>
-                          <span className="material-icons-outlined">lock</span>
-                          {formValues.paymentMethod === 'CREDIT_CARD' ? 'Assinar com Cartão' : 'Gerar Pagamento'}
-                        </>
-                      )}
-                    </button>
-                    
-                    <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
-                      <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
-                        <span className="material-icons-outlined text-xs">verified_user</span>
-                        Pagamento Seguro processado pelo Asaas
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Step 4: Aguardando Pagamento (PIX/Boleto) ───────────────────────────────── */}
-                {step === 4 && paymentResult && (
-                  <div className="space-y-6 animate-fade-in text-center py-8">
-                    <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                      <span className="material-icons-outlined text-4xl text-primary animate-pulse">
-                        check_circle
-                      </span>
-                    </div>
-                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                      Cadastro concluído!
-                    </h2>
-
-                    {paymentResult.billingType === 'PIX' && (
-                      <div className="mt-6">
-                        <p className="text-gray-500 text-sm font-medium mb-4">
-                          Escaneie o QR Code abaixo para liberar seu acesso imediatamente:
-                        </p>
-                        <div className="bg-white p-4 rounded-xl inline-block shadow-md">
-                          <img src={`data:image/jpeg;base64,${paymentResult.pixQrCode}`} alt="PIX QR Code" className="w-48 h-48" />
-                        </div>
-                        <div className="mt-4">
-                          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">Ou use o Copia e Cola:</p>
-                          <div className="flex gap-2 justify-center">
-                            <input 
-                              type="text" 
-                              readOnly 
-                              value={paymentResult.pixCopyPaste} 
-                              className="text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 w-full max-w-[250px] outline-none text-gray-600 dark:text-gray-300"
-                            />
-                            <button 
-                              type="button"
-                              onClick={() => navigator.clipboard.writeText(paymentResult.pixCopyPaste)}
-                              className="bg-primary text-white p-2 rounded-lg hover:bg-primary-dark transition-colors"
-                              title="Copiar"
-                            >
-                              <span className="material-icons-outlined text-sm">content_copy</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {paymentResult.billingType === 'BOLETO' && (
-                      <div className="mt-6">
-                        <p className="text-gray-500 text-sm font-medium mb-4">
-                          Seu boleto foi gerado. O acesso será liberado em até 2 dias úteis após o pagamento.
-                        </p>
-                        <a 
-                          href={paymentResult.bankSlipUrl} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 bg-primary text-white font-bold py-3 px-6 rounded-xl hover:bg-primary-dark transition-colors shadow-lg shadow-primary/30"
-                        >
-                          <span className="material-icons-outlined">receipt_long</span>
-                          Baixar Boleto
-                        </a>
-                      </div>
-                    )}
-                    
-                    <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/10">
-                      <button 
-                        type="button"
-                        onClick={() => navigate('/app/inst-overview')}
-                        className="text-sm font-bold text-gray-500 hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4"
-                      >
-                        Já paguei, ir para o Dashboard
+                    <div className="mt-8 flex items-center justify-between">
+                      <button type="button" onClick={handleBack} className="text-gray-400 hover:text-gray-600 font-bold text-sm transition-colors">Voltar</button>
+                      <button type="button" onClick={handleNextStep} disabled={isLoading} className="bg-primary hover:bg-primary-dark text-white font-black py-4 px-8 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center gap-2">
+                        {isLoading ? <span className="material-icons-outlined animate-spin">refresh</span> : <>Criar Conta <span className="material-icons-outlined">arrow_forward</span></>}
                       </button>
                     </div>
                   </div>
                 )}
 
                 {/* ── Actions ──────────────────────────────────────────────────── */}
-                {step < 4 && (
+                {step === 1 && (
                   <div className="mt-8 flex gap-3">
                     <button
                       type="button"
                       onClick={handleBack}
                       className="px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
                     >
-                      {step === 1 ? 'Voltar' : 'Anterior'}
+                      Voltar
                     </button>
-
-                    {step < 3 && (
-                      <button
-                        type="button"
-                        onClick={handleNextStep}
-                        className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all active:scale-[0.97]"
-                      >
-                        Próximo
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={handleNextStep}
+                      className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all active:scale-[0.97]"
+                    >
+                      Continuar
+                    </button>
                   </div>
                 )}
               </form>
