@@ -49,7 +49,7 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, phone, postalCode, addressNumber } = body
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, phone, postalCode, addressNumber, paymentMethod, creditCardData } = body
 
     // 1. Cálculo de preço
     const isYearly = billingCycle === 'YEARLY'
@@ -87,22 +87,42 @@ serve(async (req: Request) => {
       asaasCustomerId = customerData.id
     }
 
-    // 3. Criar Assinatura no Asaas (UNDEFINED = Cliente escolhe a forma de pagamento)
+    // 3. Criar Assinatura no Asaas
     const today = new Date().toISOString().split('T')[0]
     
-    const asaasBillingType = isYearly ? 'UNDEFINED' : 'CREDIT_CARD'
+    const asaasBillingType = isYearly ? (paymentMethod || 'UNDEFINED') : 'CREDIT_CARD'
+
+    const subscriptionPayload: any = {
+      customer: asaasCustomerId,
+      billingType: asaasBillingType,
+      value: planPrice,
+      nextDueDate: today,
+      cycle: isYearly ? 'YEARLY' : 'MONTHLY',
+      description: `Assinatura Littera – Plano ${planId} (${studentCount} alunos)`
+    }
+
+    if (asaasBillingType === 'CREDIT_CARD' && creditCardData) {
+      subscriptionPayload.creditCard = {
+        holderName: creditCardData.holderName,
+        number: creditCardData.number,
+        expiryMonth: creditCardData.expiryMonth,
+        expiryYear: creditCardData.expiryYear,
+        ccv: creditCardData.ccv
+      }
+      subscriptionPayload.creditCardHolderInfo = {
+        name: directorName,
+        email: email,
+        cpfCnpj: cnpj,
+        postalCode: postalCode,
+        addressNumber: addressNumber || "0",
+        phone: phone || ""
+      }
+    }
 
     const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
       method: 'POST',
       headers: asaasHeaders,
-      body: JSON.stringify({
-        customer: asaasCustomerId,
-        billingType: asaasBillingType,
-        value: planPrice,
-        nextDueDate: today,
-        cycle: isYearly ? 'YEARLY' : 'MONTHLY',
-        description: `Assinatura Littera – Plano ${planId} (${studentCount} alunos)`
-      }),
+      body: JSON.stringify(subscriptionPayload),
     })
 
     const subData = await subRes.json()
@@ -113,19 +133,34 @@ serve(async (req: Request) => {
 
     const subscriptionId = subData.id
 
-    // 4. Buscar a cobrança gerada para obter o Link de Pagamento (invoiceUrl)
+    // 4. Buscar a cobrança gerada para obter o Link de Pagamento, PIX ou Boleto
     let invoiceUrl = null
+    let pixQrCode = null
+    let pixCopyPaste = null
+    let bankSlipUrl = null
+
     const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, {
       headers: asaasHeaders
     })
     if (paymentsRes.ok) {
       const paymentsData = await paymentsRes.json()
       if (paymentsData.data && paymentsData.data.length > 0) {
-        invoiceUrl = paymentsData.data[0].invoiceUrl
+        const firstPayment = paymentsData.data[0]
+        invoiceUrl = firstPayment.invoiceUrl
+        bankSlipUrl = firstPayment.bankSlipUrl
+
+        if (asaasBillingType === 'PIX') {
+          const pixRes = await fetch(`${ASAAS_BASE}/payments/${firstPayment.id}/pixQrCode`, { headers: asaasHeaders })
+          if (pixRes.ok) {
+            const pixData = await pixRes.json()
+            pixQrCode = pixData.encodedImage
+            pixCopyPaste = pixData.payload
+          }
+        }
       }
     }
 
-    if (!invoiceUrl) {
+    if (!invoiceUrl && asaasBillingType !== 'CREDIT_CARD') {
       return jsonResponse({ error: 'Erro ao gerar link de pagamento.' })
     }
 
@@ -221,8 +256,12 @@ serve(async (req: Request) => {
       success: true,
       schoolId: createdSchoolId,
       userId: createdAuthUserId,
-      message: 'Conta criada com sucesso! Redirecionando para pagamento...',
-      invoiceUrl: invoiceUrl,
+      message: 'Conta criada com sucesso!',
+      invoiceUrl,
+      pixQrCode,
+      pixCopyPaste,
+      bankSlipUrl,
+      billingType: asaasBillingType
     })
 
   } catch (err: unknown) {

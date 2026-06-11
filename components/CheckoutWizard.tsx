@@ -72,13 +72,39 @@ const step2Schema = z.object({
   billingCycle: z.enum(['MONTHLY', 'YEARLY']),
 });
 
-const checkoutSchema = step1Schema.and(step2Schema).refine(
-  (data) => data.password === data.confirmPassword,
-  {
-    message: "As senhas não coincidem",
-    path: ["confirmPassword"],
-  }
-);
+const step3Schema = z.object({
+  paymentMethod: z.enum(['CREDIT_CARD', 'PIX', 'BOLETO']).default('CREDIT_CARD'),
+  ccHolderName: z.string().optional(),
+  ccNumber: z.string().optional(),
+  ccExpiry: z.string().optional(),
+  ccCvv: z.string().optional(),
+});
+
+const checkoutSchema = step1Schema.and(step2Schema).and(step3Schema)
+  .refine(
+    (data) => data.password === data.confirmPassword,
+    {
+      message: "As senhas não coincidem",
+      path: ["confirmPassword"],
+    }
+  )
+  .superRefine((data, ctx) => {
+    if (data.paymentMethod === 'CREDIT_CARD') {
+      if (!data.ccHolderName || data.ccHolderName.trim().length < 3) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nome do titular obrigatório", path: ["ccHolderName"] });
+      }
+      if (!data.ccNumber || data.ccNumber.replace(/\D/g, '').length < 13) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Número do cartão inválido", path: ["ccNumber"] });
+      }
+      if (!data.ccExpiry || data.ccExpiry.replace(/\D/g, '').length < 4) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Validade inválida (MM/AA)", path: ["ccExpiry"] });
+      }
+      if (!data.ccCvv || data.ccCvv.replace(/\D/g, '').length < 3) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CVV inválido", path: ["ccCvv"] });
+      }
+    }
+  });
+
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 // ── Steps Info ──────────────────────────────────────────────────────────────────
@@ -101,7 +127,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
 
   // Polling removido porque agora redirecionamos na mesma aba para o Asaas
 
-  const { control, handleSubmit, trigger, watch, setValue, formState: { errors } } = useForm<CheckoutFormData>({
+  const { control, handleSubmit, trigger, watch, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(checkoutSchema),
     mode: 'onChange',
     defaultValues: {
@@ -114,6 +140,11 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       cnpj: '',
       studentCount: '',
       billingCycle: 'MONTHLY',
+      paymentMethod: 'CREDIT_CARD',
+      ccHolderName: '',
+      ccNumber: '',
+      ccExpiry: '',
+      ccCvv: '',
     }
   });
 
@@ -163,11 +194,25 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     }
   };
 
+  const [paymentResult, setPaymentResult] = useState<any>(null);
+
   const onSubmit = useCallback(async (data: CheckoutFormData) => {
     setIsLoading(true);
     setGlobalError(null);
 
     try {
+      let creditCardData = undefined;
+      if (data.paymentMethod === 'CREDIT_CARD') {
+        const expiryClean = data.ccExpiry?.replace(/\D/g, '') || '';
+        creditCardData = {
+          holderName: data.ccHolderName,
+          number: data.ccNumber?.replace(/\D/g, ''),
+          expiryMonth: expiryClean.slice(0, 2),
+          expiryYear: expiryClean.length === 4 ? `20${expiryClean.slice(2, 4)}` : expiryClean.slice(2),
+          ccv: data.ccCvv?.replace(/\D/g, '')
+        };
+      }
+
       const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
         body: {
           directorName: data.directorName.trim(),
@@ -178,6 +223,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           cnpj: data.cnpj.replace(/\D/g, ''),
           studentCount: parseInt(data.studentCount),
           billingCycle: data.billingCycle,
+          paymentMethod: data.billingCycle === 'MONTHLY' ? 'CREDIT_CARD' : data.paymentMethod,
+          creditCardData
         },
       });
 
@@ -199,18 +246,19 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Redireciona para o Checkout Hosted do Asaas na mesma guia
-      if (fnData?.invoiceUrl) {
-        window.location.href = fnData.invoiceUrl;
+      // Checkout Transparente:
+      if (fnData?.billingType === 'PIX' || fnData?.billingType === 'BOLETO') {
+        setPaymentResult(fnData);
         setIsLoading(false);
         setStep(4);
       } else {
-        navigate('/dashboard');
+        // Se for cartão, e deu sucesso, apenas vai pro painel!
+        navigate('/app/inst-overview');
       }
       
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
-      setGlobalError(err.message || 'Falha ao gerar o checkout. Tente novamente.');
+      setGlobalError(err.message || 'Falha ao processar o pagamento. Tente novamente.');
       setIsLoading(false);
     }
   }, [navigate]);
@@ -252,7 +300,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         {errorMsg && (
           <p className="text-rose-500 text-[11px] font-bold ml-1 flex items-center gap-1">
             <span className="material-icons-outlined text-xs">error_outline</span>
-            {errorMsg}
+            {errorMsg as string}
           </p>
         )}
         {extraContent}
@@ -478,11 +526,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                   <div className="space-y-4 animate-fade-in">
                     <div className="mb-4">
                       <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                        Quase lá!
+                        Finalizar Assinatura
                       </h2>
-                      <p className="text-gray-400 text-sm font-medium mt-1">
-                        Você será redirecionado para o ambiente 100% seguro do Asaas para finalizar sua assinatura.
-                      </p>
                     </div>
 
                     {(() => {
@@ -502,6 +547,45 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                       );
                     })()}
 
+                    {formValues.billingCycle === 'YEARLY' && (
+                      <div className="mb-6">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
+                          Forma de Pagamento
+                        </label>
+                        <div className="flex gap-2 bg-gray-100 dark:bg-white/5 p-1 rounded-2xl">
+                          {['CREDIT_CARD', 'PIX', 'BOLETO'].map(method => (
+                            <button
+                              key={method}
+                              type="button"
+                              onClick={() => setValue('paymentMethod', method as any)}
+                              className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all ${
+                                formValues.paymentMethod === method
+                                  ? 'bg-white dark:bg-surface-dark shadow text-primary'
+                                  : 'text-gray-500'
+                              }`}
+                            >
+                              {method === 'CREDIT_CARD' ? 'Cartão' : method === 'PIX' ? 'PIX' : 'Boleto'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {(formValues.billingCycle === 'MONTHLY' || formValues.paymentMethod === 'CREDIT_CARD') && (
+                      <div className="space-y-4 pt-2 border-t border-gray-100 dark:border-white/5">
+                        {renderField('Nome impresso no cartão', 'ccHolderName', 'text', 'Nome como no cartão')}
+                        {renderField('Número do cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
+                        <div className="flex gap-4">
+                          <div className="flex-[2]">
+                            {renderField('Validade (MM/AA)', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
+                          </div>
+                          <div className="flex-1">
+                            {renderField('CVV', 'ccCvv', 'text', '123')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <button
                       type="button"
                       onClick={handleSubmit(onSubmit)}
@@ -513,7 +597,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                       ) : (
                         <>
                           <span className="material-icons-outlined">lock</span>
-                          Ir para Pagamento Seguro
+                          {formValues.paymentMethod === 'CREDIT_CARD' ? 'Assinar com Cartão' : 'Gerar Pagamento'}
                         </>
                       )}
                     </button>
@@ -521,32 +605,79 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     <div className="mt-4 flex items-center justify-center gap-2 opacity-50">
                       <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1">
                         <span className="material-icons-outlined text-xs">verified_user</span>
-                        Ambiente Seguro Asaas
+                        Pagamento Seguro processado pelo Asaas
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* ── Step 4: Aguardando Pagamento ───────────────────────────────── */}
-                {step === 4 && (
+                {/* ── Step 4: Aguardando Pagamento (PIX/Boleto) ───────────────────────────────── */}
+                {step === 4 && paymentResult && (
                   <div className="space-y-6 animate-fade-in text-center py-8">
                     <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6">
                       <span className="material-icons-outlined text-4xl text-primary animate-pulse">
-                        hourglass_empty
+                        check_circle
                       </span>
                     </div>
                     <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                      Aguardando Pagamento
+                      Cadastro concluído!
                     </h2>
-                    <p className="text-gray-500 text-sm font-medium">
-                      O checkout foi aberto em uma nova guia. Assim que o pagamento for concluído lá, você será redirecionado automaticamente para o seu painel!
-                    </p>
-                    
-                    <div className="mt-8 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10">
-                      <div className="flex items-center justify-center gap-3 text-sm text-gray-600 dark:text-gray-300 font-bold">
-                        <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                        Verificando status em tempo real...
+
+                    {paymentResult.billingType === 'PIX' && (
+                      <div className="mt-6">
+                        <p className="text-gray-500 text-sm font-medium mb-4">
+                          Escaneie o QR Code abaixo para liberar seu acesso imediatamente:
+                        </p>
+                        <div className="bg-white p-4 rounded-xl inline-block shadow-md">
+                          <img src={`data:image/jpeg;base64,${paymentResult.pixQrCode}`} alt="PIX QR Code" className="w-48 h-48" />
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">Ou use o Copia e Cola:</p>
+                          <div className="flex gap-2 justify-center">
+                            <input 
+                              type="text" 
+                              readOnly 
+                              value={paymentResult.pixCopyPaste} 
+                              className="text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 w-full max-w-[250px] outline-none text-gray-600 dark:text-gray-300"
+                            />
+                            <button 
+                              type="button"
+                              onClick={() => navigator.clipboard.writeText(paymentResult.pixCopyPaste)}
+                              className="bg-primary text-white p-2 rounded-lg hover:bg-primary-dark transition-colors"
+                              title="Copiar"
+                            >
+                              <span className="material-icons-outlined text-sm">content_copy</span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
+                    )}
+
+                    {paymentResult.billingType === 'BOLETO' && (
+                      <div className="mt-6">
+                        <p className="text-gray-500 text-sm font-medium mb-4">
+                          Seu boleto foi gerado. O acesso será liberado em até 2 dias úteis após o pagamento.
+                        </p>
+                        <a 
+                          href={paymentResult.bankSlipUrl} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 bg-primary text-white font-bold py-3 px-6 rounded-xl hover:bg-primary-dark transition-colors shadow-lg shadow-primary/30"
+                        >
+                          <span className="material-icons-outlined">receipt_long</span>
+                          Baixar Boleto
+                        </a>
+                      </div>
+                    )}
+                    
+                    <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/10">
+                      <button 
+                        type="button"
+                        onClick={() => navigate('/app/inst-overview')}
+                        className="text-sm font-bold text-gray-500 hover:text-primary transition-colors underline decoration-primary/30 underline-offset-4"
+                      >
+                        Já paguei, ir para o Dashboard
+                      </button>
                     </div>
                   </div>
                 )}
