@@ -193,26 +193,19 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   
   // Calculate price to display based on student count
-  const studentCount = schoolData?.student_count || 0;
+  const savedCount = typeof window !== 'undefined' ? localStorage.getItem('checkout_studentCount') : null;
+  const studentCount = schoolData?.student_count || parseInt(savedCount || '0', 10);
   
   // Retrieve billingCycle from localStorage
   const savedCycle = localStorage.getItem('checkout_billingCycle');
   const isYearly = savedCycle === 'YEARLY';
   
-  // Dynamic pricing
-  let basePrice = 299;
-  if (studentCount > 200) {
-    if (studentCount <= 500) basePrice = 499;
-    else if (studentCount <= 1000) basePrice = 799;
-    else if (studentCount <= 2000) basePrice = 1299;
-    else basePrice = 1999;
-  }
+  // Dynamic pricing (per student)
+  const discount = isYearly ? 0.8 : 1;
+  const pricePerStudent = studentCount <= 200 ? 9 * discount : 7 * discount;
+  const monthlyTotal = studentCount * pricePerStudent;
   
-  let finalTotal = basePrice;
-  if (isYearly) {
-    finalTotal = basePrice * 12 * 0.8;
-  }
-  
+  const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
   const planName = studentCount <= 200 ? 'Starter' : 'School';
   
   return (
@@ -322,7 +315,11 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                       Escaneie o QR Code abaixo para liberar seu acesso imediatamente.
                     </p>
                     <div className="bg-white p-4 rounded-2xl inline-block shadow-md border border-gray-100">
-                      <img src={`data:image/jpeg;base64,${paymentResult.pixQrCode}`} alt="PIX QR Code" className="w-48 h-48" />
+                      <img 
+                        src={paymentResult.pixQrCode?.startsWith('data:') ? paymentResult.pixQrCode : `data:image/jpeg;base64,${paymentResult.pixQrCode}`} 
+                        alt="PIX QR Code" 
+                        className="w-48 h-48 mx-auto" 
+                      />
                     </div>
                     <div className="mt-6">
                       <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-2">Ou use o Copia e Cola:</p>
