@@ -74,8 +74,13 @@ serve(async (req: Request) => {
 
     // 2. Atualizar assinatura no Asaas se for Cartão de Crédito
     if (paymentMethod === 'CREDIT_CARD' && creditCardData) {
+      // Obter dados do customer no Asaas para preencher creditCardHolderInfo corretamente
+      const customerRes = await fetch(`${ASAAS_BASE}/customers/${customerId}`, { headers: asaasHeaders })
+      const customerInfo = await customerRes.json()
+
       const updatePayload: any = {
         billingType: 'CREDIT_CARD',
+        updatePendingPayments: true, // Garante que a cobrança já criada mude para Cartão e tente cobrar agora
         creditCard: creditCardData
       }
       
@@ -83,15 +88,15 @@ serve(async (req: Request) => {
         updatePayload.creditCardHolderInfo = {
           name: creditCardData.holderName,
           email: user.email,
-          cpfCnpj: '00000000000', // Asaas geralmente requer isso, mas podemos tentar sem ou com um dummy se já estiver no customer
-          postalCode: '01310900',
-          addressNumber: '157',
-          phone: '11999999999'
+          cpfCnpj: customerInfo.cpfCnpj || '00000000000',
+          postalCode: customerInfo.postalCode || '01310900',
+          addressNumber: customerInfo.addressNumber || '157',
+          phone: customerInfo.phone || customerInfo.mobilePhone || '11999999999'
         }
       }
 
       const updateRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
-        method: 'POST', // Asaas uses POST for updating
+        method: 'POST',
         headers: asaasHeaders,
         body: JSON.stringify(updatePayload),
       })
