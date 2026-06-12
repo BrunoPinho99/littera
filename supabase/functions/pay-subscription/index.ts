@@ -57,20 +57,36 @@ serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { paymentMethod, creditCardData } = body
+    const { paymentMethod, creditCardData, action } = body
 
-    // 1. Obter a escola do usuário
+    // 1. Obter Profile e School do usuário logado
     const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
-    if (!profile || !profile.school_id) {
-      return jsonResponse({ error: 'Escola não encontrada para este usuário.' }, 404)
-    }
+    if (!profile?.school_id) return jsonResponse({ error: 'Escola não encontrada.' }, 404)
 
     const { data: school } = await supabase.from('schools').select('asaas_customer_id, subscription_id').eq('id', profile.school_id).single()
-    if (!school || !school.subscription_id) {
-      return jsonResponse({ error: 'Assinatura não encontrada para esta escola.' }, 404)
-    }
+    if (!school?.subscription_id) return jsonResponse({ error: 'Assinatura não encontrada.' }, 404)
 
-    const { subscription_id: subscriptionId, asaas_customer_id: customerId } = school
+    const subscriptionId = school.subscription_id
+    const customerId = school.asaas_customer_id
+
+    // Action para verificar o status sem tentar pagar de novo (útil como fallback do webhook)
+    if (action === 'check_status') {
+      const checkRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, { headers: asaasHeaders })
+      if (!checkRes.ok) return jsonResponse({ error: 'Erro ao consultar Asaas' }, 500)
+      
+      const checkData = await checkRes.json()
+      const payments = checkData.data || []
+      if (payments.length === 0) return jsonResponse({ status: 'PENDING_CARD' })
+      
+      const latestPayment = payments[0]
+      if (latestPayment.status === 'CONFIRMED' || latestPayment.status === 'RECEIVED') {
+        await supabase.from('schools').update({ subscription_status: 'active' }).eq('id', profile.school_id)
+        return jsonResponse({ status: 'PAID' })
+      } else if (latestPayment.status === 'FAILED' || latestPayment.status === 'REJECTED') {
+        return jsonResponse({ status: 'REJECTED' })
+      }
+      return jsonResponse({ status: 'PENDING_CARD' })
+    }
 
     // 2. Atualizar assinatura no Asaas se for Cartão de Crédito
     if (paymentMethod === 'CREDIT_CARD' && creditCardData) {

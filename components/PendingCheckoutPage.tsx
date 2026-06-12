@@ -72,7 +72,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
       if (school) {
         setSchoolData(school);
         if (school.subscription_status === 'active') {
-          // Pagamento aprovado! Limpar localStorage do checkout e redirecionar para login
+          // Pagamento aprovado via Webhook!
           localStorage.removeItem('checkout_studentCount');
           localStorage.removeItem('checkout_billingCycle');
           await supabase.auth.signOut();
@@ -80,13 +80,31 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
           return;
         }
       }
+
+      // Se ainda não ativou, e estamos na tela "Aguardando Confirmação", fazer um ping direto na API do Asaas
+      if (checkingStatus) {
+        const { data: checkData, error: checkError } = await supabase.functions.invoke('pay-subscription', {
+          body: { action: 'check_status' },
+          headers: { Authorization: `Bearer ${session.access_token}` }
+        });
+        
+        if (!checkError && checkData?.status === 'PAID') {
+          localStorage.removeItem('checkout_studentCount');
+          localStorage.removeItem('checkout_billingCycle');
+          await supabase.auth.signOut();
+          window.location.href = '/login?activated=true';
+        } else if (!checkError && checkData?.status === 'REJECTED') {
+          setCheckingStatus(false);
+          setGlobalError('Cartão recusado pelo banco. Verifique os dados e tente novamente.');
+        }
+      }
     };
 
     checkStatus();
-    interval = setInterval(checkStatus, 5000); // Check every 5s
+    interval = setInterval(checkStatus, 5000); // Check every 5 seconds
 
     return () => clearInterval(interval);
-  }, [session]);
+  }, [session, checkingStatus]);
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(paymentSchema),
