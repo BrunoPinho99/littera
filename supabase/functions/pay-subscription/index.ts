@@ -105,8 +105,8 @@ serve(async (req: Request) => {
           name: creditCardData.holderName,
           email: user.email,
           cpfCnpj: customerInfo.cpfCnpj || '00000000000',
-          postalCode: customerInfo.postalCode || '01310900',
-          addressNumber: customerInfo.addressNumber || '157',
+          postalCode: body.billingPostalCode || customerInfo.postalCode || '01310900',
+          addressNumber: body.billingAddressNumber || customerInfo.addressNumber || '157',
           phone: customerInfo.phone || customerInfo.mobilePhone || '11999999999'
         }
       }

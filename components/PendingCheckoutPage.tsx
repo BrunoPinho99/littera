@@ -23,6 +23,8 @@ const paymentSchema = z.object({
   ccNumber: z.string().optional(),
   ccExpiry: z.string().optional(),
   ccCvv: z.string().optional(),
+  billingPostalCode: z.string().optional(),
+  billingAddressNumber: z.string().optional(),
 }).superRefine((data, ctx) => {
   if (data.paymentMethod === 'CREDIT_CARD') {
     if (!data.ccHolderName || data.ccHolderName.trim().length < 3) {
@@ -36,6 +38,12 @@ const paymentSchema = z.object({
     }
     if (!data.ccCvv || data.ccCvv.replace(/\D/g, '').length < 3) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CVV inválido", path: ["ccCvv"] });
+    }
+    if (!data.billingPostalCode || data.billingPostalCode.replace(/\D/g, '').length < 8) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CEP inválido", path: ["billingPostalCode"] });
+    }
+    if (!data.billingAddressNumber || data.billingAddressNumber.trim() === '') {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Número obrigatório", path: ["billingAddressNumber"] });
     }
   }
 });
@@ -140,7 +148,9 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
       const { data: fnData, error: fnError } = await supabase.functions.invoke('pay-subscription', {
         body: {
           paymentMethod: data.paymentMethod,
-          creditCardData
+          creditCardData,
+          billingPostalCode: data.billingPostalCode,
+          billingAddressNumber: data.billingAddressNumber
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -473,6 +483,42 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                         </div>
                         <div className="flex-1">
                           {renderField('CVV', 'ccCvv', 'text', '123')}
+                        </div>
+                      </div>
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">CEP</label>
+                          <Controller
+                            name="billingPostalCode"
+                            control={control}
+                            render={({ field }) => (
+                              <input
+                                {...field}
+                                placeholder="00000-000"
+                                className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 outline-none font-bold text-sm"
+                                onChange={(e) => {
+                                  const val = e.target.value.replace(/\D/g, '');
+                                  field.onChange(val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 8)}` : val);
+                                }}
+                              />
+                            )}
+                          />
+                          {errors.billingPostalCode && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{errors.billingPostalCode.message as string}</p>}
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Número</label>
+                          <Controller
+                            name="billingAddressNumber"
+                            control={control}
+                            render={({ field }) => (
+                              <input
+                                {...field}
+                                placeholder="Ex: 123"
+                                className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 outline-none font-bold text-sm"
+                              />
+                            )}
+                          />
+                          {errors.billingAddressNumber && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{errors.billingAddressNumber.message as string}</p>}
                         </div>
                       </div>
                     </div>

@@ -62,6 +62,8 @@ const step1Schema = z.object({
     .regex(/[^a-zA-Z0-9]/, "A senha deve conter pelo menos um caractere especial"),
   confirmPassword: z.string().min(1, "A confirmação da senha é obrigatória"),
   cnpj: z.string().refine(validateCNPJ, "CNPJ inválido"),
+  postalCode: z.string().min(8, "CEP inválido"),
+  addressNumber: z.string().min(1, "Número obrigatório"),
 });
 
 const step2Schema = z.object({
@@ -114,6 +116,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       confirmPassword: '',
       schoolName: '',
       cnpj: '',
+      postalCode: '',
+      addressNumber: '',
       studentCount: '',
       billingCycle: 'MONTHLY',
       paymentMethod: 'CREDIT_CARD',
@@ -153,7 +157,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const handleNextStep = async () => {
     setGlobalError(null);
     if (step === 1) {
-      const isValid = await trigger(['directorName', 'schoolName', 'email', 'phone', 'password', 'confirmPassword', 'cnpj']);
+      const isValid = await trigger(['directorName', 'schoolName', 'email', 'phone', 'password', 'confirmPassword', 'cnpj', 'postalCode', 'addressNumber']);
       if (isValid) setStep(2);
     } else if (step === 2) {
       const isValid = await trigger(['studentCount', 'billingCycle']);
@@ -189,6 +193,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           password: data.password,
           schoolName: data.schoolName.trim(),
           cnpj: data.cnpj.replace(/\D/g, ''),
+          postalCode: data.postalCode.replace(/\D/g, ''),
+          addressNumber: data.addressNumber.trim(),
           studentCount: parseInt(data.studentCount),
           billingCycle: data.billingCycle,
           paymentMethod: 'BOLETO', // Default inicial. O usuário escolhe na próxima tela.
@@ -431,6 +437,17 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                       {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
                       {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
                       {renderField('CNPJ', 'cnpj', 'text', '00.000.000/0000-00', formatCNPJ)}
+                      <div className="flex gap-4">
+                        <div className="flex-[2]">
+                          {renderField('CEP', 'postalCode', 'text', '00000-000', (v) => {
+                            const val = v.replace(/\D/g, '');
+                            return val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 8)}` : val;
+                          })}
+                        </div>
+                        <div className="flex-1">
+                          {renderField('Número', 'addressNumber', 'text', '123')}
+                        </div>
+                      </div>
                     </div>
                   );
                 })()}
