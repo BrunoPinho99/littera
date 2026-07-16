@@ -1,10 +1,10 @@
+/// <reference path="./deno.d.ts" />
 // supabase/functions/webhook-asaas/index.ts
 // Edge Function – Recebe webhooks do Asaas e atualiza o status de assinatura
-// Rota PÚBLICA (sem verificação JWT) – valida via Asaas-Access-Token
+// Rota PÚBLICA (sem verificação JWT) – valida via Asaas-Access-Token + HMAC
 // Deno Deploy runtime (Supabase Edge Functions)
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
 
@@ -55,17 +55,50 @@ function mapEventToStatus(event: string): SubscriptionStatus | null {
   }
 }
 
+// ── Verificação HMAC-SHA256 ─────────────────────────────────────────────────────
+
+async function verifyHmacSignature(
+  rawBody: string,
+  signature: string,
+  secret: string
+): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+    const signatureBytes = await crypto.subtle.sign('HMAC', key, encoder.encode(rawBody))
+    const expectedSignature = Array.from(new Uint8Array(signatureBytes))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('')
+
+    // Comparação em tempo constante para evitar timing attacks
+    if (signature.length !== expectedSignature.length) return false
+    let mismatch = 0
+    for (let i = 0; i < signature.length; i++) {
+      mismatch |= signature.charCodeAt(i) ^ expectedSignature.charCodeAt(i)
+    }
+    return mismatch === 0
+  } catch {
+    return false
+  }
+}
+
 // ── CORS ────────────────────────────────────────────────────────────────────────
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, asaas-access-token',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, asaas-access-token, x-asaas-signature',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 // ── Handler principal ───────────────────────────────────────────────────────────
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   // Preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -78,17 +111,35 @@ serve(async (req: Request) => {
   try {
     // ── 1. Validar token de autenticação do Asaas ─────────────────────────────
     const WEBHOOK_TOKEN = Deno.env.get('ASAAS_WEBHOOK_TOKEN')
-
-    if (WEBHOOK_TOKEN) {
-      const receivedToken = req.headers.get('asaas-access-token')
-      if (receivedToken !== WEBHOOK_TOKEN) {
-        console.warn('[webhook-asaas] Token inválido recebido:', receivedToken?.substring(0, 8) + '...')
-        return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-      }
+    const receivedToken = req.headers.get('asaas-access-token')
+    
+    if (!WEBHOOK_TOKEN || receivedToken !== WEBHOOK_TOKEN) {
+      console.warn('[webhook-asaas] Token inválido recebido:', receivedToken?.substring(0, 8) + '...')
+      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
     }
 
-    // ── 2. Parse do payload ───────────────────────────────────────────────────
-    const body: AsaasWebhookPayload = await req.json()
+    // ── 2. Ler body cru e verificar assinatura HMAC (se configurada) ──────────
+    const rawBody = await req.text()
+    const WEBHOOK_SECRET = Deno.env.get('ASAAS_WEBHOOK_SECRET')
+    const receivedSignature = req.headers.get('x-asaas-signature')
+
+    if (WEBHOOK_SECRET) {
+      if (!receivedSignature) {
+        console.warn('[webhook-asaas] HMAC configurado mas header x-asaas-signature ausente.')
+        return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+      }
+
+      const isValid = await verifyHmacSignature(rawBody, receivedSignature, WEBHOOK_SECRET)
+      if (!isValid) {
+        console.warn('[webhook-asaas] Assinatura HMAC inválida.')
+        return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+      }
+
+      console.log('[webhook-asaas] Assinatura HMAC verificada com sucesso.')
+    }
+
+    // ── 3. Parse do payload ───────────────────────────────────────────────────
+    const body: AsaasWebhookPayload = JSON.parse(rawBody)
     const { event, payment, subscription } = body
 
     // Asaas envia os dados no campo 'payment' para eventos de cobrança
@@ -138,7 +189,7 @@ serve(async (req: Request) => {
 
     // ── 4. Auto-provisionamento (pagamento de Payment Link sem escola) ────────
     if (!schoolId && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED' || event === 'SUBSCRIPTION_CREATED')) {
-      schoolId = await autoProvisionSchool(supabase, entity)
+      schoolId = await autoProvisionSchool(supabase, entity as NonNullable<AsaasWebhookPayload['payment']>)
     }
 
     if (!schoolId) {
@@ -159,7 +210,7 @@ serve(async (req: Request) => {
     }
 
     // Salvar subscription_id se disponível e ativando
-    if (payment.subscription && (newStatus === 'active')) {
+    if (payment?.subscription && (newStatus === 'active')) {
       updates.subscription_id = payment.subscription
     }
 
@@ -176,8 +227,10 @@ serve(async (req: Request) => {
 
     if (updateError) {
       console.error('[webhook-asaas] Erro ao atualizar escola:', updateError)
-      // Retorna 200 para o Asaas não re-tentar indefinidamente
-      return new Response('ok', { status: 200, headers: corsHeaders })
+      return new Response(
+        JSON.stringify({ error: 'Falha ao atualizar escola', details: updateError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log(`[webhook-asaas] Escola ${schoolId} atualizada: status → ${newStatus}`)
@@ -187,15 +240,17 @@ serve(async (req: Request) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Erro desconhecido'
     console.error('[webhook-asaas] Erro no processamento:', message)
-    // Sempre retorna 200 para evitar retries infinitos do Asaas
-    return new Response('ok', { status: 200, headers: corsHeaders })
+    return new Response(
+      JSON.stringify({ error: 'Erro interno no processamento do webhook', details: message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 })
 
 // ── Auto-provisioning: cria escola + conta quando pagamento chega sem vínculo ──
 
 async function autoProvisionSchool(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   payment: NonNullable<AsaasWebhookPayload['payment']>
 ): Promise<string | null> {
   const customerId = payment.customer
@@ -297,7 +352,7 @@ async function autoProvisionSchool(
     console.log(`[webhook-asaas] Auto-provisionamento: escola ${schoolId} criada para ${email}`)
     return schoolId
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('[webhook-asaas] Erro no auto-provisionamento:', error)
     return null
   }

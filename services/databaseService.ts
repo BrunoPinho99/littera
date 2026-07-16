@@ -333,25 +333,96 @@ export const createStudentsBulk = async (students: { name: string; email: string
     errors: [] as { email: string, reason: string }[]
   };
 
-  // Busca nome da escola uma única vez para todos os convites
+  if (schoolId === 'demo-school') {
+    // MODO DEMO - mantém fluxo sequencial simulado
+    const schoolName = 'Escola Demonstração';
+    for (const student of students) {
+      try {
+        const result = await createStudent({ ...student, school_id: schoolId }, schoolName);
+        if (result) results.success.push(result);
+      } catch (err: any) {
+        results.errors.push({ email: student.email, reason: err.message || "Erro desconhecido" });
+      }
+    }
+    return results;
+  }
+
+  // Busca nome da escola uma única vez
   const schoolData = await getSchoolData(schoolId).catch(() => null);
   const schoolName = schoolData?.name || 'sua escola';
 
-  for (const student of students) {
-    try {
-      const result = await createStudent(
-        { ...student, school_id: schoolId },
-        schoolName // passa o nome já buscado para evitar N queries
-      );
-      if (result) {
-        results.success.push(result);
-      }
-    } catch (err: any) {
-      results.errors.push({
-        email: student.email,
-        reason: err.message || "Erro desconhecido"
-      });
+  // 1. Filtrar emails já existentes para evitar erro de constraint
+  const emails = students.map(s => s.email);
+  const { data: existingProfiles } = await supabase
+    .from('profiles')
+    .select('email')
+    .in('email', emails);
+  
+  const existingEmails = new Set((existingProfiles || []).map(p => p.email));
+  
+  const validStudents = students.filter(s => {
+    if (existingEmails.has(s.email)) {
+      results.errors.push({ email: s.email, reason: "Este e-mail já está cadastrado no sistema." });
+      return false;
     }
+    return true;
+  });
+
+  if (validStudents.length === 0) return results;
+
+  // 2. Preparar os perfis para inserção em lote
+  const profilesToInsert = validStudents.map(student => ({
+    id: generateUUID(),
+    full_name: student.name,
+    email: student.email,
+    role: 'student',
+    school_id: schoolId,
+    class_id: student.class_id,
+    status: 'invited',
+    registration_number: student.registration_number
+  }));
+
+  // 3. Inserir em lote no banco
+  const { data: insertedProfiles, error: insertError } = await supabase
+    .from('profiles')
+    .insert(profilesToInsert)
+    .select();
+
+  if (insertError) {
+    validStudents.forEach(s => {
+      results.errors.push({ email: s.email, reason: insertError.message });
+    });
+    return results;
+  }
+
+  // 4. Enviar e-mails de convite concorrentemente em lotes de 10
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < insertedProfiles.length; i += BATCH_SIZE) {
+    const batch = insertedProfiles.slice(i, i + BATCH_SIZE);
+    
+    await Promise.all(batch.map(async (profile: any) => {
+      await sendInviteEmail({
+        email: profile.email,
+        name: profile.full_name,
+        role: 'student',
+        school_id: profile.school_id,
+        school_name: schoolName,
+        class_id: profile.class_id,
+      });
+
+      results.success.push({
+        id: profile.id,
+        name: profile.full_name,
+        email: profile.email,
+        averageScore: 0,
+        essaysSubmitted: 0,
+        lastActivity: "Novo",
+        status: 'invited',
+        class_id: profile.class_id,
+        school_id: profile.school_id,
+        registration_number: profile.registration_number
+      });
+    }));
   }
 
   return results;

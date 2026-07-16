@@ -234,7 +234,7 @@ Responda seguindo o schema abaixo:
 
     return parsed;
   } catch (error: any) {
-    console.error("Erro na Correção (Ativando Fallback Seguro):", error);
+    console.error("[GEMINI_FALLBACK_TRIGGERED] Erro na Correção (Ativando Fallback Seguro):", error);
     
     // FALLBACK INTELIGENTE - Garante que o cliente NUNCA recebe erro.
     return {
@@ -400,7 +400,7 @@ Retorne APENAS um JSON válido, sem markdown, sem comentários, seguindo este sc
 
     return parsed;
   } catch (error: any) {
-    console.error("Erro na Correção Manuscrita (Ativando Fallback):", error);
+    console.error("[GEMINI_FALLBACK_TRIGGERED] Erro na Correção Manuscrita (Ativando Fallback):", error);
 
     // FALLBACK — garante que o cliente nunca recebe erro
     return {

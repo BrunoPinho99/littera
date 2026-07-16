@@ -173,7 +173,21 @@ serve(async (req: Request) => {
       })
     }
 
-    // Remove old firstPayment declaration
+    // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto
+    let firstPayment: any = null;
+    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, { headers: asaasHeaders });
+    if (paymentsRes.ok) {
+      const paymentsData = await paymentsRes.json();
+      const payments = paymentsData.data || [];
+      if (payments.length > 0) {
+        firstPayment = payments[0];
+      }
+    }
+
+    if (!firstPayment) {
+      return jsonResponse({ error: 'Nenhum pagamento encontrado para esta assinatura.' }, 404);
+    }
+
     let pixQrCode = null
     let pixCopyPaste = null
     let bankSlipUrl = firstPayment.bankSlipUrl

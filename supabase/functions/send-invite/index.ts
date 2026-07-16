@@ -88,6 +88,24 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // Create provisional profile with 'pending' status
+    if (data?.user) {
+      const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+        id: data.user.id,
+        full_name: name,
+        email: email,
+        role: role === 'professor' ? 'teacher' : 'student',
+        school_id: school_id,
+        class_id: class_id ?? null,
+        status: 'pending'
+      });
+      
+      if (profileError) {
+        console.error('Error creating provisional profile:', profileError);
+        // We do not fail the request here, but log it.
+      }
+    }
+
     console.log(`Invite sent to ${email} (${name}) for school ${school_name}`);
 
     return new Response(JSON.stringify({
