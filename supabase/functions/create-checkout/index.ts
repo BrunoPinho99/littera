@@ -1,5 +1,5 @@
 // supabase/functions/create-checkout/index.ts
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,7 +14,7 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   })
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
