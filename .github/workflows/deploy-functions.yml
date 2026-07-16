@@ -1,0 +1,46 @@
+name: Deploy Edge Functions
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/functions/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy process-subscription
+        run: supabase functions deploy process-subscription --project-ref $PROJECT_ID
+        
+      - name: Deploy pay-subscription
+        run: supabase functions deploy pay-subscription --project-ref $PROJECT_ID
+        
+      - name: Deploy complete-onboarding
+        run: supabase functions deploy complete-onboarding --project-ref $PROJECT_ID
+        
+      - name: Deploy create-checkout
+        run: supabase functions deploy create-checkout --project-ref $PROJECT_ID
+        
+      - name: Deploy onboarding
+        run: supabase functions deploy onboarding --project-ref $PROJECT_ID
+        
+      - name: Deploy send-invite
+        run: supabase functions deploy send-invite --project-ref $PROJECT_ID
+
+      - name: Deploy webhook-asaas
+        run: supabase functions deploy webhook-asaas --project-ref $PROJECT_ID
