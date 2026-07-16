@@ -205,25 +205,43 @@ Deno.serve(async (req: Request) => {
     let createdSchoolId = existingProfile?.school_id;
 
     if (!createdSchoolId) {
-      // Inserir Escola Nova
-      const { data: schoolData, error: schoolError } = await supabase
+      // Verificar se já existe escola com este CNPJ (tentativa anterior)
+      const { data: existingSchool } = await supabase
         .from('schools')
-        .insert({
-          name: schoolName.trim(),
-          cnpj: cnpj,
-          email: email.toLowerCase().trim(),
-          student_count: studentCount,
-          asaas_customer_id: asaasCustomerId,
-          subscription_id: subscriptionId,
-          subscription_status: 'inactive'
-        })
-        .select()
+        .select('id')
+        .eq('cnpj', cnpj)
         .single()
 
-      if (schoolError || !schoolData) {
-        return jsonResponse({ error: `Usuário autenticado, mas erro ao salvar escola: ${schoolError?.message || 'Desconhecido'}` })
+      if (existingSchool) {
+        // Escola já existe — atualizar dados da assinatura
+        createdSchoolId = existingSchool.id
+        await supabase.from('schools').update({
+          asaas_customer_id: asaasCustomerId,
+          subscription_id: subscriptionId,
+          student_count: studentCount,
+          subscription_status: 'inactive'
+        }).eq('id', createdSchoolId)
+      } else {
+        // Inserir Escola Nova
+        const { data: schoolData, error: schoolError } = await supabase
+          .from('schools')
+          .insert({
+            name: schoolName.trim(),
+            cnpj: cnpj,
+            email: email.toLowerCase().trim(),
+            student_count: studentCount,
+            asaas_customer_id: asaasCustomerId,
+            subscription_id: subscriptionId,
+            subscription_status: 'inactive'
+          })
+          .select()
+          .single()
+
+        if (schoolError || !schoolData) {
+          return jsonResponse({ error: `Usuário autenticado, mas erro ao salvar escola: ${schoolError?.message || 'Desconhecido'}` })
+        }
+        createdSchoolId = schoolData.id
       }
-      createdSchoolId = schoolData.id;
     } else {
       // Usuário já tem escola, apenas atualizamos a assinatura
       await supabase.from('schools').update({
