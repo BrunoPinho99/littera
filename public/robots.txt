@@ -1,0 +1,13 @@
+# Littera — https://littera.app.br
+# Permite indexação da landing page e bloqueia rotas internas
+
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /cadastro
+Disallow: /login
+Disallow: /setup-account
+Disallow: /convite
+Disallow: /cadastro/finalizar
+
+Sitemap: https://littera.app.br/sitemap.xml

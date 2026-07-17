@@ -7,6 +7,28 @@
     <title>Littera — A plataforma de redação que aprova no ENEM</title>
     <meta name="description" content="Correção de redação com IA nas 5 competências do ENEM. Feedback imediato, evolução contínua e ranking." />
     
+    <!-- SEO: Canonical URL (sempre aponta para a landing page) -->
+    <link rel="canonical" href="https://littera.app.br/" />
+    
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://littera.app.br/" />
+    <meta property="og:title" content="Littera — A plataforma de redação que aprova no ENEM" />
+    <meta property="og:description" content="Correção de redação com IA nas 5 competências do ENEM. Feedback imediato, evolução contínua e ranking." />
+    <meta property="og:site_name" content="Littera" />
+    
+    <!-- Bloqueia indexação de rotas internas -->
+    <script>
+      (function() {
+        var path = window.location.pathname;
+        if (path.startsWith('/app') || path.startsWith('/cadastro') || path.startsWith('/login') || path.startsWith('/setup-account') || path.startsWith('/convite')) {
+          var meta = document.createElement('meta');
+          meta.name = 'robots';
+          meta.content = 'noindex, nofollow';
+          document.head.appendChild(meta);
+        }
+      })();
+    </script>
     <!-- Tailwind via CDN -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
 
