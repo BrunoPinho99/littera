@@ -407,7 +407,7 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={
-        session || isDemoMode ? (
+        (session || isDemoMode) && !isSuspended ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
           <LandingPage
@@ -444,7 +444,7 @@ const App: React.FC = () => {
         )
       } />
       <Route path="/cadastro" element={
-        session || isDemoMode ? (
+        (session || isDemoMode) && !isSuspended ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
           <CheckoutWizard onBack={() => window.location.href = '/'} onLogin={() => window.location.href = '/login'} />

@@ -311,13 +311,26 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                 </div>
               </div>
 
-              <button
-                onClick={onLogout}
-                className="mt-8 text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <span className="material-icons-outlined text-sm">logout</span>
-                Sair da Conta
-              </button>
+              <div className="flex gap-4 mt-8">
+                <button
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    localStorage.clear();
+                    window.location.href = '/cadastro';
+                  }}
+                  className="text-xs font-bold uppercase tracking-widest text-primary hover:text-white transition-colors flex items-center gap-2 bg-primary/10 hover:bg-primary px-4 py-2 rounded-xl"
+                >
+                  <span className="material-icons-outlined text-sm">add_circle</span>
+                  Novo Cadastro
+                </button>
+                <button
+                  onClick={onLogout}
+                  className="text-xs font-bold uppercase tracking-widest text-gray-500 hover:text-white transition-colors flex items-center gap-2"
+                >
+                  <span className="material-icons-outlined text-sm">logout</span>
+                  Sair da Conta
+                </button>
+              </div>
             </div>
           </div>
         </div>
