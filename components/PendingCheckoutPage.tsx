@@ -63,15 +63,22 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   const [schoolData, setSchoolData] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
 
-  // Poll school status if payment is processed (or periodically)
+  // Polling: verifica o status da escola a cada 5s — funciona para PIX, Boleto e Cartão
   useEffect(() => {
     let interval: any;
+    let redirecting = false;
+
     const checkStatus = async () => {
+      if (redirecting) return;
       const schoolId = session?.user?.user_metadata?.school_id;
       if (!schoolId) return;
 
-      const { data: school, error } = await supabase.from('schools').select('*').eq('id', schoolId).single();
-      
+      const { data: school, error } = await supabase
+        .from('schools')
+        .select('id, name, subscription_status, student_count')
+        .eq('id', schoolId)
+        .single();
+
       if (error) {
         console.error('Erro ao buscar status da escola:', error);
         return;
@@ -79,37 +86,49 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
 
       if (school) {
         setSchoolData(school);
+
         if (school.subscription_status === 'active') {
-          // Pagamento aprovado via Webhook!
+          // Pagamento aprovado! Limpar flags e redirecionar direto para o dashboard
+          redirecting = true;
+          clearInterval(interval);
           localStorage.removeItem('checkout_studentCount');
           localStorage.removeItem('checkout_billingCycle');
-          await supabase.auth.signOut();
-          window.location.href = '/login?activated=true';
+
+          // Forçar refresh da sessão para pegar user_metadata atualizado
+          await supabase.auth.refreshSession();
+          // Recarregar a página — o App.tsx vai detectar a assinatura ativa e liberar o acesso
+          window.location.href = '/app/inst-overview';
           return;
         }
       }
 
-      // Se ainda não ativou, e estamos na tela "Aguardando Confirmação", fazer um ping direto na API do Asaas
+      // Se estamos aguardando confirmação de cartão, fazer ping extra na função pay-subscription
       if (checkingStatus) {
-        const { data: checkData, error: checkError } = await supabase.functions.invoke('pay-subscription', {
-          body: { action: 'check_status' },
-          headers: { Authorization: `Bearer ${session.access_token}` }
-        });
-        
-        if (!checkError && checkData?.status === 'PAID') {
-          localStorage.removeItem('checkout_studentCount');
-          localStorage.removeItem('checkout_billingCycle');
-          await supabase.auth.signOut();
-          window.location.href = '/login?activated=true';
-        } else if (!checkError && checkData?.status === 'REJECTED') {
-          setCheckingStatus(false);
-          setGlobalError('Cartão recusado pelo banco. Verifique os dados e tente novamente.');
+        try {
+          const { data: checkData, error: checkError } = await supabase.functions.invoke('pay-subscription', {
+            body: { action: 'check_status' },
+            headers: { Authorization: `Bearer ${session.access_token}` }
+          });
+
+          if (!checkError && checkData?.status === 'PAID') {
+            redirecting = true;
+            clearInterval(interval);
+            localStorage.removeItem('checkout_studentCount');
+            localStorage.removeItem('checkout_billingCycle');
+            await supabase.auth.refreshSession();
+            window.location.href = '/app/inst-overview';
+          } else if (!checkError && checkData?.status === 'REJECTED') {
+            setCheckingStatus(false);
+            setGlobalError('Cartão recusado pelo banco. Verifique os dados e tente novamente.');
+          }
+        } catch (e) {
+          console.error('Erro ao verificar status do cartão:', e);
         }
       }
     };
 
     checkStatus();
-    interval = setInterval(checkStatus, 5000); // Check every 5 seconds
+    interval = setInterval(checkStatus, 5000); // Verifica a cada 5 segundos
 
     return () => clearInterval(interval);
   }, [session, checkingStatus]);
