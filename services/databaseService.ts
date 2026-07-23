@@ -180,18 +180,37 @@ export const createClass = async (classData: { name: string; grade: string; shif
   }
 
   // MODO REAL
-  const dbPayload = {
+  const dbPayload: any = {
     name: classData.name,
     year: parseInt(classData.grade) || null,
-    shift: classData.shift,
     school_id: classData.school_id
   };
 
-  const { data, error } = await supabase
+  let data;
+  let error;
+
+  // Tentativa 1: Inserir com a coluna 'shift' (se ela existir no banco)
+  const resWithShift = await supabase
     .from('classes')
-    .insert([dbPayload])
+    .insert([{ ...dbPayload, shift: classData.shift }])
     .select()
     .single();
+    
+  if (resWithShift.error && resWithShift.error.message.includes('shift')) {
+    // Tentativa 2: Fallback inserindo sem a coluna 'shift'
+    console.warn("[Littera] Coluna 'shift' não encontrada. Inserindo turma sem o turno.");
+    const resWithoutShift = await supabase
+      .from('classes')
+      .insert([dbPayload])
+      .select()
+      .single();
+      
+    data = resWithoutShift.data;
+    error = resWithoutShift.error;
+  } else {
+    data = resWithShift.data;
+    error = resWithShift.error;
+  }
 
   if (error) throw error;
 
@@ -199,7 +218,7 @@ export const createClass = async (classData: { name: string; grade: string; shif
     id: data.id,
     name: data.name,
     grade: data.year ? data.year.toString() : '',
-    shift: data.shift as ClassGroup['shift'],
+    shift: (data.shift || classData.shift) as ClassGroup['shift'],
     studentCount: 0,
     averageScore: 0,
     school_id: data.school_id,
@@ -451,11 +470,11 @@ export const getClassesBySchool = async (schoolId: string): Promise<ClassGroup[]
     id: c.id,
     name: c.name,
     grade: c.year ? c.year.toString() : '',
-    shift: c.shift as ClassGroup['shift'],
+    shift: (c.shift || 'Matutino') as ClassGroup['shift'],
     studentCount: c.student_count || 0,
     averageScore: c.average_score || 0,
     school_id: c.school_id,
-    trend: 'neutral'
+    trend: c.trend || 'neutral'
   }));
 };
 
