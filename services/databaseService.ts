@@ -247,19 +247,39 @@ export const createProfessor = async (profData: { name: string; email: string; s
   const schoolName = schoolData?.name || 'sua escola';
 
   // Cria o registro no banco com status 'invited'
-  const { data, error } = await supabase
+  let dbPayload: any = {
+    id: generateUUID(),
+    full_name: profData.name,
+    email: profData.email,
+    role: 'professor',
+    school_id: profData.school_id,
+    class_id: profData.class_id,
+    status: 'invited'
+  };
+
+  let resWithAllFields = await supabase
     .from('profiles')
-    .insert([{
-      id: generateUUID(),
-      full_name: profData.name,
-      email: profData.email,
-      role: 'professor',
-      school_id: profData.school_id,
-      class_id: profData.class_id,
-      status: 'invited'
-    }])
+    .insert([dbPayload])
     .select()
     .single();
+
+  let data = resWithAllFields.data;
+  let error = resWithAllFields.error;
+
+  // Fallback se class_id ou status não existirem no banco
+  if (error && error.message.includes('schema cache')) {
+    console.warn("[createProfessor] Alguma coluna faltando, fazendo fallback básico...");
+    const { class_id, status, ...basicPayload } = dbPayload;
+    
+    const resBasic = await supabase
+      .from('profiles')
+      .insert([basicPayload])
+      .select()
+      .single();
+      
+    data = resBasic.data;
+    error = resBasic.error;
+  }
 
   if (error) throw error;
 
