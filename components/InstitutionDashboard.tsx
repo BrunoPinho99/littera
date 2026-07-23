@@ -1143,34 +1143,9 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                       Para liberar o acesso completo da sua instituição — turmas ilimitadas, convites de professores e alunos, correções por IA e painel de relatórios — finalize sua assinatura.
                     </p>
                     <button
-                      onClick={async () => {
-                        const btn = document.getElementById('asaas-subscribe-btn');
-                        if (btn) { btn.textContent = 'Gerando link...'; (btn as HTMLButtonElement).disabled = true; }
-                        try {
-                          const res = await fetch('/api/create-subscription', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              schoolId: school?.id,
-                              email: school?.name || '',
-                              name: school?.name || 'Escola',
-                              planPrice: 29.90,
-                              frequency: 1,
-                              returnUrl: window.location.href
-                            })
-                          });
-                          const data = await res.json();
-                          if (data.checkoutUrl) {
-                            window.open(data.checkoutUrl, '_blank');
-                          } else {
-                            alert('Não foi possível gerar o link de pagamento. Tente novamente.');
-                          }
-                        } catch (err) {
-                          console.error(err);
-                          alert('Erro ao conectar com o servidor de pagamentos.');
-                        } finally {
-                          if (btn) { btn.textContent = 'Assinar Agora'; (btn as HTMLButtonElement).disabled = false; }
-                        }
+                      onClick={() => {
+                        // Redireciona para a PendingCheckoutPage que tem o fluxo completo de pagamento
+                        window.location.href = '/app/inst-overview';
                       }}
                       id="asaas-subscribe-btn"
                       className="px-10 py-4 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/30 transition-all hover:scale-105 flex items-center gap-3 mx-auto"
