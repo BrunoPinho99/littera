@@ -274,6 +274,17 @@ Deno.serve(async (req: Request) => {
       },
     })
 
+    // 7. Atualizar a assinatura no Asaas com externalReference = schoolId
+    // Isso garante que o webhook sempre encontre a escola correta pelo externalReference,
+    // mesmo que o subscription_id não esteja no banco ainda.
+    if (subscriptionId) {
+      await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
+        method: 'POST',
+        headers: asaasHeaders,
+        body: JSON.stringify({ externalReference: createdSchoolId }),
+      }).catch(e => console.warn('[process-subscription] Falha ao atualizar externalReference:', e))
+    }
+
     return jsonResponse({
       success: true,
       schoolId: createdSchoolId,
