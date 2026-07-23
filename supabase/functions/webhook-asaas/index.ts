@@ -36,8 +36,10 @@ function mapEventToStatus(event: string): SubscriptionStatus | null {
   switch (event) {
     case 'PAYMENT_RECEIVED':
     case 'PAYMENT_CONFIRMED':
-    case 'SUBSCRIPTION_CREATED':
       return 'active'
+
+    case 'SUBSCRIPTION_CREATED':
+      return 'inactive'
 
     case 'PAYMENT_OVERDUE':
       return 'past_due'
