@@ -180,9 +180,16 @@ export const createClass = async (classData: { name: string; grade: string; shif
   }
 
   // MODO REAL
+  const dbPayload = {
+    name: classData.name,
+    year: parseInt(classData.grade) || null,
+    shift: classData.shift,
+    school_id: classData.school_id
+  };
+
   const { data, error } = await supabase
     .from('classes')
-    .insert([classData])
+    .insert([dbPayload])
     .select()
     .single();
 
@@ -191,7 +198,7 @@ export const createClass = async (classData: { name: string; grade: string; shif
   return {
     id: data.id,
     name: data.name,
-    grade: data.grade,
+    grade: data.year ? data.year.toString() : '',
     shift: data.shift as ClassGroup['shift'],
     studentCount: 0,
     averageScore: 0,
@@ -443,7 +450,7 @@ export const getClassesBySchool = async (schoolId: string): Promise<ClassGroup[]
   return (data || []).map(c => ({
     id: c.id,
     name: c.name,
-    grade: c.grade,
+    grade: c.year ? c.year.toString() : '',
     shift: c.shift as ClassGroup['shift'],
     studentCount: c.student_count || 0,
     averageScore: c.average_score || 0,
