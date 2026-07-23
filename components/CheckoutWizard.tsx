@@ -219,11 +219,20 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Salva no localStorage para a página PendingCheckoutPage saber a escolha
-      localStorage.setItem('checkout_billingCycle', data.billingCycle);
+      // Aguarda um momento para o updateUserById da Edge Function propagar
+      // e força refresh da sessão para garantir que user_metadata tenha school_id e user_type
+      await new Promise(resolve => setTimeout(resolve, 1200));
+      await supabase.auth.refreshSession();
 
-      // Como removemos a tela de pagamento daqui, a próxima tela será a PendingCheckoutPage
-      // através do recarregamento / navegação do App.tsx.
+      // Salva dados no localStorage como fallback para PendingCheckoutPage
+      localStorage.setItem('checkout_billingCycle', data.billingCycle);
+      if (fnData?.schoolId) localStorage.setItem('checkout_schoolId', fnData.schoolId);
+      if (fnData?.billingType) localStorage.setItem('checkout_billingType', fnData.billingType);
+      if (fnData?.pixQrCode) localStorage.setItem('checkout_pixQrCode', fnData.pixQrCode);
+      if (fnData?.pixCopyPaste) localStorage.setItem('checkout_pixCopyPaste', fnData.pixCopyPaste);
+      if (fnData?.bankSlipUrl) localStorage.setItem('checkout_bankSlipUrl', fnData.bankSlipUrl);
+
+      // Redireciona para o checkout pendente (PendingCheckoutPage)
       window.location.href = '/app/inst-overview';
       
     } catch (err: any) {

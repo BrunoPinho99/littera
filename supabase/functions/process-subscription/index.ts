@@ -265,8 +265,13 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: `Usuário criado, escola salva, mas erro no perfil: ${profileError.message}` })
     }
 
+    // IMPORTANTE: incluir user_type para não sobrescrever o valor existente
     await supabase.auth.admin.updateUserById(createdAuthUserId, {
-      user_metadata: { school_id: createdSchoolId },
+      user_metadata: {
+        user_type: 'school_admin',
+        school_id: createdSchoolId,
+        full_name: directorName.trim(),
+      },
     })
 
     return jsonResponse({

@@ -70,7 +70,9 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
 
     const checkStatus = async () => {
       if (redirecting) return;
-      const schoolId = session?.user?.user_metadata?.school_id;
+      // Usa o school_id da sessão, ou cai no localStorage como fallback (logo após o cadastro)
+      const schoolId = session?.user?.user_metadata?.school_id
+        || localStorage.getItem('checkout_schoolId');
       if (!schoolId) return;
 
       const { data: school, error } = await supabase
