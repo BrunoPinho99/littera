@@ -86,10 +86,26 @@ const App: React.FC = () => {
           setUserType(data.session.user.user_metadata?.user_type || 'student');
           loadNotifications(data.session.user.id);
 
-          const schoolId = data.session.user.user_metadata?.school_id;
+          let schoolId = data.session.user.user_metadata?.school_id;
+          
+          // Fallback 1: localStorage
+          if (!schoolId) {
+            schoolId = localStorage.getItem('checkout_schoolId');
+          }
+
+          // Fallback 2: fetch from profiles
+          if (!schoolId) {
+            const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', data.session.user.id).single();
+            schoolId = profile?.school_id;
+          }
+
           if (schoolId) {
             const schoolData = await getSchoolData(schoolId);
             setSchoolStatus(schoolData?.subscription_status || 'inactive');
+          } else if (data.session.user.user_metadata?.user_type === 'school_admin') {
+            // For school_admins, if we absolutely can't find a schoolId, assume inactive
+            // so they don't bypass the paywall
+            setSchoolStatus('inactive');
           }
         } else if (localStorage.getItem('littera_demo_mode')) {
           setIsDemoMode(true);
@@ -115,9 +131,25 @@ const App: React.FC = () => {
         setUserType(session.user.user_metadata?.user_type || 'student');
         loadNotifications(session.user.id);
 
-        const schoolId = session.user.user_metadata?.school_id;
+        let schoolId = session.user.user_metadata?.school_id;
+        
+        // Fallback 1: localStorage
+        if (!schoolId) {
+          schoolId = localStorage.getItem('checkout_schoolId');
+        }
+
         if (schoolId) {
           getSchoolData(schoolId).then(sd => setSchoolStatus(sd?.subscription_status || 'inactive'));
+        } else {
+          // Fallback 2: fetch from profiles (async)
+          supabase.from('profiles').select('school_id').eq('id', session.user.id).single()
+            .then(({ data }) => {
+              if (data?.school_id) {
+                getSchoolData(data.school_id).then(sd => setSchoolStatus(sd?.subscription_status || 'inactive'));
+              } else if (session.user.user_metadata?.user_type === 'school_admin') {
+                setSchoolStatus('inactive');
+              }
+            });
         }
       } else {
         if (!localStorage.getItem('littera_demo_mode')) {
