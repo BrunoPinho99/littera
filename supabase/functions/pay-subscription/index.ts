@@ -119,7 +119,29 @@ Deno.serve(async (req: Request) => {
       const updateData = await updateRes.json()
       if (!updateRes.ok) {
         console.error('[pay-subscription] Asaas update error:', updateData)
-        return jsonResponse({ error: `Erro ao atualizar dados do cartão: ${updateData.errors?.[0]?.description || 'Erro desconhecido'}` })
+        return jsonResponse({ error: `Erro ao atualizar assinatura: ${updateData.errors?.[0]?.description || 'Erro desconhecido'}` })
+      }
+
+      // NOVO: Pegar a cobrança pendente gerada e pagá-la explicitamente
+      const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments?status=PENDING`, { headers: asaasHeaders })
+      const paymentsData = await paymentsRes.json()
+      const pendingPayment = paymentsData.data?.[0]
+
+      if (pendingPayment) {
+        const payPayload = {
+          creditCard: creditCardData,
+          creditCardHolderInfo: updatePayload.creditCardHolderInfo
+        }
+        const payRes = await fetch(`${ASAAS_BASE}/payments/${pendingPayment.id}/payWithCreditCard`, {
+          method: 'POST',
+          headers: asaasHeaders,
+          body: JSON.stringify(payPayload)
+        })
+        const payData = await payRes.json()
+        if (!payRes.ok) {
+          console.error('[pay-subscription] Asaas pay error:', payData)
+          return jsonResponse({ error: `Erro ao processar cartão: ${payData.errors?.[0]?.description || 'Transação recusada'}` })
+        }
       }
     } else if (paymentMethod === 'PIX' || paymentMethod === 'BOLETO') {
       // Opcionalmente atualizamos o tipo de cobrança da assinatura para PIX/Boleto
