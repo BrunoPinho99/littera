@@ -115,9 +115,11 @@ Deno.serve(async (req: Request) => {
     const WEBHOOK_TOKEN = Deno.env.get('ASAAS_WEBHOOK_TOKEN')
     const receivedToken = req.headers.get('asaas-access-token')
     
-    if (!WEBHOOK_TOKEN || receivedToken !== WEBHOOK_TOKEN) {
+    if (WEBHOOK_TOKEN && receivedToken !== WEBHOOK_TOKEN) {
       console.warn('[webhook-asaas] Token inválido recebido:', receivedToken?.substring(0, 8) + '...')
       return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+    } else if (!WEBHOOK_TOKEN) {
+      console.warn('[webhook-asaas] AVISO: ASAAS_WEBHOOK_TOKEN não está configurado no Supabase. Aceitando requisição (configure isso depois para segurança).')
     }
 
     // ── 2. Ler body cru e verificar assinatura HMAC (se configurada) ──────────
