@@ -209,45 +209,69 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   useEffect(() => {
     const fetchBaseData = async () => {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      const userMetadata = session?.user?.user_metadata;
-      const userRole = userMetadata?.user_type || 'student';
-      const classId = userRole === 'teacher' ? userMetadata?.class_id : undefined;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const userMetadata = session?.user?.user_metadata;
+        const userRole = userMetadata?.user_type || 'student';
+        const classId = userRole === 'teacher' ? userMetadata?.class_id : undefined;
 
-      // Busca o school_id dos metadados OU direto da tabela profiles (fallback para novos usuários)
-      let schoolId = userMetadata?.school_id;
-      if (!schoolId && session?.user?.id) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('school_id')
-          .eq('id', session.user.id)
-          .single();
-        schoolId = profileData?.school_id;
+        // Busca o school_id dos metadados OU direto da tabela profiles (fallback para novos usuários)
+        let schoolId = userMetadata?.school_id;
+
+        // Fallback 1: localStorage (logo após o cadastro, antes do metadata propagar)
+        if (!schoolId) {
+          schoolId = localStorage.getItem('checkout_schoolId') || undefined;
+        }
+
+        // Fallback 2: tabela profiles
+        if (!schoolId && session?.user?.id) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('school_id')
+            .eq('id', session.user.id)
+            .single();
+          schoolId = profileData?.school_id;
+        }
+
+        // Só usa 'demo-school' se não houver sessão real
+        if (!schoolId) schoolId = session ? null : 'demo-school';
+
+        // Se ainda não temos school_id com sessão real, forçar refresh da sessão e tentar novamente
+        if (!schoolId && session) {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          schoolId = refreshed?.session?.user?.user_metadata?.school_id;
+        }
+
+        if (!schoolId) {
+          console.warn('[InstitutionDashboard] school_id não encontrado. Aguardando...');
+          setLoading(false);
+          return;
+        }
+
+        const [schoolData, classesData, professorsData, studentsData, essaysData] = await Promise.all([
+          getSchoolData(schoolId),
+          getClassesBySchool(schoolId),
+          getProfessorsBySchool(schoolId),
+          getStudentsByContext(schoolId, classId), // Pass classId if teacher
+          getAllInstitutionalEssays(schoolId, classId) // Pass classId if teacher
+        ]);
+
+        // Prioritize metadata name if available (fixes issue where DB has email as name)
+        if (schoolData) {
+          if (userMetadata?.school) schoolData.name = userMetadata.school;
+          if (userMetadata?.school_name) schoolData.name = userMetadata.school_name;
+        }
+
+        setSchool(schoolData);
+        setClasses(classesData);
+        setProfessors(professorsData);
+        setStudents(studentsData);
+        setEssays(essaysData);
+      } catch (err) {
+        console.error('[InstitutionDashboard] Erro ao carregar dados:', err);
+      } finally {
+        setLoading(false);
       }
-
-      // Só usa 'demo-school' se não houver sessão real
-      if (!schoolId) schoolId = session ? null : 'demo-school';
-
-      const [schoolData, classesData, professorsData, studentsData, essaysData] = await Promise.all([
-        getSchoolData(schoolId),
-        getClassesBySchool(schoolId),
-        getProfessorsBySchool(schoolId),
-        getStudentsByContext(schoolId, classId), // Pass classId if teacher
-        getAllInstitutionalEssays(schoolId, classId) // Pass classId if teacher
-      ]);
-
-      // Prioritize metadata name if available (fixes issue where DB has email as name)
-      if (schoolData) {
-        if (userMetadata?.school) schoolData.name = userMetadata.school;
-        if (userMetadata?.school_name) schoolData.name = userMetadata.school_name;
-      }
-
-      setSchool(schoolData);
-      setClasses(classesData);
-      setProfessors(professorsData);
-      setStudents(studentsData);
-      setEssays(essaysData);
-      setLoading(false);
     };
     fetchBaseData();
   }, [userType]); // Re-run if userType changes
