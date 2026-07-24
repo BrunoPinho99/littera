@@ -261,7 +261,8 @@ async function autoProvisionSchool(
   if (!customerId) return null
 
   const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY')!
-  const ASAAS_BASE = ASAAS_KEY.includes('hmlg')
+  const ASAAS_ENV = Deno.env.get('ASAAS_ENV');
+  const ASAAS_BASE = (ASAAS_ENV === 'sandbox' || ASAAS_KEY.includes('hmlg'))
     ? 'https://sandbox.asaas.com/api/v3'
     : 'https://api.asaas.com/v3'
 

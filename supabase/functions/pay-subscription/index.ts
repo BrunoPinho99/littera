@@ -45,7 +45,8 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Não autorizado.' }, 401)
   }
 
-  const ASAAS_BASE = ASAAS_KEY.includes('hmlg')
+  const ASAAS_ENV = Deno.env.get('ASAAS_ENV');
+  const ASAAS_BASE = (ASAAS_ENV === 'sandbox' || ASAAS_KEY.includes('hmlg'))
     ? 'https://sandbox.asaas.com/api/v3'
     : 'https://api.asaas.com/v3'
 

@@ -30,7 +30,8 @@ Deno.serve(async (req: Request) => {
   if (!ASAAS_KEY) return jsonResponse({ error: 'Configuração de pagamento ausente.' })
   if (!SUPABASE_URL || !SUPABASE_SRV_KEY) return jsonResponse({ error: 'Configuração de banco ausente.' })
 
-  const ASAAS_BASE = ASAAS_KEY.includes('hmlg')
+  const ASAAS_ENV = Deno.env.get('ASAAS_ENV');
+  const ASAAS_BASE = (ASAAS_ENV === 'sandbox' || ASAAS_KEY.includes('hmlg'))
     ? 'https://sandbox.asaas.com/api/v3'
     : 'https://api.asaas.com/v3'
 
