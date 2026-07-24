@@ -140,8 +140,8 @@ Deno.serve(async (req: Request) => {
         const payData = await payRes.json()
         if (!payRes.ok) {
           console.error('[pay-subscription] Asaas pay error:', JSON.stringify(payData))
-          const asaasMsg = payData.errors?.[0]?.description || 'Transação não autorizada'
-          return jsonResponse({ error: `Erro ao processar cartão: ${asaasMsg}. Verifique os dados do cartão de crédito e tente novamente.` })
+          const asaasMsg = payData.errors?.[0]?.description || 'Transação não autorizada. Verifique os dados e tente novamente.'
+          return jsonResponse({ error: `Erro retornado pelo banco/Asaas: ${asaasMsg}` })
         }
 
         // Verificar se o pagamento foi recusado imediatamente
