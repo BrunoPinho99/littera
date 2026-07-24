@@ -56,7 +56,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { paymentMethod, creditCardData, action } = body
+    const { paymentMethod, creditCardData, action, billingCpfCnpj } = body
 
     // 1. Obter Profile e School do usuário logado
     const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
@@ -103,8 +103,8 @@ Deno.serve(async (req: Request) => {
         updatePayload.creditCardHolderInfo = {
           name: creditCardData.holderName,
           email: user.email,
-          cpfCnpj: customerInfo.cpfCnpj || '00000000000',
-          postalCode: body.billingPostalCode || customerInfo.postalCode || '01310900',
+          cpfCnpj: billingCpfCnpj || customerInfo.cpfCnpj || '00000000000',
+          postalCode: (body.billingPostalCode || customerInfo.postalCode || '01310900').replace(/\D/g, ''),
           addressNumber: body.billingAddressNumber || customerInfo.addressNumber || '157',
           phone: customerInfo.phone || customerInfo.mobilePhone || '11999999999'
         }
@@ -139,8 +139,14 @@ Deno.serve(async (req: Request) => {
         })
         const payData = await payRes.json()
         if (!payRes.ok) {
-          console.error('[pay-subscription] Asaas pay error:', payData)
-          return jsonResponse({ error: `Erro ao processar cartão: ${payData.errors?.[0]?.description || 'Transação recusada'}` })
+          console.error('[pay-subscription] Asaas pay error:', JSON.stringify(payData))
+          const asaasMsg = payData.errors?.[0]?.description || 'Transação não autorizada'
+          return jsonResponse({ error: `Erro ao processar cartão: ${asaasMsg}. Verifique os dados do cartão de crédito e tente novamente.` })
+        }
+
+        // Verificar se o pagamento foi recusado imediatamente
+        if (payData.status === 'REPROVED' || payData.status === 'REFUSED' || payData.status === 'DECLINED') {
+          return jsonResponse({ error: 'Cartão recusado pelo banco emissor. Tente outro cartão ou use PIX.' })
         }
       }
     } else if (paymentMethod === 'PIX' || paymentMethod === 'BOLETO') {

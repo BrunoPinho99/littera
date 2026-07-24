@@ -23,6 +23,7 @@ const paymentSchema = z.object({
   ccNumber: z.string().optional(),
   ccExpiry: z.string().optional(),
   ccCvv: z.string().optional(),
+  billingCpfCnpj: z.string().optional(),
   billingPostalCode: z.string().optional(),
   billingAddressNumber: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -38,6 +39,9 @@ const paymentSchema = z.object({
     }
     if (!data.ccCvv || data.ccCvv.replace(/\D/g, '').length < 3) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CVV inválido", path: ["ccCvv"] });
+    }
+    if (!data.billingCpfCnpj || data.billingCpfCnpj.replace(/\D/g, '').length < 11) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CPF/CNPJ do titular obrigatório", path: ["billingCpfCnpj"] });
     }
     if (!data.billingPostalCode || data.billingPostalCode.replace(/\D/g, '').length < 8) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CEP inválido", path: ["billingPostalCode"] });
@@ -170,6 +174,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         body: {
           paymentMethod: data.paymentMethod,
           creditCardData,
+          billingCpfCnpj: data.billingCpfCnpj?.replace(/\D/g, ''),
           billingPostalCode: data.billingPostalCode,
           billingAddressNumber: data.billingAddressNumber
         },
@@ -518,6 +523,29 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                         <div className="flex-1">
                           {renderField('CVV', 'ccCvv', 'text', '123')}
                         </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">CPF/CNPJ do titular</label>
+                        <Controller
+                          name="billingCpfCnpj"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              placeholder="000.000.000-00"
+                              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 outline-none font-bold text-sm"
+                              onChange={(e) => {
+                                const val = e.target.value.replace(/\D/g, '').slice(0, 14);
+                                if (val.length <= 11) {
+                                  field.onChange(val.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (_, a, b, c, d) => d ? `${a}.${b}.${c}-${d}` : val.length > 6 ? `${a}.${b}.${c}` : val.length > 3 ? `${a}.${b}` : a));
+                                } else {
+                                  field.onChange(val.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (_, a, b, c, d, e) => e ? `${a}.${b}.${c}/${d}-${e}` : `${a}.${b}.${c}/${d}`));
+                                }
+                              }}
+                            />
+                          )}
+                        />
+                        {errors.billingCpfCnpj && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{errors.billingCpfCnpj.message as string}</p>}
                       </div>
                       <div className="flex gap-4">
                         <div className="flex-1">
