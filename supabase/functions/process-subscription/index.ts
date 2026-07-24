@@ -178,20 +178,26 @@ Deno.serve(async (req: Request) => {
     })
 
     if (authError) {
-      // Se o usuário já existe, tentamos fazer login para validar a senha
-      // IMPORTANTE: Usa um client separado para não alterar a sessão do client admin
-      const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
-        auth: { persistSession: false, autoRefreshToken: false }
-      })
-      const { data: signInData, error: signInError } = await supabaseAuth.auth.signInWithPassword({
-        email: email.toLowerCase().trim(),
-        password,
-      });
+      if (authError.message.toLowerCase().includes('already registered') || authError.status === 422) {
+        // Se o usuário já existe, tentamos fazer login para validar a senha
+        // IMPORTANTE: Usa um client separado para não alterar a sessão do client admin
+        const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
+          auth: { persistSession: false, autoRefreshToken: false }
+        })
+        const { data: signInData, error: signInError } = await supabaseAuth.auth.signInWithPassword({
+          email: email.toLowerCase().trim(),
+          password,
+        });
 
-      if (signInError) {
-        return jsonResponse({ error: 'Este e-mail já está cadastrado. Se for você, a senha está incorreta. Faça login ou recupere a senha.' })
+        if (signInError) {
+          return jsonResponse({ error: 'Este e-mail já está cadastrado. Se for você, a senha está incorreta. Faça login ou recupere a senha.' })
+        }
+        createdAuthUserId = signInData.user.id;
+      } else {
+        // Algum outro erro real de criação (senha fraca, rate limit, etc)
+        console.error('[process-subscription] Error creating user:', authError)
+        return jsonResponse({ error: `Erro ao criar usuário: ${authError.message}` })
       }
-      createdAuthUserId = signInData.user.id;
     } else {
       createdAuthUserId = authData.user.id;
     }
