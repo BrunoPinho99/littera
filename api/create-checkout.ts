@@ -14,8 +14,9 @@ export default async function handler(req: any, res: any) {
             throw new Error('ASAAS_API_KEY não configurada no servidor.');
         }
 
-        // Produção ou Sandbox baseado na chave
-        const ASAAS_URL = API_KEY.includes('hmlg')
+        // Produção ou Sandbox baseado na chave ou variável de ambiente
+        const ASAAS_ENV = process.env.ASAAS_ENV || process.env.VITE_ASAAS_ENV;
+        const ASAAS_URL = (ASAAS_ENV === 'sandbox' || API_KEY.includes('hmlg'))
             ? 'https://sandbox.asaas.com/api/v3'
             : 'https://api.asaas.com/v3';
 
