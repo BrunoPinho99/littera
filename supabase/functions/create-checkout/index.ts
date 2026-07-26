@@ -119,6 +119,17 @@ Deno.serve(async (req: Request) => {
 
       // Salvar o customer_id na escola
       await supabase.from('schools').update({ asaas_customer_id: asaasCustomerId }).eq('id', schoolId)
+    } else {
+      // Garante que o cliente existente tenha os dados atualizados e CPF/CNPJ válido no Asaas
+      await fetch(`${ASAAS_BASE}/customers/${asaasCustomerId}`, {
+        method: 'POST',
+        headers: asaasHeaders,
+        body: JSON.stringify({
+          name: school.name,
+          cpfCnpj: school.cnpj?.replace(/\D/g, ''),
+          email: school.email,
+        }),
+      }).catch(e => console.warn('[create-checkout] Falha ao atualizar cliente existente:', e))
     }
 
     // ── Criar Assinatura no Asaas com externalReference = schoolId ────────

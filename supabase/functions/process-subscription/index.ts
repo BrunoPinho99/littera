@@ -85,6 +85,20 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ error: customerData.errors?.[0]?.description || 'Erro ao criar cliente no Asaas.' })
       }
       asaasCustomerId = customerData.id
+    } else {
+      // Garante que o cliente existente tenha os dados atualizados e CPF/CNPJ válido no Asaas
+      await fetch(`${ASAAS_BASE}/customers/${asaasCustomerId}`, {
+        method: 'POST',
+        headers: asaasHeaders,
+        body: JSON.stringify({
+          name: schoolName,
+          cpfCnpj: cnpj,
+          email: email,
+          phone: phone,
+          postalCode: postalCode,
+          addressNumber: addressNumber || "0"
+        }),
+      }).catch(e => console.warn('[process-subscription] Falha ao atualizar cliente existente:', e))
     }
 
     // 3. Criar Assinatura no Asaas

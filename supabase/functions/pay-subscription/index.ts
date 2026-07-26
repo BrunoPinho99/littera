@@ -63,7 +63,7 @@ Deno.serve(async (req: Request) => {
     const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
     if (!profile?.school_id) return jsonResponse({ error: 'Escola não encontrada.' }, 404)
 
-    const { data: school } = await supabase.from('schools').select('asaas_customer_id, subscription_id').eq('id', profile.school_id).single()
+    const { data: school } = await supabase.from('schools').select('asaas_customer_id, subscription_id, cnpj').eq('id', profile.school_id).single()
     if (!school?.subscription_id) return jsonResponse({ error: 'Assinatura não encontrada.' }, 404)
 
     const subscriptionId = school.subscription_id
@@ -94,6 +94,19 @@ Deno.serve(async (req: Request) => {
       const customerRes = await fetch(`${ASAAS_BASE}/customers/${customerId}`, { headers: asaasHeaders })
       const customerInfo = await customerRes.json()
 
+      const finalCpfCnpj = (billingCpfCnpj || customerInfo.cpfCnpj || school?.cnpj || '').replace(/\D/g, '')
+      if (finalCpfCnpj && finalCpfCnpj !== '00000000000') {
+        await fetch(`${ASAAS_BASE}/customers/${customerId}`, {
+          method: 'POST',
+          headers: asaasHeaders,
+          body: JSON.stringify({
+            cpfCnpj: finalCpfCnpj,
+            name: customerInfo.name || 'Escola',
+            email: user.email || customerInfo.email
+          })
+        }).catch(e => console.warn('[pay-subscription] Falha ao atualizar customer no Asaas:', e))
+      }
+
       const updatePayload: any = {
         billingType: 'CREDIT_CARD',
         updatePendingPayments: true, // Garante que a cobrança já criada mude para Cartão e tente cobrar agora
@@ -104,7 +117,7 @@ Deno.serve(async (req: Request) => {
         updatePayload.creditCardHolderInfo = {
           name: creditCardData.holderName,
           email: user.email,
-          cpfCnpj: billingCpfCnpj || customerInfo.cpfCnpj || '00000000000',
+          cpfCnpj: finalCpfCnpj || '00000000000',
           postalCode: (body.billingPostalCode || customerInfo.postalCode || '01310900').replace(/\D/g, ''),
           addressNumber: body.billingAddressNumber || customerInfo.addressNumber || '157',
           phone: customerInfo.phone || customerInfo.mobilePhone || '11999999999'
