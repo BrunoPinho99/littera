@@ -118,34 +118,34 @@ const App: React.FC = () => {
     };
     init();
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         localStorage.removeItem('littera_demo_mode');
         localStorage.removeItem('littera_demo_type');
         setIsDemoMode(false);
-        setSession(session);
-        setUserType(session.user.user_metadata?.user_type || 'student');
-        loadNotifications(session.user.id);
-
-        let schoolId = session.user.user_metadata?.school_id;
+        setSession(prev => (prev?.access_token === session.access_token && prev?.user?.id === session.user?.id ? prev : session));
         
-        // Fallback 1: localStorage
-        if (!schoolId) {
-          schoolId = localStorage.getItem('checkout_schoolId');
-        }
+        const nextUserType = session.user.user_metadata?.user_type || 'student';
+        setUserType(prev => prev === nextUserType ? prev : nextUserType);
 
-        if (schoolId) {
-          getSchoolData(schoolId).then(sd => setSchoolStatus(sd?.subscription_status || 'inactive'));
-        } else {
-          // Fallback 2: fetch from profiles (async)
-          supabase.from('profiles').select('school_id').eq('id', session.user.id).single()
-            .then(({ data }) => {
-              if (data?.school_id) {
-                getSchoolData(data.school_id).then(sd => setSchoolStatus(sd?.subscription_status || 'inactive'));
-              } else if (session.user.user_metadata?.user_type === 'school_admin') {
-                setSchoolStatus('inactive');
-              }
-            });
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+          loadNotifications(session.user.id);
+
+          let schoolId = session.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
+
+          if (schoolId) {
+            getSchoolData(schoolId).then(sd => setSchoolStatus(prev => prev === (sd?.subscription_status || 'inactive') ? prev : (sd?.subscription_status || 'inactive')));
+          } else {
+            // Fallback 2: fetch from profiles (async)
+            supabase.from('profiles').select('school_id').eq('id', session.user.id).single()
+              .then(({ data }) => {
+                if (data?.school_id) {
+                  getSchoolData(data.school_id).then(sd => setSchoolStatus(prev => prev === (sd?.subscription_status || 'inactive') ? prev : (sd?.subscription_status || 'inactive')));
+                } else if (session.user.user_metadata?.user_type === 'school_admin') {
+                  setSchoolStatus(prev => prev === 'inactive' ? prev : 'inactive');
+                }
+              });
+          }
         }
       } else {
         if (!localStorage.getItem('littera_demo_mode')) {
@@ -301,7 +301,7 @@ const App: React.FC = () => {
     );
   };
 
-  const MainAppLayout = () => {
+  const renderMainAppLayout = () => {
     if (isSuspended) return renderSuspended();
 
     return (
@@ -485,7 +485,7 @@ const App: React.FC = () => {
       } />
       <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
       <Route path="/convite" element={<AcceptInviteView />} />
-      <Route path="/app/*" element={<MainAppLayout />} />
+      <Route path="/app/*" element={renderMainAppLayout()} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
