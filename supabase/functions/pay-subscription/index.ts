@@ -1,4 +1,4 @@
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -107,7 +107,7 @@ Deno.serve(async (req: Request) => {
         }).catch(e => console.warn('[pay-subscription] Falha ao atualizar customer no Asaas:', e))
       }
 
-      const updatePayload: any = {
+      const updatePayload: Record<string, unknown> = {
         billingType: 'CREDIT_CARD',
         updatePendingPayments: true, // Garante que a cobrança já criada mude para Cartão e tente cobrar agora
         creditCard: creditCardData
@@ -215,7 +215,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto
-    let firstPayment: any = null;
+    let firstPayment: Record<string, unknown> | null = null;
     const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, { headers: asaasHeaders });
     if (paymentsRes.ok) {
       const paymentsData = await paymentsRes.json();
@@ -231,7 +231,7 @@ Deno.serve(async (req: Request) => {
 
     let pixQrCode = null
     let pixCopyPaste = null
-    let bankSlipUrl = firstPayment.bankSlipUrl
+    const bankSlipUrl = firstPayment.bankSlipUrl
 
     if (paymentMethod === 'PIX') {
       // Opcional: tentar forçar a atualização do pagamento em si para PIX, caso o Asaas não tenha feito
@@ -262,7 +262,7 @@ Deno.serve(async (req: Request) => {
       pixCopyPaste
     })
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('[pay-subscription] Internal Error:', err)
     return jsonResponse({ error: 'Erro interno no servidor.' }, 500)
   }

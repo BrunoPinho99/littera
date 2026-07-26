@@ -1,5 +1,5 @@
 
-import { createClient } from 'npm:@supabase/supabase-js@2'
+import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,8 +44,6 @@ Deno.serve(async (req: Request) => {
     'Content-Type': 'application/json',
     'access_token': ASAAS_KEY,
   }
-
-  let createdAuthUserId: string | null = null
 
   try {
     const body = await req.json()
@@ -106,7 +104,7 @@ Deno.serve(async (req: Request) => {
     
     const asaasBillingType = isYearly ? (paymentMethod || 'UNDEFINED') : 'CREDIT_CARD'
 
-    const subscriptionPayload: any = {
+    const subscriptionPayload: Record<string, unknown> = {
       customer: asaasCustomerId,
       billingType: asaasBillingType,
       value: planPrice,

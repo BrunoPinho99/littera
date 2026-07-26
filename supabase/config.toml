@@ -14,9 +14,34 @@ entrypoint = "./functions/process-subscription/index.ts"
 enabled = true
 verify_jwt = false
 import_map = "./functions/pay-subscription/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
 entrypoint = "./functions/pay-subscription/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/pay-subscription/*.html" ]
+
+[functions.create-checkout]
+enabled = true
+verify_jwt = false
+import_map = "./functions/create-checkout/deno.json"
+entrypoint = "./functions/create-checkout/index.ts"
+
+[functions.complete-onboarding]
+enabled = true
+verify_jwt = false
+import_map = "./functions/complete-onboarding/deno.json"
+entrypoint = "./functions/complete-onboarding/index.ts"
+
+[functions.onboarding]
+enabled = true
+verify_jwt = false
+import_map = "./functions/onboarding/deno.json"
+entrypoint = "./functions/onboarding/index.ts"
+
+[functions.send-invite]
+enabled = true
+verify_jwt = false
+import_map = "./functions/send-invite/deno.json"
+entrypoint = "./functions/send-invite/index.ts"
+
+[functions.webhook-asaas]
+enabled = true
+verify_jwt = false
+import_map = "./functions/webhook-asaas/deno.json"
+entrypoint = "./functions/webhook-asaas/index.ts"
