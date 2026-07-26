@@ -35,8 +35,8 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false }
   })
 
-  const ASAAS_ENV = Deno.env.get('ASAAS_ENV');
-  const ASAAS_BASE = (ASAAS_ENV === 'sandbox' || ASAAS_KEY.includes('hmlg'))
+  const ASAAS_ENV = Deno.env.get('ASAAS_ENV') || 'production';
+  const ASAAS_BASE = ASAAS_ENV === 'sandbox'
     ? 'https://sandbox.asaas.com/api/v3'
     : 'https://api.asaas.com/v3'
 

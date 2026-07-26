@@ -42,6 +42,20 @@ const parseRetryDelay = (errorMsg: string): number => {
   return 35000; // fallback 35s
 };
 
+const formatGeminiError = (error: any, defaultMsg: string): Error => {
+  const msg = error?.message || error?.toString() || "";
+  if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota")) {
+    return new Error("O sistema de IA está temporariamente sobrecarregado ou atingiu o limite de requisições. Por favor, aguarde alguns instantes e tente novamente.");
+  }
+  if (msg.includes("503") || msg.includes("500") || msg.includes("overloaded")) {
+    return new Error("Os servidores da IA estão indisponíveis no momento. Por favor, tente novamente em alguns minutos.");
+  }
+  if (msg.includes("API key") || msg.includes("missing_key")) {
+    return new Error("Configuração da chave de IA inválida ou ausente.");
+  }
+  return new Error(`${defaultMsg} (${msg.slice(0, 100)})`);
+};
+
 // Wrapper com retry automático inteligente
 const generateWithRetry = async (
   model: any,
@@ -234,22 +248,8 @@ Responda seguindo o schema abaixo:
 
     return parsed;
   } catch (error: any) {
-    console.error("[GEMINI_FALLBACK_TRIGGERED] Erro na Correção (Ativando Fallback Seguro):", error);
-    
-    // FALLBACK INTELIGENTE - Garante que o cliente NUNCA recebe erro.
-    return {
-      totalScore: 840,
-      aiDetected: false,
-      aiJustification: "",
-      generalComment: "Sua redação demonstrou uma boa compreensão do tema e estrutura dissertativo-argumentativa coesa. Houve alguns desvios gramaticais pontuais, mas a argumentação e a proposta de intervenção foram construídas de maneira satisfatória.",
-      competencies: [
-        { name: "Competência 1 – Domínio da norma culta", score: 160, feedback: "Apresentou bom domínio da modalidade escrita formal da língua portuguesa, com raras falhas estruturais." },
-        { name: "Competência 2 – Compreensão da proposta", score: 160, feedback: "Compreendeu a temática e desenvolveu bons argumentos nos limites estruturais do texto dissertativo." },
-        { name: "Competência 3 – Argumentação", score: 160, feedback: "Apresentou informações e fatos bem relacionados, organizando-os de forma lógica em defesa do ponto de vista." },
-        { name: "Competência 4 – Coesão textual", score: 200, feedback: "Demonstrou excelente conhecimento dos mecanismos linguísticos e conectivos necessários para a argumentação." },
-        { name: "Competência 5 – Proposta de intervenção", score: 200, feedback: "Elaborou uma excelente proposta de intervenção, bastante detalhada, coerente e com respeito aos direitos humanos." }
-      ]
-    };
+    console.error("[GEMINI_ERROR] Erro na Correção:", error);
+    throw formatGeminiError(error, "Não foi possível realizar a correção da redação no momento.");
   }
 };
 
@@ -400,28 +400,7 @@ Retorne APENAS um JSON válido, sem markdown, sem comentários, seguindo este sc
 
     return parsed;
   } catch (error: any) {
-    console.error("[GEMINI_FALLBACK_TRIGGERED] Erro na Correção Manuscrita (Ativando Fallback):", error);
-
-    // FALLBACK — garante que o cliente nunca recebe erro
-    return {
-      transcribedText: "Não foi possível transcrever o texto da imagem. Certifique-se de que a foto está bem iluminada, com a folha inteira visível e o texto legível.",
-      totalScore: 0,
-      competencies: [
-        { id: "C1", name: "Competência 1 – Domínio da norma culta", score: 0, feedback: "Não foi possível avaliar. Tente enviar uma nova foto com melhor qualidade.", suggestions: [] },
-        { id: "C2", name: "Competência 2 – Compreensão da proposta", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
-        { id: "C3", name: "Competência 3 – Argumentação", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
-        { id: "C4", name: "Competência 4 – Coesão textual", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
-        { id: "C5", name: "Competência 5 – Proposta de intervenção", score: 0, feedback: "Não foi possível avaliar.", suggestions: [] },
-      ],
-      annotatedSegments: [
-        { text: "Não foi possível transcrever o texto da imagem. Certifique-se de que a foto está bem iluminada, com a folha inteira visível e o texto legível.", competencyId: null, type: "neutral", observation: "" }
-      ],
-      generalComment: "A imagem enviada não pôde ser processada. Tente novamente com uma foto mais nítida e bem iluminada.",
-      overallSuggestions: [
-        "Tire a foto em ambiente bem iluminado.",
-        "Certifique-se de que toda a redação está visível na foto.",
-        "Evite sombras sobre o texto."
-      ],
-    };
+    console.error("[GEMINI_ERROR] Erro na Correção Manuscrita:", error);
+    throw formatGeminiError(error, "Não foi possível processar a imagem da redação no momento.");
   }
 };

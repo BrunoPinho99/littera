@@ -51,99 +51,10 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
         if (password !== confirmPassword) throw new Error("As senhas não coincidem!");
         if (password.length < 6) throw new Error("A senha deve ter pelo menos 6 caracteres.");
 
-        // 1. Fluxo para ESCOLA (Cadastro Livre)
+        // 1. Fluxo para ESCOLA (O cadastro de escola foi migrado para o fluxo /cadastro)
         if (userType === 'school_admin') {
-          // PASSO 1: Criar o usuário Auth (sem school_id ainda para evitar erro de trigger)
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                full_name: name,
-                user_type: userType,
-                // Não enviamos school_id aqui para não quebrar a integridade referencial no trigger de criação
-              }
-            }
-          });
-
-          if (signUpError) throw signUpError;
-
-          // PASSO 2: Se logou com sucesso, criar a escola e vincular
-          if (signUpData.session && signUpData.user) {
-            const schoolId = crypto.randomUUID();
-
-            // Cria a escola na tabela pública
-            const { error: schoolError } = await supabase.from('schools').insert({
-              id: schoolId,
-              name: name,
-              slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
-              subscription_status: 'inactive'
-            });
-
-            if (schoolError) {
-              console.error("Erro ao criar escola:", schoolError);
-              throw new Error("Erro ao registrar dados da instituição.");
-            }
-
-            // Atualiza o perfil do usuário com o ID da escola recém criada
-            // Usamos upsert para garantir que o perfil exista, mesmo se o trigger de criação do Auth falhar ou atrasar
-            const { error: profileError } = await supabase.from('profiles').upsert({
-              id: signUpData.user.id,
-              school_id: schoolId,
-              role: 'school_admin',
-              full_name: name,
-              email: email,
-              status: 'active'
-            });
-
-            if (profileError) {
-              console.error("Erro ao vincular perfil:", JSON.stringify(profileError));
-              // Não lançamos erro aqui para não bloquear o fluxo se o usuário já estiver criado
-            }
-
-            // Atualiza metadata do usuário para sessões futuras
-            await supabase.auth.updateUser({
-              data: { school_id: schoolId }
-            });
-
-            setSuccessMessage("Instituição criada! Redirecionando para assinatura...");
-            
-            // Gera link de pagamento Asaas e redireciona
-            try {
-              const subRes = await fetch('/api/process-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  schoolId: schoolId,
-                  customer: {
-                    name: name,
-                    email: email,
-                    cpfCnpj: '' // Pode ser preenchido futuramente se adicionar campo no form
-                  },
-                  planPrice: 29.90,
-                  frequency: 1,
-                  planId: 'starter'
-                })
-              });
-              const subData = await subRes.json();
-              if (subData.checkoutUrl) {
-                setTimeout(() => {
-                  window.open(subData.checkoutUrl, '_self');
-                  onLoginSuccess();
-                }, 1500);
-              } else {
-                // Fallback: entra no app mesmo sem link (poderá assinar depois)
-                console.warn('Não foi possível gerar link Asaas:', subData);
-                setTimeout(() => onLoginSuccess(), 1500);
-              }
-            } catch (subErr) {
-              console.warn('Erro ao gerar link de assinatura:', subErr);
-              setTimeout(() => onLoginSuccess(), 1500);
-            }
-          } else if (signUpData.user && !signUpData.session) {
-            setSuccessMessage("Cadastro realizado! Verifique seu e-mail para confirmar a conta antes de entrar.");
-            setTimeout(() => setIsLogin(true), 3000);
-          }
+          window.location.href = '/cadastro';
+          return;
         }
         // 2. Fluxo para ALUNO e PROFESSOR (Resgate de Convite)
         else {
@@ -280,7 +191,13 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 <button
                   key={type}
                   type="button"
-                  onClick={() => setUserType(type)}
+                  onClick={() => {
+                    if (!isLogin && type === 'school_admin') {
+                      window.location.href = '/cadastro';
+                      return;
+                    }
+                    setUserType(type);
+                  }}
                   className={`flex-1 py-3.5 text-[9px] font-black uppercase tracking-widest rounded-[1.4rem] transition-all duration-300 ${userType === type
                     ? 'bg-white dark:bg-white/10 text-primary shadow-lg scale-100'
                     : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
@@ -406,7 +323,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                   : 'Já tem cadastro?'}
                 <button
                   type="button"
-                  onClick={() => { setIsLogin(!isLogin); setErrorMessage(null); }}
+                  onClick={() => {
+                    if (isLogin && userType === 'school_admin') {
+                      window.location.href = '/cadastro';
+                      return;
+                    }
+                    setIsLogin(!isLogin);
+                    setErrorMessage(null);
+                  }}
                   className="ml-2 text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4"
                 >
                   {isLogin

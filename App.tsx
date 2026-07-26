@@ -15,7 +15,6 @@ import ProfileView from './components/ProfileView';
 import LoginView from './components/LoginView';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import LandingPage from './components/LandingPage';
-import SetupAccount from './components/SetupAccount';
 import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
 import CheckoutWizard from './components/CheckoutWizard';
@@ -74,9 +73,6 @@ const App: React.FC = () => {
   
   // 1. Initialize Session
   useEffect(() => {
-    if (location.pathname === '/setup-account') {
-      // Logic for setup-account if needed
-    }
 
     const init = async () => {
       try {
@@ -487,7 +483,7 @@ const App: React.FC = () => {
           ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
           : <FinalizarCadastroView />
       } />
-      <Route path="/setup-account" element={<SetupAccount />} />
+      <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
       <Route path="/convite" element={<AcceptInviteView />} />
       <Route path="/app/*" element={<MainAppLayout />} />
       <Route path="*" element={<Navigate to="/" replace />} />

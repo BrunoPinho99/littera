@@ -111,23 +111,29 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // ── 1. Validar token de autenticação do Asaas ─────────────────────────────
+    // ── 1. Validar configuração de segurança (obrigatório em produção) ────────
     const WEBHOOK_TOKEN = Deno.env.get('ASAAS_WEBHOOK_TOKEN')
-    const receivedToken = req.headers.get('asaas-access-token')
-    
-    if (WEBHOOK_TOKEN && receivedToken !== WEBHOOK_TOKEN) {
-      console.warn('[webhook-asaas] Token inválido recebido:', receivedToken?.substring(0, 8) + '...')
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    } else if (!WEBHOOK_TOKEN) {
-      console.warn('[webhook-asaas] AVISO: ASAAS_WEBHOOK_TOKEN não está configurado no Supabase. Aceitando requisição (configure isso depois para segurança).')
+    const WEBHOOK_SECRET = Deno.env.get('ASAAS_WEBHOOK_SECRET')
+
+    if (!WEBHOOK_TOKEN && !WEBHOOK_SECRET) {
+      console.error('[webhook-asaas] ERRO CRÍTICO DE SEGURANÇA: Nem ASAAS_WEBHOOK_TOKEN nem ASAAS_WEBHOOK_SECRET estão configurados no ambiente. Rejeitando requisição por segurança.')
+      return new Response('Internal Server Error: Webhook security credentials not configured in server environment', { status: 500, headers: corsHeaders })
     }
 
-    // ── 2. Ler body cru e verificar assinatura HMAC (se configurada) ──────────
-    const rawBody = await req.text()
-    const WEBHOOK_SECRET = Deno.env.get('ASAAS_WEBHOOK_SECRET')
-    const receivedSignature = req.headers.get('x-asaas-signature')
+    // ── 2. Validar Token (se configurado) ─────────────────────────────────────
+    if (WEBHOOK_TOKEN) {
+      const receivedToken = req.headers.get('asaas-access-token')
+      if (!receivedToken || receivedToken !== WEBHOOK_TOKEN) {
+        console.warn('[webhook-asaas] Acesso negado: asaas-access-token ausente ou inválido.')
+        return new Response('Unauthorized', { status: 401, headers: corsHeaders })
+      }
+      console.log('[webhook-asaas] Token Asaas verificado com sucesso.')
+    }
 
+    // ── 3. Ler body cru e verificar assinatura HMAC (se configurada) ──────────
+    const rawBody = await req.text()
     if (WEBHOOK_SECRET) {
+      const receivedSignature = req.headers.get('x-asaas-signature')
       if (!receivedSignature) {
         console.warn('[webhook-asaas] HMAC configurado mas header x-asaas-signature ausente.')
         return new Response('Unauthorized', { status: 401, headers: corsHeaders })
@@ -261,8 +267,8 @@ async function autoProvisionSchool(
   if (!customerId) return null
 
   const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY')!
-  const ASAAS_ENV = Deno.env.get('ASAAS_ENV');
-  const ASAAS_BASE = (ASAAS_ENV === 'sandbox' || ASAAS_KEY.includes('hmlg'))
+  const ASAAS_ENV = Deno.env.get('ASAAS_ENV') || 'production';
+  const ASAAS_BASE = ASAAS_ENV === 'sandbox'
     ? 'https://sandbox.asaas.com/api/v3'
     : 'https://api.asaas.com/v3'
 
