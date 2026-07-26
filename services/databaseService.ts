@@ -233,7 +233,7 @@ export const createProfessor = async (profData: { name: string; email: string; s
       id: generateUUID(),
       full_name: profData.name,
       email: profData.email,
-      role: 'professor',
+      role: 'teacher',
       school_id: profData.school_id,
       class_id: profData.class_id
     };
@@ -251,7 +251,7 @@ export const createProfessor = async (profData: { name: string; email: string; s
     id: generateUUID(),
     full_name: profData.name,
     email: profData.email,
-    role: 'professor',
+    role: 'teacher',
     school_id: profData.school_id,
     class_id: profData.class_id,
     status: 'invited'
