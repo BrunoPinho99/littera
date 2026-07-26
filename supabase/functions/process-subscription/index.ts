@@ -102,7 +102,9 @@ Deno.serve(async (req: Request) => {
     // 3. Criar Assinatura no Asaas
     const today = new Date().toISOString().split('T')[0]
     
-    const asaasBillingType = isYearly ? (paymentMethod || 'UNDEFINED') : 'CREDIT_CARD'
+    // O billingType inicial é UNDEFINED pois o método de pagamento real
+    // será definido pelo usuário na tela de PendingCheckoutPage (via pay-subscription).
+    const asaasBillingType = paymentMethod || 'UNDEFINED'
 
     const subscriptionPayload: Record<string, unknown> = {
       customer: asaasCustomerId,
