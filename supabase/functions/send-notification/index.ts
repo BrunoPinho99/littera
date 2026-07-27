@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const defaultSenderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br';
+    const defaultSenderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'bruno.pinho.brasilia@hotmail.com';
     const defaultSenderName = Deno.env.get('BREVO_SENDER_NAME') || 'Littera - Inteligência em Redação';
 
     const brevoBody: Record<string, any> = {

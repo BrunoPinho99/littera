@@ -204,7 +204,7 @@ Deno.serve(async (req: Request) => {
       console.warn('[send-invite] BREVO_API_KEY is not configured in environment variables.');
       emailError = 'BREVO_API_KEY environment variable is not set.';
     } else {
-      const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br';
+      const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'bruno.pinho.brasilia@hotmail.com';
       const senderName = Deno.env.get('BREVO_SENDER_NAME') || 'Littera - Inteligência em Redação';
       const roleLabel = role === 'professor' ? 'Professor(a)' : 'Estudante';
       const subject = alreadyExists 
