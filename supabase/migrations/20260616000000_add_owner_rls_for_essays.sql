@@ -7,7 +7,8 @@
 DO $$ 
 BEGIN
   -- 1. ESSAYS (Redações salvas)
-  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'essays') THEN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'essays') AND
+     EXISTS (SELECT FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'essays' AND column_name = 'school_id') THEN
     EXECUTE 'ALTER TABLE public.essays ENABLE ROW LEVEL SECURITY;';
     
     -- Remove política antiga se existir
@@ -25,7 +26,8 @@ BEGIN
   END IF;
 
   -- 2. CORRECTION_RESULTS (Resultados de Correção)
-  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'correction_results') THEN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'correction_results') AND
+     EXISTS (SELECT FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'correction_results' AND column_name = 'school_id') THEN
     EXECUTE 'ALTER TABLE public.correction_results ENABLE ROW LEVEL SECURITY;';
     
     EXECUTE 'DROP POLICY IF EXISTS "results_select_owner_school" ON public.correction_results;';

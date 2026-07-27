@@ -15,7 +15,19 @@ SET search_path = public
 AS $$
 DECLARE
   v_school_id UUID;
+  v_jwt jsonb;
 BEGIN
+  -- 1. Tentar ler direto do JWT (evita consulta recursiva na tabela profiles)
+  BEGIN
+    v_jwt := nullif(current_setting('request.jwt.claim.user_metadata', true), '')::jsonb;
+    IF v_jwt IS NOT NULL AND v_jwt ->> 'school_id' IS NOT NULL THEN
+      RETURN (v_jwt ->> 'school_id')::uuid;
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    -- Ignora erros de cast ou contexto e vai para o fallback
+  END;
+
+  -- 2. Fallback: consulta segura no banco
   SELECT school_id INTO v_school_id
   FROM public.profiles
   WHERE id = auth.uid()
@@ -33,7 +45,16 @@ SET search_path = public
 AS $$
 DECLARE
   v_role text;
+  v_jwt jsonb;
 BEGIN
+  BEGIN
+    v_jwt := nullif(current_setting('request.jwt.claim.user_metadata', true), '')::jsonb;
+    IF v_jwt IS NOT NULL AND v_jwt ->> 'user_type' IS NOT NULL THEN
+      RETURN v_jwt ->> 'user_type';
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+  END;
+
   SELECT role::text INTO v_role
   FROM public.profiles
   WHERE id = auth.uid()
