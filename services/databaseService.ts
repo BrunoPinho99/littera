@@ -29,6 +29,24 @@ export const sendInviteEmail = async (params: {
   }
 };
 
+export const revokeInvite = async (email: string): Promise<{ success: boolean; message?: string }> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('send-invite', {
+      body: { action: 'revoke', email },
+    });
+
+    if (error) {
+      console.error('[revokeInvite] Edge Function error:', error);
+      return { success: false, message: error.message };
+    }
+
+    return data as { success: boolean; message?: string };
+  } catch (err: any) {
+    console.error('[revokeInvite] Unexpected error:', err);
+    return { success: false, message: err.message };
+  }
+};
+
 export const JOURNEY_TIERS = [
   { min: 0, max: 2, label: 'Aspirante', icon: 'edit', color: 'text-gray-400', bg: 'bg-gray-100', next: 3 },
   { min: 3, max: 5, label: 'Escritor Bronze', icon: 'workspace_premium', color: 'text-amber-700', bg: 'bg-amber-100', next: 6 },
@@ -246,6 +264,17 @@ export const createProfessor = async (profData: { name: string; email: string; s
   const schoolData = await getSchoolData(profData.school_id).catch(() => null);
   const schoolName = schoolData?.name || 'sua escola';
 
+  // Verifica se o e-mail já existe com conta ativa
+  const { data: existingUser } = await supabase
+    .from('profiles')
+    .select('id, status')
+    .eq('email', profData.email)
+    .maybeSingle();
+
+  if (existingUser && existingUser.status !== 'invited') {
+    throw new Error("Este e-mail já está cadastrado com uma conta ativa no sistema.");
+  }
+
   // Envia email de convite via Edge Function (que cria o auth.users e o perfil no banco sem erro de fkey)
   const inviteResult = await sendInviteEmail({
     email: profData.email,
@@ -298,15 +327,15 @@ export const createStudent = async (
     return mockStudent;
   }
 
-  // MODO REAL — Verifica se email já existe
+  // MODO REAL — Verifica se email já existe com conta ativa (permite reenvio se for apenas convite pendente)
   const { data: existingUser } = await supabase
     .from('profiles')
-    .select('id')
+    .select('id, status')
     .eq('email', studentData.email)
     .maybeSingle();
 
-  if (existingUser) {
-    throw new Error("Este e-mail já está cadastrado no sistema.");
+  if (existingUser && existingUser.status !== 'invited') {
+    throw new Error("Este e-mail já está cadastrado com uma conta ativa no sistema.");
   }
 
   // Busca nome da escola se não foi passado
@@ -366,18 +395,18 @@ export const createStudentsBulk = async (students: { name: string; email: string
   const schoolData = await getSchoolData(schoolId).catch(() => null);
   const schoolName = schoolData?.name || 'sua escola';
 
-  // 1. Filtrar emails já existentes para evitar erro de constraint
+  // 1. Filtrar emails já existentes ativos para evitar erro de constraint (mas permite reenvio se status for 'invited')
   const emails = students.map(s => s.email);
   const { data: existingProfiles } = await supabase
     .from('profiles')
-    .select('email')
+    .select('email, status')
     .in('email', emails);
   
-  const existingEmails = new Set((existingProfiles || []).map(p => p.email));
+  const existingActiveEmails = new Set((existingProfiles || []).filter(p => p.status !== 'invited').map(p => p.email));
   
   const validStudents = students.filter(s => {
-    if (existingEmails.has(s.email)) {
-      results.errors.push({ email: s.email, reason: "Este e-mail já está cadastrado no sistema." });
+    if (existingActiveEmails.has(s.email)) {
+      results.errors.push({ email: s.email, reason: "Este e-mail já está cadastrado com uma conta ativa no sistema." });
       return false;
     }
     return true;

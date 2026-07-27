@@ -12,7 +12,8 @@ import {
   createProfessor,
   createStudent,
   createStudentsBulk,
-  createAssignment
+  createAssignment,
+  revokeInvite
 } from '../services/databaseService';
 import { generateAssignmentTheme } from '../services/geminiService';
 import RankingView from './RankingView';
@@ -381,6 +382,61 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       showToast('error', 'Erro ao cadastrar aluno', msg || 'Verifique se o e-mail já existe.');
     } finally {
       setIsSavingStudent(false);
+    }
+  };
+
+  const [resendingEmail, setResendingEmail] = useState<string | null>(null);
+  const [revokingEmail, setRevokingEmail] = useState<string | null>(null);
+
+  const handleResendInvite = async (person: { name: string; email: string; class_id?: string }, role: 'student' | 'professor') => {
+    setResendingEmail(person.email);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const schoolId = await getResolvedSchoolId(session);
+      if (role === 'professor') {
+        await createProfessor({
+          name: person.name,
+          email: person.email,
+          class_id: person.class_id || '',
+          school_id: schoolId
+        });
+      } else {
+        await createStudent({
+          name: person.name,
+          email: person.email,
+          class_id: person.class_id || '',
+          school_id: schoolId
+        });
+      }
+      showToast('success', '✉️ Convite reenviado!', `Um novo e-mail de ativação foi enviado para ${person.email}.`);
+    } catch (error: any) {
+      const msg = error?.message || String(error);
+      showToast('error', 'Erro ao reenviar convite', msg);
+    } finally {
+      setResendingEmail(null);
+    }
+  };
+
+  const handleRevokeInvite = async (email: string, role: 'student' | 'professor') => {
+    if (!window.confirm(`Tem certeza que deseja revogar e remover o convite para ${email}?`)) return;
+    setRevokingEmail(email);
+    try {
+      const res = await revokeInvite(email);
+      if (res.success) {
+        if (role === 'professor') {
+          setProfessors(prev => prev.filter(p => p.email !== email));
+        } else {
+          setStudents(prev => prev.filter(s => s.email !== email));
+        }
+        showToast('success', '🗑️ Convite revogado', `O convite para ${email} foi revogado e removido com sucesso.`);
+      } else {
+        throw new Error(res.message || 'Falha ao revogar');
+      }
+    } catch (error: any) {
+      const msg = error?.message || String(error);
+      showToast('error', 'Erro ao revogar convite', msg);
+    } finally {
+      setRevokingEmail(null);
     }
   };
 
@@ -995,9 +1051,27 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                         <td className="px-6 py-6 text-sm font-bold text-gray-400">{s.essaysSubmitted}</td>
                         <td className="px-6 py-6 text-right">
                           {s.status === 'invited' ? (
-                            <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
-                              Convite Pendente
-                            </span>
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
+                                Convite Pendente
+                              </span>
+                              <button
+                                onClick={() => handleResendInvite({ name: s.name, email: s.email, class_id: s.class_id }, 'student')}
+                                disabled={resendingEmail === s.email}
+                                title="Reenviar convite por e-mail"
+                                className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
+                              >
+                                <span className="material-icons-outlined text-sm">{resendingEmail === s.email ? 'sync' : 'forward_to_inbox'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleRevokeInvite(s.email, 'student')}
+                                disabled={revokingEmail === s.email}
+                                title="Revogar e remover convite"
+                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
+                              >
+                                <span className="material-icons-outlined text-sm">{revokingEmail === s.email ? 'sync' : 'person_remove'}</span>
+                              </button>
+                            </div>
                           ) : s.essaysSubmitted === 0 ? (
                             <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
                               Novo Aluno
@@ -1108,9 +1182,33 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                           {linkedClass ? `${linkedClass.name} (${linkedClass.shift})` : 'Sem vínculo'}
                         </td>
                         <td className="px-6 py-6 text-right">
-                          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${p.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
-                            {p.status === 'active' ? 'Ativo' : 'Convidado'}
-                          </span>
+                          {p.status === 'active' ? (
+                            <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-300">
+                              Ativo
+                            </span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
+                                Convidado
+                              </span>
+                              <button
+                                onClick={() => handleResendInvite({ name: p.full_name || p.name, email: p.email, class_id: p.class_id }, 'professor')}
+                                disabled={resendingEmail === p.email}
+                                title="Reenviar convite por e-mail"
+                                className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
+                              >
+                                <span className="material-icons-outlined text-sm">{resendingEmail === p.email ? 'sync' : 'forward_to_inbox'}</span>
+                              </button>
+                              <button
+                                onClick={() => handleRevokeInvite(p.email, 'professor')}
+                                disabled={revokingEmail === p.email}
+                                title="Revogar e remover convite"
+                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
+                              >
+                                <span className="material-icons-outlined text-sm">{revokingEmail === p.email ? 'sync' : 'person_remove'}</span>
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

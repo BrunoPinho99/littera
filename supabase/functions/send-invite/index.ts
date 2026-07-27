@@ -7,11 +7,12 @@ const corsHeaders = {
 };
 
 interface InvitePayload {
+  action?: 'send' | 'revoke';
   email: string;
-  name: string;
-  role: 'student' | 'professor';
-  school_id: string;
-  school_name: string;
+  name?: string;
+  role?: 'student' | 'professor';
+  school_id?: string;
+  school_name?: string;
   class_id?: string;
   templateId?: number;
   params?: Record<string, any>;
@@ -31,14 +32,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: InvitePayload = await req.json();
-    const { email, name, role, school_id, school_name, class_id, templateId, params } = payload;
-
-    if (!email || !name || !role || !school_id || !school_name) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: email, name, role, school_id, school_name' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const { action = 'send', email, name, role, school_id, school_name, class_id, templateId, params } = payload;
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -50,6 +44,33 @@ Deno.serve(async (req: Request) => {
         },
       }
     );
+
+    if (action === 'revoke') {
+      if (!email) {
+        return new Response(JSON.stringify({ error: 'Missing required field: email for revoke action' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      const { data: profile } = await supabaseAdmin.from('profiles').select('id').eq('email', email).maybeSingle();
+      if (profile?.id) {
+        await supabaseAdmin.auth.admin.deleteUser(profile.id);
+      }
+      await supabaseAdmin.from('profiles').delete().eq('email', email);
+
+      return new Response(JSON.stringify({ success: true, message: `Convite revogado para ${email}.` }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!email || !name || !role || !school_id || !school_name) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: email, name, role, school_id, school_name' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Generate action link via Supabase Admin API without sending default SMTP email
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
@@ -75,29 +96,73 @@ Deno.serve(async (req: Request) => {
     if (error) {
       if (error.message?.includes('already been registered') || error.code === 'email_exists' || error.message?.includes('User already registered')) {
         alreadyExists = true;
-        const { data: existingUser } = await supabaseAdmin.from('profiles').select('id').eq('email', email).maybeSingle();
-        if (existingUser?.id) {
-          userId = existingUser.id;
-          await supabaseAdmin.from('profiles').update({
-            school_id: school_id,
-            class_id: class_id ?? null,
-            role: role === 'professor' ? 'teacher' : 'student'
-          }).eq('id', existingUser.id);
+        const { data: existingUser } = await supabaseAdmin.from('profiles').select('id, status').eq('email', email).maybeSingle();
+        
+        if (existingUser?.status === 'invited' && existingUser.id) {
+          // Usuário possui apenas convite pendente e não ativou a conta. Deleta do auth.users e recria um novo convite limpo.
+          try {
+            await supabaseAdmin.auth.admin.deleteUser(existingUser.id);
+            const { data: retryData, error: retryError } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'invite',
+              email: email,
+              options: {
+                redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'}/convite`,
+                data: {
+                  full_name: name,
+                  user_type: role === 'professor' ? 'teacher' : 'student',
+                  school_id: school_id,
+                  school_name: school_name,
+                  class_id: class_id ?? null,
+                  invited_by_school: school_name,
+                },
+              },
+            });
+            if (!retryError && retryData?.user?.id) {
+              userId = retryData.user.id;
+              if (retryData.properties?.action_link) {
+                actionLink = retryData.properties.action_link;
+              }
+              alreadyExists = false;
+              await supabaseAdmin.from('profiles').delete().eq('email', email);
+              await supabaseAdmin.from('profiles').upsert({
+                id: userId,
+                full_name: name,
+                email: email,
+                role: role === 'professor' ? 'teacher' : 'student',
+                school_id: school_id,
+                class_id: class_id ?? null,
+                status: 'invited'
+              }, { onConflict: 'id' });
+            }
+          } catch (delErr) {
+            console.error("Erro ao recriar convite pendente:", delErr);
+          }
         }
 
-        try {
-          const { data: magicData } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'magiclink',
-            email: email,
-            options: {
-              redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'}/login`,
-            }
-          });
-          if (magicData?.properties?.action_link) {
-            actionLink = magicData.properties.action_link;
+        if (alreadyExists) {
+          if (existingUser?.id) {
+            userId = existingUser.id;
+            await supabaseAdmin.from('profiles').update({
+              school_id: school_id,
+              class_id: class_id ?? null,
+              role: role === 'professor' ? 'teacher' : 'student'
+            }).eq('id', existingUser.id);
           }
-        } catch (_) {
-          // fallback to login url
+
+          try {
+            const { data: magicData } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'magiclink',
+              email: email,
+              options: {
+                redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'}/login`,
+              }
+            });
+            if (magicData?.properties?.action_link) {
+              actionLink = magicData.properties.action_link;
+            }
+          } catch (_) {
+            // fallback to login url
+          }
         }
       } else {
         console.error('generateLink error:', error);
