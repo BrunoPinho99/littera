@@ -28,6 +28,8 @@ dist-ssr
 .env.local
 .env.production
 .env.*
+!.env.example
+!*/.env.example
 test-gemini.mjs
 .vercel
 .env*.local
