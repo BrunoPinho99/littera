@@ -10,7 +10,7 @@ export const sendInviteEmail = async (params: {
   school_id: string;
   school_name: string;
   class_id?: string;
-}): Promise<{ success: boolean; alreadyExists?: boolean; message?: string }> => {
+}): Promise<{ success: boolean; alreadyExists?: boolean; userId?: string; message?: string }> => {
   try {
     const { data, error } = await supabase.functions.invoke('send-invite', {
       body: params,
@@ -22,7 +22,7 @@ export const sendInviteEmail = async (params: {
       return { success: false, message: error.message };
     }
 
-    return data as { success: boolean; alreadyExists?: boolean; message?: string };
+    return data as { success: boolean; alreadyExists?: boolean; userId?: string; message?: string };
   } catch (err: any) {
     console.error('[sendInviteEmail] Unexpected error:', err);
     return { success: false, message: err.message };
@@ -246,44 +246,7 @@ export const createProfessor = async (profData: { name: string; email: string; s
   const schoolData = await getSchoolData(profData.school_id).catch(() => null);
   const schoolName = schoolData?.name || 'sua escola';
 
-  // Cria o registro no banco com status 'invited'
-  let dbPayload: any = {
-    id: generateUUID(),
-    full_name: profData.name,
-    email: profData.email,
-    role: 'teacher',
-    school_id: profData.school_id,
-    class_id: profData.class_id,
-    status: 'invited'
-  };
-
-  let resWithAllFields = await supabase
-    .from('profiles')
-    .insert([dbPayload])
-    .select()
-    .single();
-
-  let data = resWithAllFields.data;
-  let error = resWithAllFields.error;
-
-  // Fallback se class_id ou status não existirem no banco
-  if (error && error.message.includes('schema cache')) {
-    console.warn("[createProfessor] Alguma coluna faltando, fazendo fallback básico...");
-    const { class_id, status, ...basicPayload } = dbPayload;
-    
-    const resBasic = await supabase
-      .from('profiles')
-      .insert([basicPayload])
-      .select()
-      .single();
-      
-    data = resBasic.data;
-    error = resBasic.error;
-  }
-
-  if (error) throw error;
-
-  // Envia email de convite via Edge Function (não bloqueia em caso de falha)
+  // Envia email de convite via Edge Function (que cria o auth.users e o perfil no banco sem erro de fkey)
   const inviteResult = await sendInviteEmail({
     email: profData.email,
     name: profData.name,
@@ -293,7 +256,23 @@ export const createProfessor = async (profData: { name: string; email: string; s
     class_id: profData.class_id,
   });
 
-  return { ...data, _inviteEmailSent: inviteResult.success, _inviteAlreadyExists: inviteResult.alreadyExists };
+  if (!inviteResult.success && !inviteResult.alreadyExists) {
+    throw new Error(inviteResult.message || "Erro ao enviar convite e cadastrar professor.");
+  }
+
+  const profObj = {
+    id: inviteResult.userId || generateUUID(),
+    full_name: profData.name,
+    email: profData.email,
+    role: 'teacher',
+    school_id: profData.school_id,
+    class_id: profData.class_id,
+    status: 'invited',
+    _inviteEmailSent: inviteResult.success,
+    _inviteAlreadyExists: inviteResult.alreadyExists
+  };
+
+  return profObj;
 };
 
 export const createStudent = async (
@@ -324,33 +303,17 @@ export const createStudent = async (
     .from('profiles')
     .select('id')
     .eq('email', studentData.email)
-    .single();
+    .maybeSingle();
 
   if (existingUser) {
     throw new Error("Este e-mail já está cadastrado no sistema.");
   }
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert([{
-      id: generateUUID(),
-      full_name: studentData.name,
-      email: studentData.email,
-      role: 'student',
-      school_id: studentData.school_id,
-      class_id: studentData.class_id,
-      status: 'invited'
-    }])
-    .select()
-    .single();
-
-  if (error) throw error;
-
   // Busca nome da escola se não foi passado
   const schoolName = _schoolName || (await getSchoolData(studentData.school_id).catch(() => null))?.name || 'sua escola';
 
-  // Envia email de convite via Edge Function
-  await sendInviteEmail({
+  // Envia email de convite via Edge Function (que cria o auth.users e o perfil)
+  const inviteResult = await sendInviteEmail({
     email: studentData.email,
     name: studentData.name,
     role: 'student',
@@ -359,18 +322,24 @@ export const createStudent = async (
     class_id: studentData.class_id,
   });
 
+  if (!inviteResult.success && !inviteResult.alreadyExists) {
+    throw new Error(inviteResult.message || "Erro ao enviar convite e cadastrar aluno.");
+  }
+
   return {
-    id: data.id,
-    name: data.full_name,
-    email: data.email,
+    id: inviteResult.userId || generateUUID(),
+    name: studentData.name,
+    email: studentData.email,
     averageScore: 0,
     essaysSubmitted: 0,
     lastActivity: "Novo",
     status: 'invited',
-    class_id: data.class_id,
-    school_id: data.school_id,
-    registration_number: data.registration_number
-  };
+    class_id: studentData.class_id,
+    school_id: studentData.school_id,
+    registration_number: studentData.registration_number,
+    _inviteEmailSent: inviteResult.success,
+    _inviteAlreadyExists: inviteResult.alreadyExists
+  } as any;
 };
 
 export const createStudentsBulk = async (students: { name: string; email: string; class_id: string; registration_number?: string }[], schoolId: string) => {
@@ -416,58 +385,41 @@ export const createStudentsBulk = async (students: { name: string; email: string
 
   if (validStudents.length === 0) return results;
 
-  // 2. Preparar os perfis para inserção em lote
-  const profilesToInsert = validStudents.map(student => ({
-    id: generateUUID(),
-    full_name: student.name,
-    email: student.email,
-    role: 'student',
-    school_id: schoolId,
-    class_id: student.class_id,
-    status: 'invited',
-    registration_number: student.registration_number
-  }));
-
-  // 3. Inserir em lote no banco
-  const { data: insertedProfiles, error: insertError } = await supabase
-    .from('profiles')
-    .insert(profilesToInsert)
-    .select();
-
-  if (insertError) {
-    validStudents.forEach(s => {
-      results.errors.push({ email: s.email, reason: insertError.message });
-    });
-    return results;
-  }
-
-  // 4. Enviar e-mails de convite concorrentemente em lotes de 10
-  const BATCH_SIZE = 10;
-  for (let i = 0; i < insertedProfiles.length; i += BATCH_SIZE) {
-    const batch = insertedProfiles.slice(i, i + BATCH_SIZE);
+  // 2. Convidar e cadastrar estudantes concorrentemente via Edge Function em lotes de 5
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < validStudents.length; i += BATCH_SIZE) {
+    const batch = validStudents.slice(i, i + BATCH_SIZE);
     
-    await Promise.all(batch.map(async (profile: any) => {
-      await sendInviteEmail({
-        email: profile.email,
-        name: profile.full_name,
-        role: 'student',
-        school_id: profile.school_id,
-        school_name: schoolName,
-        class_id: profile.class_id,
-      });
+    await Promise.all(batch.map(async (student) => {
+      try {
+        const inviteResult = await sendInviteEmail({
+          email: student.email,
+          name: student.name,
+          role: 'student',
+          school_id: schoolId,
+          school_name: schoolName,
+          class_id: student.class_id,
+        });
 
-      results.success.push({
-        id: profile.id,
-        name: profile.full_name,
-        email: profile.email,
-        averageScore: 0,
-        essaysSubmitted: 0,
-        lastActivity: "Novo",
-        status: 'invited',
-        class_id: profile.class_id,
-        school_id: profile.school_id,
-        registration_number: profile.registration_number
-      });
+        if (inviteResult.success || inviteResult.alreadyExists) {
+          results.success.push({
+            id: inviteResult.userId || generateUUID(),
+            name: student.name,
+            email: student.email,
+            averageScore: 0,
+            essaysSubmitted: 0,
+            lastActivity: "Novo",
+            status: 'invited',
+            class_id: student.class_id,
+            school_id: schoolId,
+            registration_number: student.registration_number
+          });
+        } else {
+          results.errors.push({ email: student.email, reason: inviteResult.message || "Erro ao convidar" });
+        }
+      } catch (err: any) {
+        results.errors.push({ email: student.email, reason: err.message || "Erro desconhecido" });
+      }
     }));
   }
 
@@ -542,7 +494,7 @@ export const getProfessorsBySchool = async (schoolId: string) => {
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
-    .eq('role', 'professor')
+    .in('role', ['teacher', 'professor'])
     .eq('school_id', schoolId);
 
   if (error) throw error;

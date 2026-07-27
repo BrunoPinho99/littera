@@ -70,10 +70,20 @@ Deno.serve(async (req: Request) => {
     if (error) {
       // If user already exists in auth, it's not necessarily a fatal error
       // (they might already have an account)
-      if (error.message?.includes('already been registered') || error.code === 'email_exists') {
+      if (error.message?.includes('already been registered') || error.code === 'email_exists' || error.message?.includes('User already registered')) {
+        const { data: existingUser } = await supabaseAdmin.from('profiles').select('id').eq('email', email).maybeSingle();
+        if (existingUser?.id) {
+          await supabaseAdmin.from('profiles').update({
+            school_id: school_id,
+            class_id: class_id ?? null,
+            role: role === 'professor' ? 'teacher' : 'student'
+          }).eq('id', existingUser.id);
+        }
+
         return new Response(JSON.stringify({
           success: false,
           alreadyExists: true,
+          userId: existingUser?.id,
           message: 'Este email já possui uma conta ativa na plataforma.',
         }), {
           status: 200,
@@ -88,21 +98,20 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Create provisional profile with 'pending' status
+    // Create provisional profile with 'invited' status
     if (data?.user) {
-      const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+      const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
         id: data.user.id,
         full_name: name,
         email: email,
         role: role === 'professor' ? 'teacher' : 'student',
         school_id: school_id,
         class_id: class_id ?? null,
-        status: 'pending'
-      });
+        status: 'invited'
+      }, { onConflict: 'id' });
       
       if (profileError) {
         console.error('Error creating provisional profile:', profileError);
-        // We do not fail the request here, but log it.
       }
     }
 
