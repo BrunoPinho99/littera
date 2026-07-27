@@ -1378,10 +1378,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {
         isClassModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-            <div
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              onClick={() => setIsClassModalOpen(false)}
-            ></div>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
             <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
               <div className="p-8 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Turma</h3>
@@ -1458,10 +1455,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {
         isProfessorModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-            <div
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              onClick={() => setIsProfessorModalOpen(false)}
-            ></div>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
             <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
               <div className="p-8 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Novo Docente</h3>
@@ -1541,10 +1535,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {
         isStudentModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-            <div
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              onClick={() => setIsStudentModalOpen(false)}
-            ></div>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
             <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden overflow-y-auto max-h-[90vh] animate-scale-in border border-gray-100 dark:border-white/10">
               <div className="p-6 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Matrícula</h3>
@@ -1635,10 +1626,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {
         isBulkModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-            <div
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              onClick={() => setIsBulkModalOpen(false)}
-            ></div>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
             <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
               <div className="p-8 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Importação em Massa</h3>
@@ -1721,10 +1709,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {
         isAssignmentModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-            <div
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-              onClick={() => setIsAssignmentModalOpen(false)}
-            ></div>
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
             <div className="relative bg-white dark:bg-surface-dark w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10 max-h-[90vh] overflow-y-auto">
               <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
                 <div>
@@ -1824,7 +1809,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {/* Modal Adicionar/Editar Cartão */}
       {isCardModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => { setIsCardModalOpen(false); setEditingCard(null); }}></div>
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
           <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
             <div className="p-8 border-b border-gray-100 dark:border-white/5">
               <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">

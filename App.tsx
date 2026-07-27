@@ -79,7 +79,10 @@ const App: React.FC = () => {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           setSession(data.session);
-          setUserType(data.session.user.user_metadata?.user_type || 'student');
+          const metaType = data.session.user.user_metadata?.user_type;
+          if (metaType) localStorage.setItem('littera_user_type', metaType);
+          const resolvedType = metaType || localStorage.getItem('littera_user_type') || 'student';
+          setUserType(resolvedType);
           loadNotifications(data.session.user.id);
 
           let schoolId = data.session.user.user_metadata?.school_id;
@@ -125,7 +128,9 @@ const App: React.FC = () => {
         setIsDemoMode(false);
         setSession(prev => (prev?.access_token === session.access_token && prev?.user?.id === session.user?.id ? prev : session));
         
-        const nextUserType = session.user.user_metadata?.user_type || 'student';
+        const metaType = session.user.user_metadata?.user_type;
+        if (metaType) localStorage.setItem('littera_user_type', metaType);
+        const nextUserType = metaType || localStorage.getItem('littera_user_type') || 'student';
         setUserType(prev => prev === nextUserType ? prev : nextUserType);
 
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
@@ -149,6 +154,7 @@ const App: React.FC = () => {
         }
       } else {
         if (!localStorage.getItem('littera_demo_mode')) {
+          localStorage.removeItem('littera_user_type');
           setSession(null);
           setIsDemoMode(false);
           setUserType('student');
