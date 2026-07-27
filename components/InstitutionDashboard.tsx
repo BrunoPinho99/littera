@@ -762,6 +762,20 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               <span className="material-icons-outlined text-lg">add_task</span>
               Nova Atividade
             </button>
+            <button
+              onClick={() => setIsStudentModalOpen(true)}
+              className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 flex items-center gap-2"
+            >
+              <span className="material-icons-outlined text-lg">person_add</span>
+              + Aluno
+            </button>
+            <button
+              onClick={() => setIsBulkModalOpen(true)}
+              className="w-12 py-3 bg-white dark:bg-surface-dark text-gray-600 dark:text-gray-300 rounded-2xl font-black border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-sm transition-all hover:bg-gray-50 hover:text-primary tooltip-container"
+              title="Importar CSV de Alunos"
+            >
+              <span className="material-icons-outlined">upload_file</span>
+            </button>
           </div>
         )}
 
@@ -1012,25 +1026,45 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
           {activeTab === 'students' && (
             <>
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${statusFilter === 'all' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'}`}
-                >
-                  Todos
-                </button>
-                <button
-                  onClick={() => setStatusFilter('active')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${statusFilter === 'active' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-gray-100 text-gray-400 hover:bg-emerald-50 hover:text-emerald-500 dark:bg-white/5'}`}
-                >
-                  Alunos Ativos
-                </button>
-                <button
-                  onClick={() => setStatusFilter('invited')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${statusFilter === 'invited' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-gray-100 text-gray-400 hover:bg-amber-50 hover:text-amber-500 dark:bg-white/5'}`}
-                >
-                  Convites Pendentes
-                </button>
+              <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setStatusFilter('all')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${statusFilter === 'all' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 dark:bg-white/5 dark:hover:bg-white/10'}`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('active')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${statusFilter === 'active' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-gray-100 text-gray-400 hover:bg-emerald-50 hover:text-emerald-500 dark:bg-white/5'}`}
+                  >
+                    Alunos Ativos
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter('invited')}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${statusFilter === 'invited' ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-gray-100 text-gray-400 hover:bg-amber-50 hover:text-amber-500 dark:bg-white/5'}`}
+                  >
+                    Convites Pendentes
+                  </button>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsStudentModalOpen(true)}
+                    className="px-5 py-2.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
+                  >
+                    <span className="material-icons-outlined text-base">person_add</span>
+                    Convidar Aluno
+                  </button>
+                  <button
+                    onClick={() => setIsBulkModalOpen(true)}
+                    className="px-4 py-2.5 bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-200 rounded-xl font-black text-xs uppercase tracking-widest border border-gray-200 dark:border-white/10 flex items-center gap-2 shadow-sm transition-all hover:bg-gray-50 hover:text-primary"
+                    title="Importar CSV"
+                  >
+                    <span className="material-icons-outlined text-base">upload_file</span>
+                    Importar CSV
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto mb-6">
