@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { EssayInput, CorrectionResult, SavedEssay, Assignment, School, ClassGroup, StudentDetail, BulkStudentRow } from '../types';
+import { EssayInput, CorrectionResult, SavedEssay, School, ClassGroup, StudentDetail } from '../types';
 
 // ── Email de Convite via Edge Function ─────────────────────────────────────────
 // Chama a Edge Function 'send-invite' que usa a service_role key no backend
@@ -507,7 +507,7 @@ export const getStudentsByContext = async (schoolId: string, classId?: string): 
     averageScore: s.average_score || 0,
     essaysSubmitted: s.essays_count || 0,
     lastActivity: "Recente",
-    status: s.status === 'invited' ? 'invited' : ((s.average_score || 0) < 500 ? 'risk' : 'active'),
+    status: s.status === 'invited' ? 'invited' : ((s.essays_count || 0) > 0 && (s.average_score || 0) < 500 ? 'risk' : (s.status || 'active')),
     class_id: s.class_id,
     school_id: s.school_id,
     birth_date: s.birth_date,
@@ -662,6 +662,6 @@ const calculateDetailedMetrics = (history: SavedEssay[]) => {
 };
 
 // --- STUBS FOR RECOVERY MODE ---
-export const getNotifications = async (userId: string) => [];
-export const markNotificationAsRead = async (id: string) => { };
-export const markAllNotificationsRead = async (userId: string) => { };
+export const getNotifications = async (_userId: string) => [];
+export const markNotificationAsRead = async (_id: string) => { };
+export const markAllNotificationsRead = async (_userId: string) => { };

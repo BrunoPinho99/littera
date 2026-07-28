@@ -60,7 +60,7 @@ interface PendingCheckoutPageProps {
 }
 
 export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogout, session }) => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<any>(null);
@@ -69,7 +69,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
 
   // Polling: verifica o status da escola a cada 5s — funciona para PIX, Boleto e Cartão
   useEffect(() => {
-    let interval: any;
+    const intervalRef = { current: null as any };
     let redirecting = false;
 
     const checkStatus = async () => {
@@ -96,7 +96,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         if (school.subscription_status === 'active') {
           // Pagamento aprovado! Limpar flags e redirecionar direto para o dashboard
           redirecting = true;
-          clearInterval(interval);
+          clearInterval(intervalRef.current);
           localStorage.removeItem('checkout_studentCount');
           localStorage.removeItem('checkout_billingCycle');
 
@@ -118,7 +118,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
 
           if (!checkError && checkData?.status === 'PAID') {
             redirecting = true;
-            clearInterval(interval);
+            clearInterval(intervalRef.current);
             localStorage.removeItem('checkout_studentCount');
             localStorage.removeItem('checkout_billingCycle');
             await supabase.auth.refreshSession();
@@ -134,9 +134,9 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
     };
 
     checkStatus();
-    interval = setInterval(checkStatus, 5000); // Verifica a cada 5 segundos
+    intervalRef.current = setInterval(checkStatus, 5000); // Verifica a cada 5 segundos
 
-    return () => clearInterval(interval);
+    return () => clearInterval(intervalRef.current);
   }, [session, checkingStatus]);
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<any>({
@@ -283,7 +283,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   const monthlyTotal = studentCount * pricePerStudent;
   
   const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
-  const planName = studentCount <= 200 ? 'Starter' : 'School';
+  const _planName = studentCount <= 200 ? 'Starter' : 'School';
   
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background-light dark:bg-background-dark font-sans overflow-hidden">

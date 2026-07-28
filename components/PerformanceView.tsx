@@ -12,7 +12,7 @@ interface PerformanceViewProps {
 
 // ─── Mini bar chart component ────────────────────────────────────────────────
 const ScoreBar: React.FC<{ score: number; max: number; date: string; isActive: boolean; onClick: () => void }> = ({
-  score, max, date, isActive, onClick
+  score, max: _max, date, isActive, onClick
 }) => {
   const pct = Math.round((score / 1000) * 100);
   const color = score >= 800 ? '#10b981' : score >= 600 ? '#004ac6' : score >= 400 ? '#f59e0b' : '#ef4444';
@@ -195,7 +195,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
   // Tier progress
   const tierIdx = JOURNEY_TIERS.findIndex(t => t.label === currentRank.label);
   const nextTier = JOURNEY_TIERS[tierIdx + 1];
-  const tierPrev = JOURNEY_TIERS[tierIdx - 1];
+  const _tierPrev = JOURNEY_TIERS[tierIdx - 1];
   const tierMin = currentRank.min;
   const tierMax = currentRank.next || currentRank.max;
   const tierProgress = Math.min(Math.round(((stats.totalEssays - tierMin) / ((tierMax - tierMin) || 1)) * 100), 100);

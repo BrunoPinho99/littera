@@ -561,7 +561,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         title: result.title,
         baseText: result.baseText
       }));
-    } catch (error) {
+    } catch (_error) {
       alert("Erro ao gerar tema com IA. Tente novamente.");
     } finally {
       setIsGeneratingAI(false);

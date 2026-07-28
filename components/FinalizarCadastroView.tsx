@@ -16,7 +16,7 @@ const FinalizarCadastroView: React.FC = () => {
     if (savedForm) {
       try {
         setFormData(JSON.parse(savedForm));
-      } catch (e) {}
+      } catch (_e) {}
     }
   }, []);
 

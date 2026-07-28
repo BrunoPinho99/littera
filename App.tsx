@@ -15,7 +15,6 @@ import ProfileView from './components/ProfileView';
 import LoginView from './components/LoginView';
 import InstitutionDashboard from './components/InstitutionDashboard';
 import LandingPage from './components/LandingPage';
-import PaymentSuccess from './components/PaymentSuccess';
 import AcceptInviteView from './components/AcceptInviteView';
 import CheckoutWizard from './components/CheckoutWizard';
 import { PendingCheckoutPage } from './components/PendingCheckoutPage';
@@ -62,7 +61,7 @@ const App: React.FC = () => {
   const [handwrittenResult, setHandwrittenResult] = useState<HandwrittenCorrectionResult | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isCorrecting, setIsCorrecting] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, _setIsLoading] = useState(false);
 
 
 
@@ -136,7 +135,7 @@ const App: React.FC = () => {
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
           loadNotifications(session.user.id);
 
-          let schoolId = session.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
+          const schoolId = session.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
 
           if (schoolId) {
             getSchoolData(schoolId).then(sd => setSchoolStatus(prev => prev === (sd?.subscription_status || 'inactive') ? prev : (sd?.subscription_status || 'inactive')));

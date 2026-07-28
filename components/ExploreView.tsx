@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { exploreTopics, ExploreTopic } from '../data/exploreTopics';
+import { exploreTopics } from '../data/exploreTopics';
 
 interface ExploreViewProps {
   onSelectTopic: (topicTitle: string) => void;

@@ -35,11 +35,11 @@ function formatCNPJ(value: string): string {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
-function formatCardNumber(value: string): string {
+function _formatCardNumber(value: string): string {
   return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
 }
 
-function formatExpiry(value: string): string {
+function _formatExpiry(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 4);
   if (digits.length >= 3) {
     return `${digits.slice(0, 2)}/${digits.slice(2)}`;
@@ -100,8 +100,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [passwordStrength, setPasswordStrength] = useState<{ score: number; label: string; color: string } | null>(null);
-  const [createdSchoolId, setCreatedSchoolId] = useState<string | null>(null);
+  const [_passwordStrength, _setPasswordStrength] = useState<{ score: number; label: string; color: string } | null>(null);
+  const [_createdSchoolId, _setCreatedSchoolId] = useState<string | null>(null);
 
   // Polling removido porque agora redirecionamos na mesma aba para o Asaas
 
@@ -177,7 +177,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     }
   };
 
-  const [paymentResult, setPaymentResult] = useState<any>(null);
+  const [_paymentResult, _setPaymentResult] = useState<any>(null);
 
   const onSubmit = useCallback(async (data: CheckoutFormData) => {
     setIsLoading(true);

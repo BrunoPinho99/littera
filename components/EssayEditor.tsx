@@ -24,7 +24,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState("00:00");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const finishedRef = useRef(false);
+  const _finishedRef = useRef(false);
 
   // Marca redação em andamento ao montar
   useEffect(() => {

@@ -74,7 +74,7 @@ const plans: Plan[] = [
 const SubscriptionView: React.FC<SubscriptionViewProps> = ({
   onPlanSelected,
   onCancel,
-  schoolId,
+  schoolId: _schoolId,
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
