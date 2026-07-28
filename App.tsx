@@ -19,10 +19,11 @@ import AcceptInviteView from './components/AcceptInviteView';
 import CheckoutWizard from './components/CheckoutWizard';
 import { PendingCheckoutPage } from './components/PendingCheckoutPage';
 import FinalizarCadastroView from './components/FinalizarCadastroView';
+import ChallengeBanner from './components/ChallengeBanner';
 // Types and Services
-import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult } from './types';
+import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
-import { saveEssayToDatabase, getNotifications, getSchoolData, checkEssayCache } from './services/databaseService';
+import { saveEssayToDatabase, getNotifications, getSchoolData, checkEssayCache, getStudentAssignments } from './services/databaseService';
 import { supabase } from './supabaseClient';
 import { exploreTopics } from './data/exploreTopics';
 import { notificationsData } from './data/notificationsData';
@@ -68,6 +69,23 @@ const App: React.FC = () => {
   // Banner de redação em andamento
   const [essayDraft, setEssayDraft] = useState<{ topicTitle: string; startTime: number } | null>(null);
   const [schoolStatus, setSchoolStatus] = useState<string | null>(null);
+
+  // Desafios Ativos (Alunos)
+  const [activeAssignments, setActiveAssignments] = useState<Assignment[]>([]);
+  const [forceShowChallengeId, setForceShowChallengeId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (userType === 'student') {
+      const u = session?.user || { id: 'demo' };
+      const schoolId = u.user_metadata?.school_id || localStorage.getItem('checkout_schoolId') || 'demo-school';
+      const classId = u.user_metadata?.class_id || 'demo-class';
+      getStudentAssignments(schoolId, classId).then((assignments) => {
+        const now = Date.now();
+        const valid = (assignments || []).filter(a => !a.due_date || new Date(a.due_date).getTime() > now);
+        setActiveAssignments(valid);
+      });
+    }
+  }, [userType, currentView, session]);
 
   
   // 1. Initialize Session
@@ -212,6 +230,16 @@ const App: React.FC = () => {
     navigate('/');
   };
 
+  const handleStartChallengeWriting = (assignment: Assignment) => {
+    setWritingTopicTitle(assignment.title);
+    setTopic({
+      id: assignment.id,
+      title: assignment.title,
+      supportTexts: assignment.base_text ? [{ id: 'inst-1', title: 'Instruções / Texto Base', content: assignment.base_text, icon: 'description' }] : []
+    });
+    navigate('/app/writing');
+  };
+
   const handleEssaySubmit = async (input: EssayInput) => {
     setIsCorrecting(true);
     try {
@@ -319,6 +347,14 @@ const App: React.FC = () => {
           userType={userType as any}
           notifications={notifications}
           onMarkAsRead={() => { }}
+          activeChallengesCount={activeAssignments.length}
+          onOpenChallenge={() => { 
+            if (activeAssignments.length > 0) {
+              setForceShowChallengeId(activeAssignments[0].id);
+              if (currentView !== 'practice') navigate('/app/practice');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+          }}
         />
 
         {/* ── Banner: Redação em andamento ─────────────────────────────────────── */}
@@ -368,6 +404,12 @@ const App: React.FC = () => {
             <Routes>
               <Route path="practice" element={
                 <div className="space-y-16">
+                  <ChallengeBanner 
+                    assignments={activeAssignments} 
+                    onStartWriting={handleStartChallengeWriting}
+                    forceShowId={forceShowChallengeId}
+                    onClearForceShow={() => setForceShowChallengeId(null)}
+                  />
                   <TopicCard
                     topic={topic}
                     onRefresh={() => {

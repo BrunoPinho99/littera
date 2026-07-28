@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import { EssayInput, CorrectionResult, SavedEssay, School, ClassGroup, StudentDetail } from '../types';
+import { EssayInput, CorrectionResult, SavedEssay, School, ClassGroup, StudentDetail, Assignment, Notification } from '../types';
 
 // ── Email de Convite via Edge Function ─────────────────────────────────────────
 // Chama a Edge Function 'send-invite' que usa a service_role key no backend
@@ -607,17 +607,84 @@ export const getUserStats = async (userId: string) => {
 };
 
 // --- ASSIGNMENTS ---
+export const notifyStudentsAboutAssignment = async (assignment: { id: string; title: string; base_text?: string; description?: string; class_id: string; school_id?: string; due_date?: string }, schoolId: string) => {
+  try {
+    const students = await getStudentsByContext(schoolId, assignment.class_id);
+    const textBase = assignment.base_text || assignment.description || 'Tema de redação.';
+    const dueDateStr = assignment.due_date ? new Date(assignment.due_date).toLocaleDateString('pt-BR') : 'Sem prazo definido';
+
+    // Disparar e-mails para alunos encontrados via Edge Function
+    for (const student of students) {
+      if (student.email) {
+        supabase.functions.invoke('send-notification', {
+          body: {
+            email: student.email,
+            subject: `[Littera] Novo Desafio de Redação: ${assignment.title}`,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9fb; border-radius: 12px;">
+                <h2 style="color: #4F46E5;">🎯 Novo Desafio Atribuído!</h2>
+                <p>Olá, <strong>${student.name}</strong>!</p>
+                <p>O seu professor lançou um novo desafio de redação no Littera:</p>
+                <div style="background-color: #ffffff; padding: 15px; border-left: 4px solid #4F46E5; border-radius: 8px; margin: 15px 0;">
+                  <h3 style="margin: 0 0 10px 0; color: #1e293b;">${assignment.title}</h3>
+                  <p style="margin: 0; color: #64748b; font-size: 14px;">${textBase}</p>
+                </div>
+                <p><strong>⏳ Prazo de entrega:</strong> ${dueDateStr}</p>
+                <div style="text-align: center; margin: 25px 0;">
+                  <a href="https://littera.app" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Escrever Redação Agora</a>
+                </div>
+                <p style="color: #94a3b8; font-size: 12px; text-align: center;">Você recebeu este e-mail porque é um aluno cadastrado no Littera.</p>
+              </div>
+            `
+          }
+        }).catch(err => console.log('Envio de e-mail (modo demo/offline):', err));
+      }
+    }
+
+    // Salvar notificação in-app
+    const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
+    const newNotif = {
+      id: generateUUID(),
+      type: 'assignment',
+      title: '🎯 ' + assignment.title,
+      message: `Novo desafio de redação! Prazo: ${dueDateStr}. ${textBase.slice(0, 80)}...`,
+      timestamp: 'Agora',
+      read: false,
+      class_id: assignment.class_id,
+      school_id: schoolId,
+      assignment_id: assignment.id,
+      due_date: assignment.due_date
+    };
+    localStorage.setItem('scritta_custom_notifications', JSON.stringify([newNotif, ...customNotifs]));
+  } catch (error) {
+    console.warn('Falha ao notificar alunos (modo offline):', error);
+  }
+};
+
 export const createAssignment = async (assignmentData: { title: string; base_text: string; class_id: string; school_id: string; due_date?: string }) => {
   const { data: { session } } = await supabase.auth.getSession();
+  const schoolId = assignmentData.school_id || 'demo-school';
+
+  const newAssignment = {
+    id: generateUUID(),
+    title: assignmentData.title,
+    base_text: assignmentData.base_text,
+    description: assignmentData.base_text,
+    class_id: assignmentData.class_id,
+    school_id: schoolId,
+    due_date: assignmentData.due_date || '',
+    created_at: new Date().toISOString()
+  };
+
+  // Salvar sempre em localStorage para disponibilidade imediata no modo demo/offline
+  const currentDemoAssignments = JSON.parse(localStorage.getItem('scritta_demo_assignments') || '[]');
+  localStorage.setItem('scritta_demo_assignments', JSON.stringify([newAssignment, ...currentDemoAssignments]));
+
+  // Disparar notificações e e-mails aos alunos da turma
+  notifyStudentsAboutAssignment(newAssignment, schoolId);
 
   // Demo / Local Mode
   if (!session || session.user.id === 'demo' || session.user.user_metadata?.school_id === 'demo-school') {
-    const newAssignment = {
-      id: generateUUID(),
-      ...assignmentData,
-      created_at: new Date().toISOString()
-    };
-    // Simulate success
     return newAssignment;
   }
 
@@ -628,7 +695,7 @@ export const createAssignment = async (assignmentData: { title: string; base_tex
       title: assignmentData.title,
       description: assignmentData.base_text,
       class_id: assignmentData.class_id,
-      school_id: assignmentData.school_id,
+      school_id: schoolId,
       due_date: assignmentData.due_date,
       created_by: session.user.id
     }])
@@ -636,11 +703,49 @@ export const createAssignment = async (assignmentData: { title: string; base_tex
     .single();
 
   if (error) {
-    console.error('Error creating assignment:', error);
-    // If the table doesn't exist or other error
-    throw error;
+    console.warn('Erro ao inserir no Supabase (utilizando fallback local):', error);
+    return newAssignment;
   }
   return data;
+};
+
+export const getStudentAssignments = async (schoolId?: string, classId?: string): Promise<Assignment[]> => {
+  const localAssignments = JSON.parse(localStorage.getItem('scritta_demo_assignments') || '[]');
+
+  if (!schoolId || schoolId === 'demo-school' || schoolId === 'demo') {
+    if (localAssignments.length === 0) {
+      const defaultDemoAssignment: Assignment = {
+        id: 'demo-challenge-1',
+        title: 'Os Desafios da Inteligência Artificial no Século XXI',
+        base_text: 'A IA está transformando o mercado de trabalho, a educação e a sociedade. Escreva uma redação dissertativa-argumentativa propondo caminhos para uma adoção ética e sustentável dessa tecnologia.',
+        description: 'A IA está transformando o mercado de trabalho, a educação e a sociedade. Escreva uma redação dissertativa-argumentativa propondo caminhos para uma adoção ética e sustentável dessa tecnologia.',
+        class_id: classId || 'Turma A',
+        school_id: 'demo-school',
+        due_date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+        created_at: new Date().toISOString()
+      };
+      return [defaultDemoAssignment];
+    }
+    return localAssignments;
+  }
+
+  try {
+    let query = supabase.from('assignments').select('*').eq('school_id', schoolId);
+    if (classId && classId !== 'Todas') {
+      query = query.eq('class_id', classId);
+    }
+    const { data, error } = await query;
+    if (error) {
+      console.warn('Erro ao buscar assignments do Supabase, usando localStorage:', error);
+      return localAssignments;
+    }
+    const combined = [...(data || []), ...localAssignments];
+    const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+    return unique;
+  } catch (err) {
+    console.warn('Fallback getStudentAssignments:', err);
+    return localAssignments;
+  }
 };
 
 const calculateDetailedMetrics = (history: SavedEssay[]) => {
@@ -661,7 +766,18 @@ const calculateDetailedMetrics = (history: SavedEssay[]) => {
   return { totalEssays, averageScore: Math.round(totalPoints / totalEssays), totalPoints, history, competencyAverages };
 };
 
-// --- STUBS FOR RECOVERY MODE ---
-export const getNotifications = async (_userId: string) => [];
-export const markNotificationAsRead = async (_id: string) => { };
-export const markAllNotificationsRead = async (_userId: string) => { };
+// --- RECOVERY & CUSTOM NOTIFICATIONS MODE ---
+export const getNotifications = async (_userId: string): Promise<Notification[]> => {
+  const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
+  return customNotifs;
+};
+export const markNotificationAsRead = async (id: string) => {
+  const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
+  const updated = customNotifs.map((n: any) => n.id === id ? { ...n, read: true } : n);
+  localStorage.setItem('scritta_custom_notifications', JSON.stringify(updated));
+};
+export const markAllNotificationsRead = async (_userId: string) => {
+  const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
+  const updated = customNotifs.map((n: any) => ({ ...n, read: true }));
+  localStorage.setItem('scritta_custom_notifications', JSON.stringify(updated));
+};

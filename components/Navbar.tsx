@@ -11,9 +11,11 @@ interface NavbarProps {
   user: any;
   notifications: Notification[];
   onMarkAsRead: (id: string) => void;
+  activeChallengesCount?: number;
+  onOpenChallenge?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, userType, user, notifications, onMarkAsRead: _onMarkAsRead }) => {
+const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, userType, user, notifications, onMarkAsRead: _onMarkAsRead, activeChallengesCount, onOpenChallenge }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userRank, setUserRank] = useState<any>(null);
@@ -95,17 +97,17 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
             </div>
 
             {/* Center Navigation — Surface Pill (desktop only) */}
-            <div className="hidden md:flex items-center bg-surface-container-low p-1.5 rounded-pill gap-1">
+            <div className="hidden md:flex items-center bg-surface-container-low p-1.5 rounded-pill gap-0.5 lg:gap-1">
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => onViewChange(item.id)}
-                  className={`flex items-center gap-2.5 px-5 py-2.5 rounded-pill text-label-lg transition-all duration-300 ${currentView === item.id
+                  className={`flex items-center gap-1.5 lg:gap-2.5 px-3 lg:px-5 py-2 lg:py-2.5 rounded-pill text-sm lg:text-label-lg font-bold transition-all duration-300 ${currentView === item.id
                       ? 'bg-surface-container-lowest text-primary shadow-card'
                       : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest/60'
                     }`}
                 >
-                  <span className={`material-icons-outlined text-xl transition-transform ${currentView === item.id ? 'scale-110' : ''}`}>
+                  <span className={`material-icons-outlined text-lg lg:text-xl transition-transform ${currentView === item.id ? 'scale-110' : ''}`}>
                     {item.icon}
                   </span>
                   <span className="tracking-tight">{item.label}</span>
@@ -115,6 +117,19 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
 
             {/* Right Section */}
             <div className="flex items-center gap-2 sm:gap-4">
+
+              {/* Botão permanente de Desafio Ativo (Permite visualizar o desafio quando quiser mesmo se fechado) */}
+              {userType === 'student' && activeChallengesCount && activeChallengesCount > 0 ? (
+                <button
+                  onClick={onOpenChallenge}
+                  className="flex items-center gap-1 lg:gap-1.5 px-2.5 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-xs lg:text-sm shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 animate-pulse group/btn"
+                  title="Clique para visualizar o desafio do professor no painel do aluno"
+                >
+                  <span className="material-icons-outlined text-base lg:text-lg group-hover/btn:rotate-12 transition-transform">emoji_events</span>
+                  <span className="hidden lg:inline">Desafio</span>
+                  <span className="bg-white/25 px-1.5 py-0.5 rounded-full text-[10px] lg:text-[11px] font-black leading-none">{activeChallengesCount}</span>
+                </button>
+              ) : null}
 
               {/* Notification bell */}
               <button
@@ -136,9 +151,9 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center gap-2 sm:gap-3 p-1 sm:p-1.5 rounded-xl transition-all hover:bg-surface-container-low group"
+                  className="flex items-center gap-2 lg:gap-3 p-1 lg:p-1.5 rounded-xl transition-all hover:bg-surface-container-low group"
                 >
-                  <div className="text-right hidden sm:block pr-1">
+                  <div className="text-right hidden lg:block pr-1">
                     <p className="text-label-md text-on-surface leading-none mb-1 group-hover:text-primary transition-colors">{firstName}</p>
                     <div className="flex items-center justify-end gap-1.5">
                       {userRank && userType === 'student' && (

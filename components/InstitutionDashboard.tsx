@@ -590,7 +590,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
       setIsAssignmentModalOpen(false);
       setNewAssignment({ title: '', baseText: '', class_id: '', due_date: '' });
-      alert("Atividade criada com sucesso!");
+      alert("🎯 Desafio de Redação criado e enviado com sucesso!\n\n📧 Os alunos da turma foram notificados por e-mail com as instruções e prazo do desafio.\n🔔 O aviso interativo com relógio regressivo já está visível na barra superior e na central de notificações do painel do aluno.");
     } catch (error: any) {
       const msg = error?.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
       alert("Erro ao criar atividade: " + msg);

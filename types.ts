@@ -49,7 +49,10 @@ export interface SavedEssay {
 export interface Assignment {
   id: string;
   title: string;
+  description?: string;
+  base_text?: string;
   class_id: string;
+  school_id?: string;
   due_date: string;
   created_at: string;
 }
