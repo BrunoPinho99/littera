@@ -35,6 +35,7 @@ const AcceptInviteView: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
 
   // Form state
+  const [loginEmail, setLoginEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -75,6 +76,7 @@ const AcceptInviteView: React.FC = () => {
             schoolName: meta?.invited_by_school || meta?.school_name || 'sua escola',
             role: meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)',
           });
+          if (user.email) setLoginEmail(user.email);
 
           // Pre-fill name if already set in metadata
           if (meta?.full_name) {
@@ -109,6 +111,7 @@ const AcceptInviteView: React.FC = () => {
             schoolName: meta?.invited_by_school || meta?.school_name || 'sua escola',
             role: meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)',
           });
+          if (user.email) setLoginEmail(user.email);
 
           if (meta?.full_name) setFullName(meta.full_name);
 
@@ -143,15 +146,25 @@ const AcceptInviteView: React.FC = () => {
       return;
     }
 
+    if (!loginEmail.trim()) {
+      setErrorMsg('Por favor, informe seu e-mail de login.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg('');
 
     try {
-      // Update password and name for the current session (which was set via invite token)
-      const { error: updateError } = await supabase.auth.updateUser({
+      // Update password, email and name for the current session
+      const updatePayload: any = {
         password,
         data: { full_name: fullName.trim() },
-      });
+      };
+      if (loginEmail.trim() && loginEmail.trim() !== inviteMeta?.email) {
+        updatePayload.email = loginEmail.trim();
+      }
+
+      const { error: updateError } = await supabase.auth.updateUser(updatePayload);
 
       if (updateError) throw updateError;
 
@@ -161,7 +174,7 @@ const AcceptInviteView: React.FC = () => {
         await supabase.from('profiles').upsert({
           id: session.user.id,
           full_name: fullName.trim(),
-          email: session.user.email,
+          email: loginEmail.trim() || session.user.email,
           role: session.user.user_metadata?.user_type || 'student',
           school_id: session.user.user_metadata?.school_id,
           class_id: session.user.user_metadata?.class_id,
@@ -329,6 +342,22 @@ const AcceptInviteView: React.FC = () => {
               )}
 
               <form onSubmit={handleActivate} className="space-y-4">
+                {/* Login Email */}
+                <div className="space-y-1.5 group">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 group-focus-within:text-primary transition-colors">
+                    LOGIN (E-MAIL DE ACESSO)
+                  </label>
+                  <input
+                    id="invite-login-email"
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="Seu e-mail de acesso"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                  />
+                </div>
+
                 {/* Full Name */}
                 <div className="space-y-1.5 group">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 group-focus-within:text-primary transition-colors">

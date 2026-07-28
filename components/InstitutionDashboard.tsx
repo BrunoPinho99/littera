@@ -309,6 +309,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
   const handleCreateProfessor = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (userType !== 'school_admin') return;
     if (!newProfessor.name || !newProfessor.email || !newProfessor.class_id) {
       showToast('error', 'Campos incompletos', 'Por favor, preencha todos os campos e selecione uma turma.');
       return;
@@ -350,6 +351,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (userType !== 'school_admin') return;
     if (!newStudent.name || !newStudent.email || !newStudent.class_id) {
       showToast('error', 'Campos incompletos', 'Por favor, preencha os campos obrigatórios e selecione uma turma.');
       return;
@@ -389,6 +391,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [revokingEmail, setRevokingEmail] = useState<string | null>(null);
 
   const handleResendInvite = async (person: { name: string; email: string; class_id?: string }, role: 'student' | 'professor') => {
+    if (userType !== 'school_admin') return;
     setResendingEmail(person.email);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -418,6 +421,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   };
 
   const handleRevokeInvite = async (email: string, role: 'student' | 'professor') => {
+    if (userType !== 'school_admin') return;
     if (!window.confirm(`Tem certeza que deseja revogar e remover o convite para ${email}?`)) return;
     setRevokingEmail(email);
     try {
@@ -458,7 +462,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   };
 
   const handleBulkUpload = async () => {
-    if (!bulkFile) return;
+    if (userType !== 'school_admin' || !bulkFile) return;
     setBulkProcessing(true);
 
     const reader = new FileReader();
@@ -762,20 +766,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               <span className="material-icons-outlined text-lg">add_task</span>
               Nova Atividade
             </button>
-            <button
-              onClick={() => setIsStudentModalOpen(true)}
-              className="px-6 py-3 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all hover:scale-105 flex items-center gap-2"
-            >
-              <span className="material-icons-outlined text-lg">person_add</span>
-              + Aluno
-            </button>
-            <button
-              onClick={() => setIsBulkModalOpen(true)}
-              className="w-12 py-3 bg-white dark:bg-surface-dark text-gray-600 dark:text-gray-300 rounded-2xl font-black border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-sm transition-all hover:bg-gray-50 hover:text-primary tooltip-container"
-              title="Importar CSV de Alunos"
-            >
-              <span className="material-icons-outlined">upload_file</span>
-            </button>
           </div>
         )}
 
@@ -1048,23 +1038,25 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   </button>
                 </div>
 
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setIsStudentModalOpen(true)}
-                    className="px-5 py-2.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
-                  >
-                    <span className="material-icons-outlined text-base">person_add</span>
-                    Convidar Aluno
-                  </button>
-                  <button
-                    onClick={() => setIsBulkModalOpen(true)}
-                    className="px-4 py-2.5 bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-200 rounded-xl font-black text-xs uppercase tracking-widest border border-gray-200 dark:border-white/10 flex items-center gap-2 shadow-sm transition-all hover:bg-gray-50 hover:text-primary"
-                    title="Importar CSV"
-                  >
-                    <span className="material-icons-outlined text-base">upload_file</span>
-                    Importar CSV
-                  </button>
-                </div>
+                {userType === 'school_admin' && (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setIsStudentModalOpen(true)}
+                      className="px-5 py-2.5 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
+                    >
+                      <span className="material-icons-outlined text-base">person_add</span>
+                      Convidar Aluno
+                    </button>
+                    <button
+                      onClick={() => setIsBulkModalOpen(true)}
+                      className="px-4 py-2.5 bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-200 rounded-xl font-black text-xs uppercase tracking-widest border border-gray-200 dark:border-white/10 flex items-center gap-2 shadow-sm transition-all hover:bg-gray-50 hover:text-primary"
+                      title="Importar CSV"
+                    >
+                      <span className="material-icons-outlined text-base">upload_file</span>
+                      Importar CSV
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="overflow-x-auto mb-6">
@@ -1089,22 +1081,26 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                               <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
                                 Convite Pendente
                               </span>
-                              <button
-                                onClick={() => handleResendInvite({ name: s.name, email: s.email, class_id: s.class_id }, 'student')}
-                                disabled={resendingEmail === s.email}
-                                title="Reenviar convite por e-mail"
-                                className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
-                              >
-                                <span className="material-icons-outlined text-sm">{resendingEmail === s.email ? 'sync' : 'forward_to_inbox'}</span>
-                              </button>
-                              <button
-                                onClick={() => handleRevokeInvite(s.email, 'student')}
-                                disabled={revokingEmail === s.email}
-                                title="Revogar e remover convite"
-                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
-                              >
-                                <span className="material-icons-outlined text-sm">{revokingEmail === s.email ? 'sync' : 'person_remove'}</span>
-                              </button>
+                              {userType === 'school_admin' && (
+                                <>
+                                  <button
+                                    onClick={() => handleResendInvite({ name: s.name, email: s.email, class_id: s.class_id }, 'student')}
+                                    disabled={resendingEmail === s.email}
+                                    title="Reenviar convite por e-mail"
+                                    className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
+                                  >
+                                    <span className="material-icons-outlined text-sm">{resendingEmail === s.email ? 'sync' : 'forward_to_inbox'}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleRevokeInvite(s.email, 'student')}
+                                    disabled={revokingEmail === s.email}
+                                    title="Revogar e remover convite"
+                                    className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
+                                  >
+                                    <span className="material-icons-outlined text-sm">{revokingEmail === s.email ? 'sync' : 'person_remove'}</span>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           ) : s.essaysSubmitted === 0 ? (
                             <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
@@ -1225,22 +1221,26 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                               <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
                                 Convidado
                               </span>
-                              <button
-                                onClick={() => handleResendInvite({ name: p.full_name || p.name, email: p.email, class_id: p.class_id }, 'professor')}
-                                disabled={resendingEmail === p.email}
-                                title="Reenviar convite por e-mail"
-                                className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
-                              >
-                                <span className="material-icons-outlined text-sm">{resendingEmail === p.email ? 'sync' : 'forward_to_inbox'}</span>
-                              </button>
-                              <button
-                                onClick={() => handleRevokeInvite(p.email, 'professor')}
-                                disabled={revokingEmail === p.email}
-                                title="Revogar e remover convite"
-                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
-                              >
-                                <span className="material-icons-outlined text-sm">{revokingEmail === p.email ? 'sync' : 'person_remove'}</span>
-                              </button>
+                              {userType === 'school_admin' && (
+                                <>
+                                  <button
+                                    onClick={() => handleResendInvite({ name: p.full_name || p.name, email: p.email, class_id: p.class_id }, 'professor')}
+                                    disabled={resendingEmail === p.email}
+                                    title="Reenviar convite por e-mail"
+                                    className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
+                                  >
+                                    <span className="material-icons-outlined text-sm">{resendingEmail === p.email ? 'sync' : 'forward_to_inbox'}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleRevokeInvite(p.email, 'professor')}
+                                    disabled={revokingEmail === p.email}
+                                    title="Revogar e remover convite"
+                                    className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
+                                  >
+                                    <span className="material-icons-outlined text-sm">{revokingEmail === p.email ? 'sync' : 'person_remove'}</span>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           )}
                         </td>
