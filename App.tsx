@@ -447,7 +447,17 @@ const App: React.FC = () => {
                   }
                 }} />
               } />
-              <Route path="performance" element={<PerformanceView userId={session?.user?.id} isDemo={isDemoMode} />} />
+              <Route path="performance" element={
+                <div className="space-y-16">
+                  <ChallengeBanner 
+                    assignments={activeAssignments} 
+                    onStartWriting={handleStartChallengeWriting}
+                    forceShowId={forceShowChallengeId}
+                    onClearForceShow={() => setForceShowChallengeId(null)}
+                  />
+                  <PerformanceView userId={session?.user?.id} isDemo={isDemoMode} />
+                </div>
+              } />
               <Route path="ranking" element={<RankingView />} />
               <Route path="notifications" element={
                 <NotificationsView

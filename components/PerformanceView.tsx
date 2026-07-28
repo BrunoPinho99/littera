@@ -68,6 +68,19 @@ const EssayCalendar: React.FC<{ history: SavedEssay[] }> = ({ history }) => {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay(); // 0=sun
 
+  // Calcula os dias restantes para o ENEM
+  const enemDate = React.useMemo(() => {
+    const currentYear = today.getFullYear();
+    // Aproximação: Primeira semana de Novembro
+    let date = new Date(currentYear, 10, 8); // 8 de Novembro
+    if (date.getTime() < today.getTime()) {
+      date = new Date(currentYear + 1, 10, 8);
+    }
+    return date;
+  }, [today]);
+
+  const daysUntilEnem = Math.ceil((enemDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
   // Collect essay dates as Set of day numbers
   const essayDays = useMemo(() => {
     const days = new Set<number>();
@@ -132,6 +145,26 @@ const EssayCalendar: React.FC<{ history: SavedEssay[] }> = ({ history }) => {
         {essayDays.size >= 7 && (
           <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-full">🏆 Streak!</span>
         )}
+      </div>
+
+      {/* ENEM Countdown Banner */}
+      <div className="mt-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-3 border border-indigo-100/50 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex flex-col items-center justify-center shrink-0 border border-indigo-50">
+            <span className="text-[9px] font-black uppercase text-indigo-400 leading-none mb-0.5">NOV</span>
+            <span className="text-lg font-black text-indigo-900 leading-none">{enemDate.getDate()}</span>
+          </div>
+          <div className="flex-1">
+            <h5 className="text-xs font-black text-indigo-950 uppercase tracking-tight">ENEM {enemDate.getFullYear()}</h5>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="material-icons-outlined text-indigo-500 text-[14px]">timer</span>
+              <p className="text-xs font-bold text-indigo-700/80">
+                Faltam <strong className="text-indigo-600">{daysUntilEnem} dias</strong>
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

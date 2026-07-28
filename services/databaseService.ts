@@ -48,7 +48,7 @@ export const revokeInvite = async (email: string): Promise<{ success: boolean; m
 };
 
 export const JOURNEY_TIERS = [
-  { min: 0, max: 2, label: 'Aspirante', icon: 'edit', color: 'text-gray-400', bg: 'bg-gray-100', next: 3 },
+  { min: 0, max: 2, label: 'Aspirante', icon: 'local_library', color: 'text-gray-400', bg: 'bg-gray-100', next: 3 },
   { min: 3, max: 5, label: 'Escritor Bronze', icon: 'workspace_premium', color: 'text-amber-700', bg: 'bg-amber-100', next: 6 },
   { min: 6, max: 10, label: 'Escritor Prata', icon: 'military_tech', color: 'text-slate-400', bg: 'bg-slate-100', next: 11 },
   { min: 11, max: 20, label: 'Escritor Ouro', icon: 'stars', color: 'text-amber-500', bg: 'bg-amber-100', next: 21 },

@@ -45,3 +45,25 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/webhook-asaas/deno.json"
 entrypoint = "./functions/webhook-asaas/index.ts"
+
+[functions.correct-essay]
+enabled = true
+verify_jwt = false
+import_map = "./functions/correct-essay/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/correct-essay/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/correct-essay/*.html" ]
+
+[functions.generate-theme]
+enabled = true
+verify_jwt = false
+import_map = "./functions/generate-theme/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/generate-theme/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/generate-theme/*.html" ]
