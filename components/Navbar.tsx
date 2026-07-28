@@ -118,18 +118,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
             {/* Right Section */}
             <div className="flex items-center gap-2 sm:gap-4">
 
-              {/* Botão permanente de Desafio Ativo (Permite visualizar o desafio quando quiser mesmo se fechado) */}
-              {userType === 'student' && activeChallengesCount && activeChallengesCount > 0 ? (
-                <button
-                  onClick={onOpenChallenge}
-                  className="flex items-center gap-1 lg:gap-1.5 px-2.5 lg:px-4 py-1.5 lg:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-extrabold text-xs lg:text-sm shadow-md hover:shadow-lg hover:scale-105 transition-all duration-200 animate-pulse group/btn"
-                  title="Clique para visualizar o desafio do professor no painel do aluno"
-                >
-                  <span className="material-icons-outlined text-base lg:text-lg group-hover/btn:rotate-12 transition-transform">emoji_events</span>
-                  <span className="hidden lg:inline">Desafio</span>
-                  <span className="bg-white/25 px-1.5 py-0.5 rounded-full text-[10px] lg:text-[11px] font-black leading-none">{activeChallengesCount}</span>
-                </button>
-              ) : null}
+
 
               {/* Notification bell */}
               <button
