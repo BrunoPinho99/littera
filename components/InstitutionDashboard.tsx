@@ -1,5 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { StudentDetail, ClassGroup, SavedEssay, School, RankUser } from '../types';
 import {
@@ -26,6 +27,7 @@ interface InstitutionDashboardProps {
 const ITEMS_PER_PAGE = 8;
 
 const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab = 'overview', userType = 'school_admin' }) => {
+  const navigate = useNavigate();
 
   // Helper: busca o school_id real do usuário (metadados ou tabela profiles)
   const getResolvedSchoolId = async (session: any): Promise<string> => {
@@ -43,6 +45,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   };
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // ── Toast Notification ──
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; title: string; message: string } | null>(null);
@@ -212,6 +215,9 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       setLoading(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          setUserEmail(session.user.email);
+        }
         const userMetadata = session?.user?.user_metadata;
         const userRole = userMetadata?.user_type || 'student';
         const classId = userRole === 'teacher' ? userMetadata?.class_id : undefined;
@@ -628,8 +634,12 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       baseTabs.push({ id: 'subscription', label: 'Assinatura', icon: 'credit_card' });
     }
 
+    if (userEmail === 'bruno.pinho.brasilia@hotmail.com') {
+      baseTabs.push({ id: 'admin/warm-schools', label: 'Aquecimento', icon: 'local_fire_department' });
+    }
+
     return baseTabs;
-  }, [userType]);
+  }, [userType, userEmail]);
 
   const currentStudents = useMemo(() => {
     let filtered = students;
@@ -882,7 +892,13 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         {availableTabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => {
+              if (tab.id.startsWith('admin/')) {
+                navigate(`/app/${tab.id}`);
+              } else {
+                setActiveTab(tab.id as any);
+              }
+            }}
             className={`flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 outline-none focus-visible:ring-4 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-300 group ${
               activeTab === tab.id 
               ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30 scale-105 z-10' 

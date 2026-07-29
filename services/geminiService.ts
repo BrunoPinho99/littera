@@ -211,6 +211,6 @@ export const correctHandwrittenEssay = async (
   
   return {
     ...correction,
-    transcription: "[Transcrição Oculta - Processado no Backend]"
-  };
+    transcribedText: "[Transcrição Oculta - Processado no Backend]"
+  } as unknown as HandwrittenCorrectionResult;
 };

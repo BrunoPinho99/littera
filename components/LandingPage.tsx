@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 interface LandingPageProps {
     onLoginClick: () => void;
     onDemoClick: (type: 'student' | 'teacher') => void;
@@ -65,7 +66,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <button className="sl-btn-secondary" onClick={onLoginClick}>Entrar</button>
-                        <button className="sl-btn-primary" onClick={() => onDemoClick('teacher')} style={{ padding: '8px 18px', fontSize: 13 }}>
+                        <button className="sl-btn-primary" onClick={() => setIsLeadModalOpen(true)} style={{ padding: '8px 18px', fontSize: 13 }}>
                             Agendar demo
                         </button>
                     </div>
@@ -565,7 +566,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                         Enquanto você avalia, sua concorrente já aprovou. O Littera é a diferença entre perder matrículas e liderar rankings.
                     </p>
                     <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <button onClick={() => onDemoClick('teacher')} style={{
+                        <button onClick={() => setIsLeadModalOpen(true)} style={{
                             background: '#ffffff', color: '#004ac6', border: 'none', borderRadius: 9999,
                             fontWeight: 800, fontSize: 16, padding: '16px 36px', cursor: 'pointer',
                             transition: 'all 0.25s', boxShadow: '0 0 32px rgba(255,255,255,0.15)',
@@ -672,45 +673,35 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                             setIsSubmittingLead(true);
                             const fd = new FormData(e.currentTarget);
                             const data = Object.fromEntries(fd.entries());
-                            
                             try {
-                                const apiKey = import.meta.env.VITE_BREVO_API_KEY;
+                                const { data: result, error } = await supabase.functions.invoke('start-trial', {
+                                    body: {
+                                        name: data.NOME,
+                                        email: data.EMAIL,
+                                        whatsapp: data.TELEFONE,
+                                        school_name: data.ESCOLA
+                                    }
+                                });
+
+                                if (error) {
+                                    console.error("Erro do Edge Function:", error);
+                                    throw new Error(error.message || 'Erro ao iniciar trial');
+                                }
                                 
-                                if (apiKey) {
-                                    // Integração REAL com o Brevo (via API v3)
-                                    await fetch('https://api.brevo.com/v3/contacts', {
-                                        method: 'POST',
-                                        headers: {
-                                            'accept': 'application/json',
-                                            'api-key': apiKey,
-                                            'content-type': 'application/json'
-                                        },
-                                        body: JSON.stringify({
-                                            email: data.EMAIL,
-                                            attributes: {
-                                                NOME: data.NOME,
-                                                TELEFONE: data.TELEFONE,
-                                                ESCOLA: data.ESCOLA
-                                            },
-                                            updateEnabled: true // Se o contato já existir, atualiza
-                                        })
-                                    });
-                                } else {
-                                    // Fallback simulado se não houver chave API. O log exibe os dados para você colar a chave depois.
-                                    console.warn("⚠️ VITE_BREVO_API_KEY não configurada no .env.local", data);
-                                    await new Promise(r => setTimeout(r, 1500)); 
+                                if (result && result.error) {
+                                    throw new Error(result.error);
                                 }
                                 setIsLeadSuccess(true);
-                            } catch (err) {
+                            } catch (err: any) {
                                 console.error(err);
-                                alert("Ocorreu um erro ao enviar. Tente novamente mais tarde.");
+                                alert("Ocorreu um erro ao enviar: " + (err.message || 'Tente novamente mais tarde.'));
                             } finally {
                                 setIsSubmittingLead(false);
                             }
                         }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                             <div>
                                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>Nome completo</label>
-                                <input required name="NOME" type="text" placeholder="Nome do responsável" style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
+                                <input required name="NOME" type="text" placeholder="Nome completo" style={{ width: '100%', padding: '14px 16px', borderRadius: 12, border: '1px solid #e2e1ec', fontSize: 15, background: '#faf8ff', outline: 'none' }} />
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#131b2e', marginBottom: 6 }}>E-mail corporativo</label>

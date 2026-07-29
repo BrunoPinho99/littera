@@ -186,7 +186,7 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
                  </span>
                </div>
                <div className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm transform group-hover:rotate-12">
-                 <span className="material-icons-outlined text-lg">flight_takeoff</span>
+                 <span className="material-icons-outlined text-lg">arrow_forward</span>
                </div>
             </div>
           </div>

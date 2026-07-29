@@ -20,6 +20,7 @@ import CheckoutWizard from './components/CheckoutWizard';
 import { PendingCheckoutPage } from './components/PendingCheckoutPage';
 import FinalizarCadastroView from './components/FinalizarCadastroView';
 import ChallengeBanner from './components/ChallengeBanner';
+import WarmSchoolsDashboard from './components/WarmSchoolsDashboard';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
@@ -404,12 +405,7 @@ const App: React.FC = () => {
             <Routes>
               <Route path="practice" element={
                 <div className="space-y-16">
-                  <ChallengeBanner 
-                    assignments={activeAssignments} 
-                    onStartWriting={handleStartChallengeWriting}
-                    forceShowId={forceShowChallengeId}
-                    onClearForceShow={() => setForceShowChallengeId(null)}
-                  />
+
                   <TopicCard
                     topic={topic}
                     onRefresh={() => {
@@ -480,6 +476,7 @@ const App: React.FC = () => {
               <Route path="inst-performance" element={<InstitutionDashboard initialTab="essays" userType={userType as any} />} />
               <Route path="inst-ranking" element={<InstitutionDashboard initialTab="ranking" userType={userType as any} />} />
               <Route path="inst-classes" element={<InstitutionDashboard initialTab="classes" userType={userType as any} />} />
+              <Route path="admin/warm-schools" element={<WarmSchoolsDashboard />} />
               <Route path="profile" element={<ProfileView user={session?.user} />} />
               <Route path="*" element={<Navigate to="/app/inst-overview" replace />} />
             </Routes>
