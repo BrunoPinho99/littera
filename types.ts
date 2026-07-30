@@ -127,6 +127,7 @@ export interface ClassGroup {
   averageScore: number;
   school_id: string;
   trend: 'up' | 'down' | 'neutral';
+  invite_code?: string;
 }
 
 export interface BulkStudentRow {

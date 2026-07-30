@@ -22,7 +22,7 @@ import FinalizarCadastroView from './components/FinalizarCadastroView';
 import ChallengeBanner from './components/ChallengeBanner';
 import WarmSchoolsDashboard from './components/WarmSchoolsDashboard';
 import ActivateTrialDashboard from './components/ActivateTrialDashboard';
-import TrialRegistration from './components/TrialRegistration';
+import ClassRegistration from './components/ClassRegistration';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
@@ -542,11 +542,11 @@ const App: React.FC = () => {
       } />
       <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
       <Route path="/convite" element={<AcceptInviteView />} />
-      <Route path="/trial/:trialCode" element={
+      <Route path="/invite/:inviteCode" element={
         (session || isDemoMode) && !isSuspended ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
-          <TrialRegistration />
+          <ClassRegistration />
         )
       } />
       <Route path="/app/*" element={renderMainAppLayout()} />

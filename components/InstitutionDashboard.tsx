@@ -77,12 +77,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [newStudent, setNewStudent] = useState({ name: '', email: '', class_id: '', registration_number: '' });
   const [isSavingStudent, setIsSavingStudent] = useState(false);
 
-  // States for Bulk Import Modal
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [bulkProcessing, setBulkProcessing] = useState(false);
-  const [bulkFile, setBulkFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   // States for Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'invited'>('all');
 
@@ -450,106 +444,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     }
   };
 
-  const handleDownloadTemplate = () => {
-    const header = "Nome,Email,Nome da Turma,Matricula\n";
-    const example1 = "Ana Silva,ana@email.com,3º Ano A,2024001\n";
-    const example2 = "Bruno Souza,bruno@email.com,3º Ano B,";
-    const content = header + example1 + example2;
-
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "modelo_alunos_littera.csv");
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleBulkUpload = async () => {
-    if (userType !== 'school_admin' || !bulkFile) return;
-    setBulkProcessing(true);
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      if (!text) return;
-
-      const lines = text.split(/\r?\n/);
-      // Remove header e linhas vazias
-      const dataRows = lines.slice(1).filter(line => line.trim() !== '');
-
-      if (dataRows.length === 0) {
-        alert("Arquivo vazio ou sem dados.");
-        setBulkProcessing(false);
-        return;
-      }
-
-      const studentsToCreate = [];
-      const errors = [];
-
-      for (const row of dataRows) {
-        // Tenta separar por vírgula ou ponto e vírgula
-        const cols = row.split(/,|;/).map(c => c.trim());
-        if (cols.length < 3) continue; // Mínimo: Nome, Email, Turma
-
-        const [name, email, className, registration] = cols;
-
-        // Encontra ID da turma pelo nome
-        const classObj = classes.find(c => c.name.toLowerCase() === className.toLowerCase());
-
-        if (!classObj) {
-          errors.push(`Turma não encontrada para ${name}: ${className}`);
-          continue;
-        }
-
-        studentsToCreate.push({
-          name: name,
-          email: email,
-          class_id: classObj.id,
-          registration_number: registration || ''
-        });
-      }
-
-      if (studentsToCreate.length > 0) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          const schoolId = await getResolvedSchoolId(session);
-
-          const result = await createStudentsBulk(studentsToCreate, schoolId);
-
-          // Feedback ao usuário
-          let msg = `Processamento concluído!\n\nSucesso: ${result.success.length}`;
-          if (result.errors.length > 0) {
-            msg += `\nErros de cadastro: ${result.errors.length} (ex: e-mails duplicados)`;
-          }
-          if (errors.length > 0) {
-            msg += `\nErros de validação (Turma não encontrada): ${errors.length}`;
-          }
-          msg += "\n\nOs alunos convidados devem acessar 'Resgatar Convite' na tela de login.";
-
-          alert(msg);
-
-          if (result.success.length > 0) {
-            setStudents(prev => [...result.success, ...prev]);
-            setIsBulkModalOpen(false);
-            setBulkFile(null);
-          }
-        } catch (err: any) {
-          const msg = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
-          alert("Erro ao processar lote: " + msg);
-        }
-      } else {
-        alert("Nenhum aluno válido encontrado para importação. Verifique os nomes das turmas.");
-      }
-
-      setBulkProcessing(false);
-    };
-
-    reader.readAsText(bulkFile);
-  };
-
   const handleGenerateAI = async () => {
     if (!newAssignment.title && !newAssignment.baseText) {
       alert("Digite pelo menos um título ou assunto para gerar o tema.");
@@ -794,13 +688,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105"
             >
               + Aluno
-            </button>
-            <button
-              onClick={() => setIsBulkModalOpen(true)}
-              className="w-12 py-3 bg-white dark:bg-surface-dark text-gray-600 dark:text-gray-300 rounded-2xl font-black border border-gray-200 dark:border-white/10 flex items-center justify-center shadow-sm transition-all hover:bg-gray-50 hover:text-primary tooltip-container"
-              title="Importar CSV"
-            >
-              <span className="material-icons-outlined">upload_file</span>
             </button>
           </div>
         )}
@@ -1059,14 +946,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                       <span className="material-icons-outlined text-base">person_add</span>
                       Convidar Aluno
                     </button>
-                    <button
-                      onClick={() => setIsBulkModalOpen(true)}
-                      className="px-4 py-2.5 bg-white dark:bg-surface-dark text-gray-700 dark:text-gray-200 rounded-xl font-black text-xs uppercase tracking-widest border border-gray-200 dark:border-white/10 flex items-center gap-2 shadow-sm transition-all hover:bg-gray-50 hover:text-primary"
-                      title="Importar CSV"
-                    >
-                      <span className="material-icons-outlined text-base">upload_file</span>
-                      Importar CSV
-                    </button>
                   </div>
                 )}
               </div>
@@ -1180,8 +1059,25 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                       <p className="font-bold text-gray-900 dark:text-white">{cls.studentCount}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Média</p>
-                      <p className="font-bold text-primary">{cls.averageScore}</p>
+                      {cls.invite_code ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(`${window.location.origin}/invite/${cls.invite_code}`);
+                            showToast('success', 'Link copiado!', 'Envie este link para os alunos se cadastrarem.');
+                          }}
+                          className="flex items-center gap-1 text-primary hover:text-blue-700 font-bold text-xs bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                          title="Copiar link de convite"
+                        >
+                          <span className="material-icons-outlined text-[14px]">link</span>
+                          Copiar Link
+                        </button>
+                      ) : (
+                        <div className="text-right">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Média</p>
+                          <p className="font-bold text-primary">{cls.averageScore}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1766,80 +1662,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         )
       }
 
-      {/* Modal Importar CSV */}
-      {
-        isBulkModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
-            <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-              <div className="p-8 border-b border-gray-100 dark:border-white/5">
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Importação em Massa</h3>
-                <p className="text-gray-500 text-sm mt-1">Cadastre múltiplos alunos de uma vez via arquivo CSV.</p>
-              </div>
-
-              <div className="p-8 space-y-6">
-                <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-800/30">
-                  <div className="flex justify-between items-start mb-2">
-                    <h4 className="text-blue-700 dark:text-blue-300 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
-                      <span className="material-icons-outlined text-sm">info</span> Formato Obrigatório
-                    </h4>
-                    <button
-                      onClick={handleDownloadTemplate}
-                      className="text-[9px] font-black uppercase text-blue-600 dark:text-blue-400 bg-white dark:bg-blue-900/40 px-3 py-1.5 rounded-lg border border-blue-200 dark:border-blue-700 hover:bg-blue-50 transition-colors flex items-center gap-1"
-                    >
-                      <span className="material-icons-outlined text-xs">download</span> Baixar Modelo
-                    </button>
-                  </div>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 mb-2">O arquivo deve conter cabeçalho e as colunas nesta ordem:</p>
-                  <code className="block bg-white dark:bg-black/20 p-2 rounded-lg text-xs font-mono text-gray-600 dark:text-gray-300 break-all">
-                    Nome, Email, Nome da Turma, Matricula (opcional)
-                  </code>
-                  <p className="text-xs text-blue-500 dark:text-blue-400 mt-2 italic">Ex: Ana Silva, ana@email.com, 3º Ano A, 202401</p>
-                </div>
-
-                <div
-                  className="border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-50 dark:hover:bg-slate-800 transition-all group"
-                  onClick={() => !bulkProcessing && fileInputRef.current?.click()}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept=".csv"
-                    className="hidden"
-                    onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
-                    disabled={bulkProcessing}
-                  />
-
-                  {bulkFile ? (
-                    <div className="flex flex-col items-center">
-                      <span className="material-icons-outlined text-4xl text-emerald-500 mb-2">description</span>
-                      <p className="font-bold text-gray-900 dark:text-white">{bulkFile.name}</p>
-                      <p className="text-xs text-gray-400 mt-1">Clique para trocar</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center">
-                      <span className="material-icons-outlined text-4xl text-gray-300 group-hover:text-primary mb-2 transition-colors">upload_file</span>
-                      <p className="font-bold text-gray-600 dark:text-gray-300">Clique para selecionar arquivo</p>
-                      <p className="text-xs text-gray-400 mt-1">Suporta apenas .csv</p>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => setIsBulkModalOpen(false)}
-                    className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleBulkUpload}
-                    disabled={bulkProcessing || !bulkFile}
-                    className="flex-1 py-4 rounded-xl font-bold text-white bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
-                  >
-                    {bulkProcessing ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
                       "Processar Arquivo"
                     )}
                   </button>

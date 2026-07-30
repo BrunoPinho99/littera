@@ -11,7 +11,7 @@ interface WarmSchoolRow {
   classes: Array<{
     id: string;
     name: string;
-    trial_code: string;
+    invite_code: string;
     max_students: number;
     trial_ends_at: string;
     students: Array<{
@@ -56,7 +56,7 @@ const WarmSchoolsDashboard: React.FC = () => {
         .from('classes')
         .select('*')
         .in('school_id', schoolIds)
-        .not('trial_code', 'is', null);
+        .not('invite_code', 'is', null);
 
       if (cError) throw cError;
 
@@ -95,7 +95,7 @@ const WarmSchoolsDashboard: React.FC = () => {
           return {
             id: cls.id,
             name: cls.name,
-            trial_code: cls.trial_code,
+            invite_code: cls.invite_code,
             max_students: cls.max_students,
             trial_ends_at: cls.trial_ends_at,
             students: mappedStudents
@@ -228,7 +228,7 @@ const WarmSchoolsDashboard: React.FC = () => {
                            <div className="flex justify-between items-center mb-3">
                               <div>
                                 <h5 className="font-bold text-slate-900 dark:text-white text-lg">{cls.name}</h5>
-                                <p className="text-sm text-slate-500 font-mono">Código: {cls.trial_code}</p>
+                                <p className="text-sm text-slate-500 font-mono">Código: {cls.invite_code}</p>
                               </div>
                               <div className="text-right">
                                 <p className={`text-sm font-medium ${isExpired ? 'text-red-500' : 'text-emerald-500'}`}>

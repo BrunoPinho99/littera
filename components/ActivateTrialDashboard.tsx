@@ -85,8 +85,8 @@ const ActivateTrialDashboard: React.FC = () => {
             if (error) throw new Error(error.message);
             if (data?.error) throw new Error(data.error);
 
-            if (data?.trial_code) {
-                setGeneratedCode(data.trial_code);
+            if (data?.invite_code) {
+                setGeneratedCode(data.invite_code);
                 setSchoolName('');
                 setClassName('');
                 setSelectedLeadId('');

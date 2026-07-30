@@ -198,10 +198,13 @@ export const createClass = async (classData: { name: string; grade: string; shif
   }
 
   // MODO REAL
+  const inviteCode = `INV-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
   const dbPayload: any = {
     name: classData.name,
     year: parseInt(classData.grade) || null,
-    school_id: classData.school_id
+    school_id: classData.school_id,
+    invite_code: inviteCode
   };
 
   let data;
@@ -240,7 +243,8 @@ export const createClass = async (classData: { name: string; grade: string; shif
     studentCount: 0,
     averageScore: 0,
     school_id: data.school_id,
-    trend: 'neutral'
+    trend: 'neutral',
+    invite_code: data.invite_code || inviteCode
   };
 };
 
@@ -475,7 +479,8 @@ export const getClassesBySchool = async (schoolId: string): Promise<ClassGroup[]
     studentCount: c.student_count || 0,
     averageScore: c.average_score || 0,
     school_id: c.school_id,
-    trend: c.trend || 'neutral'
+    trend: c.trend || 'neutral',
+    invite_code: c.invite_code
   }));
 };
 

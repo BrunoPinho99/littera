@@ -12,7 +12,7 @@ interface RegisterStudentPayload {
   name?: string
   email?: string
   whatsapp?: string
-  trial_code: string
+  invite_code: string
 }
 
 Deno.serve(async (req: Request) => {
@@ -29,9 +29,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: RegisterStudentPayload = await req.json()
-    const { action = 'register', name, email, whatsapp, trial_code } = payload
+    const { action = 'register', name, email, whatsapp, invite_code } = payload
 
-    if (!trial_code) {
+    if (!invite_code) {
       return new Response(JSON.stringify({ error: 'Código da turma é obrigatório' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -52,8 +52,8 @@ Deno.serve(async (req: Request) => {
     // 1. Check if class exists and get details
     const { data: classData, error: classError } = await supabaseAdmin
       .from('classes')
-      .select('id, name, school_id, max_students, trial_ends_at, schools(name)')
-      .eq('trial_code', trial_code)
+      .select('id, name, school_id, max_students, schools(name, is_trial_school)')
+      .eq('invite_code', invite_code)
       .maybeSingle()
 
     if (classError || !classData) {
@@ -63,8 +63,9 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { id: class_id, name: class_name, school_id, max_students, trial_ends_at, schools } = classData
+    const { id: class_id, name: class_name, school_id, max_students, schools } = classData
     const school_name = schools?.name || 'Escola'
+    const is_trial = schools?.is_trial_school === true
 
     // 2. Check if class is full
     const { count, error: countError } = await supabaseAdmin
@@ -80,7 +81,7 @@ Deno.serve(async (req: Request) => {
          success: true,
          class_name,
          school_name,
-         is_full: isFull,
+         is_full: is_trial ? isFull : false,
        }), {
          status: 200,
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -88,7 +89,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // --- Action: register ---
-    if (isFull) {
+    if (is_trial && isFull) {
       return new Response(JSON.stringify({ error: 'Turma já atingiu o limite de vagas' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -119,18 +120,20 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // 3. Check if email or whatsapp already used a trial
-    const { data: existingTrial } = await supabaseAdmin
-      .from('trial_history')
-      .select('id')
-      .or(`email.eq.${email},whatsapp.eq.${cleanWhatsapp}`)
-      .maybeSingle()
+    // 3. Check if email or whatsapp already used a trial (only for trial schools)
+    if (is_trial) {
+      const { data: existingTrial } = await supabaseAdmin
+        .from('trial_history')
+        .select('id')
+        .or(`email.eq.${email},whatsapp.eq.${cleanWhatsapp}`)
+        .maybeSingle()
 
-    if (existingTrial) {
-      return new Response(JSON.stringify({ error: 'Trial já utilizado por este e-mail ou WhatsApp' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      if (existingTrial) {
+        return new Response(JSON.stringify({ error: 'Trial já utilizado por este e-mail ou WhatsApp' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
     }
 
     // 4. Generate Magic Link
@@ -166,11 +169,12 @@ Deno.serve(async (req: Request) => {
       school_id: school_id,
       class_id: class_id,
       status: 'active',
-      is_trial: true,
-      trial_started_at: new Date().toISOString(),
-      trial_ends_at: trial_ends_at,
-      trial_school_name: school_name,
-      originated_from_trial: true,
+      is_trial: is_trial,
+      ...(is_trial ? {
+        trial_started_at: new Date().toISOString(),
+        trial_school_name: school_name,
+        originated_from_trial: true,
+      } : {})
     }, { onConflict: 'id' })
 
     if (profileError) {
@@ -179,22 +183,24 @@ Deno.serve(async (req: Request) => {
     }
 
     // 6. Insert into trial_history
-    await supabaseAdmin.from('trial_history').insert({
-      email: email,
-      whatsapp: cleanWhatsapp,
-      auth_user_id: userId,
-      school_name: school_name,
-    })
+    if (is_trial) {
+      await supabaseAdmin.from('trial_history').insert({
+        email: email,
+        whatsapp: cleanWhatsapp,
+        auth_user_id: userId,
+        school_name: school_name,
+      })
+    }
 
     // 7. Send Magic Link to Student via Brevo
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
     if (brevoApiKey) {
       const studentHtml = `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2>Bem-vindo ao Trial do Littera! 🚀</h2>
+          <h2>Bem-vindo ao Littera! 🚀</h2>
           <p>Olá ${name},</p>
-          <p>Seu acesso ao período de teste gratuito pela escola <strong>${school_name}</strong> foi liberado!</p>
-          <p>Você tem direito a enviar 2 redações por dia civil e receber correções ultra-detalhadas instantaneamente.</p>
+          <p>Seu acesso à plataforma pela escola <strong>${school_name}</strong> foi liberado!</p>
+          ${is_trial ? '<p>Você tem direito a enviar 2 redações por dia civil e receber correções ultra-detalhadas instantaneamente.</p>' : ''}
           <div style="text-align: center; margin: 30px 0;">
             <a href="${actionLink}" style="background-color: #111315; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
               Acessar Plataforma Agora
@@ -215,7 +221,7 @@ Deno.serve(async (req: Request) => {
           body: JSON.stringify({
             sender: { name: 'Littera - Inteligência em Redação', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'bruno.pinho.brasilia@hotmail.com' },
             to: [{ email: email, name: name }],
-            subject: 'Seu Teste Gratuito de Redação Começou! | Littera',
+            subject: is_trial ? 'Seu Teste Gratuito de Redação Começou! | Littera' : 'Acesso Liberado! | Littera',
             htmlContent: studentHtml
           }),
         })
@@ -233,7 +239,7 @@ Deno.serve(async (req: Request) => {
     })
 
   } catch (err: unknown) {
-    console.error('Unexpected error in register-trial-student:', err)
+    console.error('Unexpected error in register-student:', err)
     const message = err instanceof Error ? err.message : 'Internal server error'
     return new Response(JSON.stringify({ error: message }), {
       status: 500,

@@ -4,8 +4,8 @@ import { supabase } from '../supabaseClient';
 import InputMask from 'react-input-mask';
 import Navbar from './Navbar';
 
-const TrialRegistration: React.FC = () => {
-    const { trialCode } = useParams<{ trialCode: string }>();
+const ClassRegistration: React.FC = () => {
+    const { inviteCode } = useParams<{ inviteCode: string }>();
     const navigate = useNavigate();
     
     const [loading, setLoading] = useState(true);
@@ -23,17 +23,17 @@ const TrialRegistration: React.FC = () => {
     const [whatsapp, setWhatsapp] = useState('');
 
     useEffect(() => {
-        if (trialCode) {
+        if (inviteCode) {
             checkTrialStatus();
         }
-    }, [trialCode]);
+    }, [inviteCode]);
 
     const checkTrialStatus = async () => {
         setLoading(true);
         setError('');
         try {
-            const { data, error: fnError } = await supabase.functions.invoke('register-trial-student', {
-                body: { action: 'check', trial_code: trialCode }
+            const { data, error: fnError } = await supabase.functions.invoke('register-student', {
+                body: { action: 'check', invite_code: inviteCode }
             });
 
             if (fnError) {
@@ -59,10 +59,10 @@ const TrialRegistration: React.FC = () => {
         setError('');
 
         try {
-            const { data, error: fnError } = await supabase.functions.invoke('register-trial-student', {
+            const { data, error: fnError } = await supabase.functions.invoke('register-student', {
                 body: { 
                     action: 'register', 
-                    trial_code: trialCode,
+                    invite_code: inviteCode,
                     name,
                     email,
                     whatsapp
@@ -121,7 +121,7 @@ const TrialRegistration: React.FC = () => {
                             </div>
                             <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Vagas Esgotadas</h2>
                             <p style={{ color: '#475569', fontSize: 16, lineHeight: 1.6 }}>
-                                A turma <strong>{className}</strong> da escola <strong>{schoolName}</strong> já atingiu o limite de vagas do teste. Fale com a coordenação da sua escola.
+                                A turma <strong>{className}</strong> da escola <strong>{schoolName}</strong> já atingiu o limite de vagas. Fale com a coordenação da sua escola.
                             </p>
                             <button onClick={() => navigate('/')} className="sl-btn-secondary" style={{ width: '100%', marginTop: 32, padding: '14px' }}>
                                 Voltar para o Início
@@ -144,10 +144,10 @@ const TrialRegistration: React.FC = () => {
                         <>
                             <div style={{ textAlign: 'center', marginBottom: 32 }}>
                                 <div style={{ display: 'inline-flex', padding: '6px 12px', background: '#eff6ff', color: '#2563eb', borderRadius: 20, fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-                                    Teste Gratuito Littera
+                                    Acesso à Plataforma Littera
                                 </div>
                                 <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', marginBottom: 8, letterSpacing: '-0.02em' }}>
-                                    Bem-vindo(a) ao Trial
+                                    Cadastro de Aluno
                                 </h1>
                                 <p style={{ color: '#475569', fontSize: 16 }}>
                                     Turma <strong>{className}</strong> • <strong>{schoolName}</strong>
@@ -209,7 +209,7 @@ const TrialRegistration: React.FC = () => {
                                     className="sl-btn-primary" 
                                     style={{ width: '100%', padding: '16px', borderRadius: 12, fontSize: 16, fontWeight: 600, marginTop: 8 }}
                                 >
-                                    {submitting ? 'Registrando...' : 'Garantir minha vaga'}
+                                    {submitting ? 'Registrando...' : 'Criar meu acesso'}
                                 </button>
                             </form>
                         </>
@@ -220,4 +220,4 @@ const TrialRegistration: React.FC = () => {
     );
 };
 
-export default TrialRegistration;
+export default ClassRegistration;

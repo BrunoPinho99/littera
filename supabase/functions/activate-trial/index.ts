@@ -109,14 +109,16 @@ Deno.serve(async (req: Request) => {
     }
 
     // 2. Generate unique code
-    let trial_code = generateTrialCode()
+    let invite_code = generateTrialCode()
     let isUnique = false
+
     while (!isUnique) {
-      const { data: codeCheck } = await supabaseAdmin.from('classes').select('id').eq('trial_code', trial_code).maybeSingle()
+      const { data: codeCheck } = await supabaseAdmin.from('classes').select('id').eq('invite_code', invite_code).maybeSingle()
+      
       if (!codeCheck) {
         isUnique = true
       } else {
-        trial_code = generateTrialCode()
+        invite_code = generateTrialCode()
       }
     }
 
@@ -132,7 +134,7 @@ Deno.serve(async (req: Request) => {
         school_id: finalSchoolId,
         grade: 'Trial',
         shift: 'Matutino',
-        trial_code: trial_code,
+        invite_code: invite_code,
         max_students: max_students,
         trial_ends_at: endsDateObj.toISOString(),
       })
@@ -150,7 +152,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       success: true,
-      trial_code: trial_code,
+      invite_code: invite_code,
       message: 'Trial ativado com sucesso!',
     }), {
       status: 200,
