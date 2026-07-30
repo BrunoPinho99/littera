@@ -481,6 +481,14 @@ const App: React.FC = () => {
               <Route path="admin/warm-schools" element={<WarmSchoolsDashboard />} />
               <Route path="admin/activate-trial" element={<ActivateTrialDashboard />} />
               <Route path="profile" element={<ProfileView user={session?.user} />} />
+              <Route path="notifications" element={
+                <NotificationsView
+                  notifications={notifications}
+                  onMarkAsRead={() => { }}
+                  onMarkAllAsRead={() => { }}
+                  onClose={() => navigate(`/app/${getDefaultView(userType)}`)}
+                />
+              } />
               <Route path="*" element={<Navigate to="/app/inst-overview" replace />} />
             </Routes>
           )}

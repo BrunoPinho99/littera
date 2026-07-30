@@ -120,8 +120,8 @@ const NotificationsView: React.FC<NotificationsViewProps> = ({ notifications, on
              <div className="w-20 h-20 bg-surface-container-high rounded-full flex items-center justify-center mb-6 text-on-surface-variant dark:text-on-surface-variant">
                 <span className="material-icons-outlined text-4xl">notifications_off</span>
              </div>
-             <p className="text-on-surface-variant dark:text-on-surface-variant font-bold text-lg">Silêncio por aqui...</p>
-             <p className="text-on-surface-variant text-sm">Você não tem notificações para o filtro selecionado.</p>
+             <p className="text-on-surface-variant dark:text-on-surface-variant font-bold text-lg">Não há nada na caixa de mensagem</p>
+             <p className="text-on-surface-variant text-sm">Quando você receber novas notas ou avisos do professor, eles aparecerão aqui.</p>
           </div>
         )}
       </div>
