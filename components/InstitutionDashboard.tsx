@@ -1662,15 +1662,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         )
       }
 
-                      "Processar Arquivo"
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )
-      }
       {/* Modal Nova Atividade (Professor) */}
       {
         isAssignmentModalOpen && (
