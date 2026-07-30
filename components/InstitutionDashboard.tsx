@@ -634,10 +634,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       baseTabs.push({ id: 'subscription', label: 'Assinatura', icon: 'credit_card' });
     }
 
-    if (userEmail === 'bruno.pinho.brasilia@hotmail.com') {
-      baseTabs.push({ id: 'admin/warm-schools', label: 'Aquecimento', icon: 'local_fire_department' });
-    }
-
     return baseTabs;
   }, [userType, userEmail]);
 

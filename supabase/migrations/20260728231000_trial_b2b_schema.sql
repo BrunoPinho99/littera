@@ -1,6 +1,6 @@
 -- 1. Create the Littera Trial hidden school if it doesn't exist
-INSERT INTO public.schools (id, name, city, subscription_status)
-VALUES ('00000000-0000-0000-0000-000000000000', 'Littera Trial', 'Trial', 'active')
+INSERT INTO public.schools (id, name, email, subscription_status)
+VALUES ('00000000-0000-0000-0000-000000000000', 'Littera Trial', 'trial@littera.app.br', 'active')
 ON CONFLICT (id) DO NOTHING;
 
 -- 2. Add columns to trial_history and profiles
@@ -38,17 +38,17 @@ BEGIN
     originated_from_trial = true
   WHERE id = p_student_id;
 
-  -- Update saved_essays
-  UPDATE public.saved_essays
+  -- Update redacoes
+  UPDATE public.redacoes
   SET school_id = p_new_school_id
-  WHERE student_id = p_student_id;
+  WHERE user_id = p_student_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- 5. Add Restrictive Policy to saved_essays to enforce trial limits at DB level
+-- 5. Add Restrictive Policy to redacoes to enforce trial limits at DB level
 -- Requires check_essay_limit to be defined (from previous migration)
-DROP POLICY IF EXISTS "block_trial_limit_restrictive" ON public.saved_essays;
-CREATE POLICY "block_trial_limit_restrictive" ON public.saved_essays
+DROP POLICY IF EXISTS "block_trial_limit_restrictive" ON public.redacoes;
+CREATE POLICY "block_trial_limit_restrictive" ON public.redacoes
 AS RESTRICTIVE FOR INSERT
 WITH CHECK (
   public.check_essay_limit(auth.uid())

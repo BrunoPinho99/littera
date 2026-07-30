@@ -39,8 +39,8 @@ BEGIN
     -- Conta envios no dia civil (America/Sao_Paulo)
     -- data_envio é TIMESTAMPTZ, guardado como UTC no banco.
     SELECT COUNT(*) INTO v_today_essays_count
-    FROM public.saved_essays
-    WHERE student_id = p_student_id
+    FROM public.redacoes
+    WHERE user_id = p_student_id
       AND DATE(data_envio AT TIME ZONE 'America/Sao_Paulo') = DATE(NOW() AT TIME ZONE 'America/Sao_Paulo');
 
     -- Limite de 2

@@ -3,15 +3,23 @@ import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
 interface WarmSchoolRow {
-  school_name: string;
-  student_count: number;
+  id: string;
+  name: string;
+  total_students: number;
+  total_max_students: number;
   essay_count: number;
-  students: Array<{
+  classes: Array<{
     id: string;
-    full_name: string;
-    email: string;
-    trial_started_at: string;
+    name: string;
+    trial_code: string;
+    max_students: number;
     trial_ends_at: string;
+    students: Array<{
+      id: string;
+      full_name: string;
+      email: string;
+      essay_count: number;
+    }>;
   }>;
 }
 
@@ -20,7 +28,7 @@ const WarmSchoolsDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedSchool, setSelectedSchool] = useState<string | null>(null);
-  const [isMigrating, setIsMigrating] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,63 +39,84 @@ const WarmSchoolsDashboard: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      // Puxa todos os alunos do trial
-      const { data: profiles, error: pError } = await supabase
+      const { data: schoolsData, error: sError } = await supabase
+        .from('schools')
+        .select('*')
+        .eq('is_trial_school', true);
+
+      if (sError) throw sError;
+      if (!schoolsData || schoolsData.length === 0) {
+        setSchools([]);
+        return;
+      }
+
+      const schoolIds = schoolsData.map(s => s.id);
+
+      const { data: classesData, error: cError } = await supabase
+        .from('classes')
+        .select('*')
+        .in('school_id', schoolIds)
+        .not('trial_code', 'is', null);
+
+      if (cError) throw cError;
+
+      const { data: profilesData, error: pError } = await supabase
         .from('profiles')
-        .select(`
-          id, full_name, email, trial_school_name, trial_started_at, trial_ends_at
-        `)
-        .eq('school_id', '00000000-0000-0000-0000-000000000000'); // Littera Trial ID
+        .select('id, full_name, email, class_id')
+        .in('school_id', schoolIds)
+        .eq('is_trial', true);
 
       if (pError) throw pError;
 
-      // Puxa as redacoes desses alunos para contagem
-      const studentIds = profiles?.map(p => p.id) || [];
+      const profileIds = (profilesData || []).map(p => p.id);
       let essaysData: any[] = [];
-      if (studentIds.length > 0) {
+      if (profileIds.length > 0) {
         const { data: essays, error: eError } = await supabase
-          .from('saved_essays')
-          .select('student_id')
-          .in('student_id', studentIds);
+          .from('redacoes')
+          .select('user_id')
+          .in('user_id', profileIds);
         
         if (eError) throw eError;
         essaysData = essays || [];
       }
 
-      // Agrupa por escola
-      const grouped = new Map<string, WarmSchoolRow>();
+      const result: WarmSchoolRow[] = schoolsData.map(school => {
+        const schoolClasses = (classesData || []).filter(c => c.school_id === school.id);
+        
+        const mappedClasses = schoolClasses.map(cls => {
+          const classStudents = (profilesData || []).filter(p => p.class_id === cls.id);
+          const mappedStudents = classStudents.map(student => ({
+            id: student.id,
+            full_name: student.full_name || 'Sem Nome',
+            email: student.email || '',
+            essay_count: essaysData.filter(e => e.user_id === student.id).length
+          }));
 
-      (profiles || []).forEach(profile => {
-        const schoolName = profile.trial_school_name || 'Sem nome informado';
-        
-        if (!grouped.has(schoolName)) {
-          grouped.set(schoolName, {
-            school_name: schoolName,
-            student_count: 0,
-            essay_count: 0,
-            students: []
-          });
-        }
-
-        const group = grouped.get(schoolName)!;
-        group.student_count += 1;
-        
-        // Conta as redacoes deste aluno
-        const studentEssays = essaysData.filter(e => e.student_id === profile.id).length;
-        group.essay_count += studentEssays;
-        
-        group.students.push({
-          id: profile.id,
-          full_name: profile.full_name || 'Sem Nome',
-          email: profile.email || '',
-          trial_started_at: profile.trial_started_at || '',
-          trial_ends_at: profile.trial_ends_at || ''
+          return {
+            id: cls.id,
+            name: cls.name,
+            trial_code: cls.trial_code,
+            max_students: cls.max_students,
+            trial_ends_at: cls.trial_ends_at,
+            students: mappedStudents
+          };
         });
+
+        const totalStudents = mappedClasses.reduce((sum, cls) => sum + cls.students.length, 0);
+        const totalMaxStudents = mappedClasses.reduce((sum, cls) => sum + cls.max_students, 0);
+        const essayCount = mappedClasses.reduce((sum, cls) => sum + cls.students.reduce((s, student) => s + student.essay_count, 0), 0);
+
+        return {
+          id: school.id,
+          name: school.name,
+          total_students: totalStudents,
+          total_max_students: totalMaxStudents,
+          essay_count: essayCount,
+          classes: mappedClasses
+        };
       });
 
-      // Transforma em array e ordena por student_count desc
-      const result = Array.from(grouped.values()).sort((a, b) => b.student_count - a.student_count);
-      setSchools(result);
+      setSchools(result.sort((a, b) => b.essay_count - a.essay_count));
 
     } catch (err: any) {
       console.error('Error fetching warm schools:', err);
@@ -97,41 +126,37 @@ const WarmSchoolsDashboard: React.FC = () => {
     }
   };
 
-  const handleMigrateStudent = async (studentId: string, schoolNameContext: string) => {
-    const newSchoolId = prompt('Digite o UUID da ESCOLA REAL de destino (Onde a escola acabou de assinar):');
-    if (!newSchoolId) return;
-
-    // Confirmação dupla
-    if (!confirm(`Tem certeza que deseja migrar este aluno para a escola ${newSchoolId}? O histórico de redações será movido e o trial encerrado.`)) {
+  const handleConvertSchool = async (schoolId: string, schoolName: string) => {
+    if (!confirm(`Tem certeza que deseja converter a escola "${schoolName}" para PAGANTE? Todos os alunos do trial serão promovidos a usuários definitivos e o trial será encerrado.`)) {
       return;
     }
 
-    setIsMigrating(true);
+    setIsConverting(true);
     try {
-      const { error } = await supabase.rpc('migrate_trial_student', {
-        p_student_id: studentId,
-        p_new_school_id: newSchoolId
+      const { data, error } = await supabase.functions.invoke('convert-trial-school', {
+        body: { school_id: schoolId }
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
       
-      alert('Aluno migrado com sucesso!');
+      alert('Escola convertida com sucesso!');
       fetchWarmSchools(); // Recarrega
     } catch (err: any) {
-      console.error('Migration error:', err);
-      alert('Erro na migração: ' + err.message);
+      console.error('Convert error:', err);
+      alert('Erro na conversão: ' + err.message);
     } finally {
-      setIsMigrating(false);
+      setIsConverting(false);
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 pb-20">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Escolas em Aquecimento 🔥</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Alunos testando a plataforma via fluxo Trial B2B, agrupados por instituição.
+            Escolas operando sob o modelo Trial B2B por Turma.
           </p>
         </div>
         <button 
@@ -158,51 +183,85 @@ const WarmSchoolsDashboard: React.FC = () => {
         </div>
       ) : (
         <div className="grid gap-6">
-          {schools.map((school, idx) => (
-            <div key={idx} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+          {schools.map((school) => (
+            <div key={school.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
               <div 
-                className="p-6 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors flex items-center justify-between"
-                onClick={() => setSelectedSchool(selectedSchool === school.school_name ? null : school.school_name)}
+                className="p-6 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
+                onClick={() => setSelectedSchool(selectedSchool === school.id ? null : school.id)}
               >
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{school.school_name}</h3>
-                  <p className="text-sm text-slate-500 mt-1">{school.student_count} aluno(s) em trial</p>
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">{school.name}</h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {school.total_students} de {school.total_max_students} alunos em trial
+                  </p>
                 </div>
                 <div className="flex items-center gap-6">
-                  <div className="text-right hidden sm:block">
-                    <p className="text-2xl font-black text-primary">{school.essay_count}</p>
+                  <div className="text-right">
+                    <p className="text-3xl font-black text-primary">{school.essay_count}</p>
                     <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Redações Geradas</p>
                   </div>
-                  <span className={`material-icons transition-transform ${selectedSchool === school.school_name ? 'rotate-180' : ''}`}>
+                  
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleConvertSchool(school.id, school.name); }}
+                    disabled={isConverting}
+                    className="ml-4 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
+                  >
+                    Converter para Pagante
+                  </button>
+                  
+                  <span className={`material-icons transition-transform ${selectedSchool === school.id ? 'rotate-180' : ''}`}>
                     expand_more
                   </span>
                 </div>
               </div>
 
-              {selectedSchool === school.school_name && (
+              {selectedSchool === school.id && (
                 <div className="border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50 p-6">
-                  <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 uppercase tracking-wider">Alunos Vinculados</h4>
-                  <div className="space-y-3">
-                    {school.students.map(student => {
-                      const endsAt = new Date(student.trial_ends_at);
+                  <h4 className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-4 uppercase tracking-wider">Turmas e Alunos</h4>
+                  <div className="space-y-6">
+                    {school.classes.map(cls => {
+                      const endsAt = new Date(cls.trial_ends_at);
                       const isExpired = endsAt < new Date();
                       
                       return (
-                        <div key={student.id} className="flex items-center justify-between bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
-                          <div>
-                            <p className="font-bold text-slate-900 dark:text-white">{student.full_name}</p>
-                            <p className="text-sm text-slate-500">{student.email}</p>
-                            <p className={`text-xs mt-1 font-medium ${isExpired ? 'text-red-500' : 'text-emerald-500'}`}>
-                              {isExpired ? 'Trial Expirado' : `Trial até ${endsAt.toLocaleDateString('pt-BR')}`}
-                            </p>
-                          </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleMigrateStudent(student.id, school.school_name); }}
-                            disabled={isMigrating}
-                            className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors disabled:opacity-50"
-                          >
-                            Migrar para Escola Real
-                          </button>
+                        <div key={cls.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                           <div className="flex justify-between items-center mb-3">
+                              <div>
+                                <h5 className="font-bold text-slate-900 dark:text-white text-lg">{cls.name}</h5>
+                                <p className="text-sm text-slate-500 font-mono">Código: {cls.trial_code}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-sm font-medium ${isExpired ? 'text-red-500' : 'text-emerald-500'}`}>
+                                  {isExpired ? 'Trial Expirado' : `Trial até ${endsAt.toLocaleDateString('pt-BR')}`}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">{cls.students.length} / {cls.max_students} alunos cadastrados</p>
+                              </div>
+                           </div>
+                           
+                           {cls.students.length > 0 ? (
+                             <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left text-slate-500 dark:text-slate-400">
+                                  <thead className="text-xs text-slate-700 uppercase bg-slate-50 dark:bg-slate-700 dark:text-slate-400">
+                                    <tr>
+                                      <th className="px-4 py-2 rounded-l-lg">Nome</th>
+                                      <th className="px-4 py-2">E-mail</th>
+                                      <th className="px-4 py-2 text-center rounded-r-lg">Redações</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {cls.students.map(student => (
+                                      <tr key={student.id} className="bg-white dark:bg-slate-800">
+                                        <td className="px-4 py-2 font-medium text-slate-900 dark:text-white">{student.full_name}</td>
+                                        <td className="px-4 py-2">{student.email}</td>
+                                        <td className="px-4 py-2 text-center font-bold text-primary">{student.essay_count}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                             </div>
+                           ) : (
+                             <p className="text-sm text-slate-400 italic">Nenhum aluno cadastrado nesta turma ainda.</p>
+                           )}
                         </div>
                       )
                     })}

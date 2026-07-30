@@ -674,7 +674,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
                             const fd = new FormData(e.currentTarget);
                             const data = Object.fromEntries(fd.entries());
                             try {
-                                const { data: result, error } = await supabase.functions.invoke('start-trial', {
+                                const { data: result, error } = await supabase.functions.invoke('submit-lead', {
                                     body: {
                                         name: data.NOME,
                                         email: data.EMAIL,
@@ -685,7 +685,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, on
 
                                 if (error) {
                                     console.error("Erro do Edge Function:", error);
-                                    throw new Error(error.message || 'Erro ao iniciar trial');
+                                    throw new Error(error.message || 'Erro ao enviar contato');
                                 }
                                 
                                 if (result && result.error) {

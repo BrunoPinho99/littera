@@ -21,6 +21,8 @@ import { PendingCheckoutPage } from './components/PendingCheckoutPage';
 import FinalizarCadastroView from './components/FinalizarCadastroView';
 import ChallengeBanner from './components/ChallengeBanner';
 import WarmSchoolsDashboard from './components/WarmSchoolsDashboard';
+import ActivateTrialDashboard from './components/ActivateTrialDashboard';
+import TrialRegistration from './components/TrialRegistration';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
@@ -477,6 +479,7 @@ const App: React.FC = () => {
               <Route path="inst-ranking" element={<InstitutionDashboard initialTab="ranking" userType={userType as any} />} />
               <Route path="inst-classes" element={<InstitutionDashboard initialTab="classes" userType={userType as any} />} />
               <Route path="admin/warm-schools" element={<WarmSchoolsDashboard />} />
+              <Route path="admin/activate-trial" element={<ActivateTrialDashboard />} />
               <Route path="profile" element={<ProfileView user={session?.user} />} />
               <Route path="*" element={<Navigate to="/app/inst-overview" replace />} />
             </Routes>
@@ -539,6 +542,13 @@ const App: React.FC = () => {
       } />
       <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
       <Route path="/convite" element={<AcceptInviteView />} />
+      <Route path="/trial/:trialCode" element={
+        (session || isDemoMode) && !isSuspended ? (
+          <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+        ) : (
+          <TrialRegistration />
+        )
+      } />
       <Route path="/app/*" element={renderMainAppLayout()} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

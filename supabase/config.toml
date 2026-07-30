@@ -78,3 +78,47 @@ entrypoint = "./functions/start-trial/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/start-trial/*.html" ]
+
+[functions.submit-lead]
+enabled = true
+verify_jwt = false
+import_map = "./functions/submit-lead/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/submit-lead/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/submit-lead/*.html" ]
+
+[functions.register-trial-student]
+enabled = true
+verify_jwt = false
+import_map = "./functions/register-trial-student/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/register-trial-student/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/register-trial-student/*.html" ]
+
+[functions.convert-trial-school]
+enabled = true
+verify_jwt = false
+import_map = "./functions/convert-trial-school/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/convert-trial-school/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/convert-trial-school/*.html" ]
+
+[functions.activate-trial]
+enabled = true
+verify_jwt = false
+import_map = "./functions/activate-trial/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/activate-trial/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/activate-trial/*.html" ]
