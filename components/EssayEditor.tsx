@@ -124,7 +124,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-surface-dark rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-fade-in flex flex-col h-[calc(100vh-140px)] sm:h-[calc(100vh-180px)] lg:h-[calc(100vh-200px)] min-h-[400px] relative">
+    <div className="bg-white dark:bg-surface-dark rounded-2xl sm:rounded-3xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden animate-fade-in flex flex-col min-h-0 max-h-[calc(100vh-120px)] sm:max-h-[calc(100vh-160px)] relative">
       {/* Header */}
       <div className="bg-gray-50 dark:bg-slate-800/50 px-3 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
         <div className="flex-1 min-w-0 sm:mr-4">
@@ -152,7 +152,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       </div>
 
       {/* Photo Upload Area */}
-      <div className="flex-grow p-0 relative bg-white dark:bg-slate-900/30 overflow-hidden flex flex-col">
+      <div className="flex-grow p-0 relative bg-white dark:bg-slate-900/30 overflow-y-auto flex flex-col min-h-0">
         <input 
           type="file" 
           ref={fileInputRef}
@@ -225,19 +225,19 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
             </div>
 
             {/* Upload Area */}
-            <div className="flex-1 min-h-[250px] flex flex-col items-center justify-center p-4 sm:p-6">
+            <div className="flex-1 min-h-[180px] flex flex-col items-center justify-center p-3 sm:p-6">
               <div 
                 onClick={() => !isSubmitting && fileInputRef.current?.click()}
                 className={`w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 hover:bg-primary/[0.02] cursor-pointer shadow-sm group ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
               >
-                <div className="w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-4">
-                  <span className="material-icons-outlined text-4xl text-primary">add_a_photo</span>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-3">
+                  <span className="material-icons-outlined text-3xl sm:text-4xl text-primary">add_a_photo</span>
                 </div>
-                <p className="text-gray-700 dark:text-gray-300 font-bold text-lg text-center mb-2">Clique aqui para enviar a foto</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-sm">
+                <p className="text-gray-700 dark:text-gray-300 font-bold text-base sm:text-lg text-center mb-1 sm:mb-2">Clique aqui para enviar a foto</p>
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center mb-4 sm:mb-6 max-w-sm">
                   Certifique-se de que a folha esteja bem iluminada e o texto legível
                 </p>
-                <div className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 group-hover:bg-primary/90 transition-colors pointer-events-none">
+                <div className="px-4 py-2 sm:px-5 sm:py-2.5 bg-primary text-white rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 group-hover:bg-primary/90 transition-colors pointer-events-none">
                   <span className="material-icons-outlined text-base">photo_camera</span>
                   Abrir Câmera / Galeria
                 </div>
