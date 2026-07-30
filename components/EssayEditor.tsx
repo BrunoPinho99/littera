@@ -138,10 +138,13 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
           <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white line-clamp-1" title={topicTitle}>{topicTitle}</h2>
         </div>
         
-        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-lg shrink-0 self-start sm:self-auto">
-          <span className="material-icons-outlined text-sm text-primary">photo_camera</span>
-          <span className="text-xs font-black text-primary uppercase tracking-widest">Envio por Foto</span>
-        </div>
+        <button 
+          onClick={() => !isSubmitting && fileInputRef.current?.click()}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 transition-colors rounded-lg shrink-0 self-start sm:self-auto cursor-pointer"
+        >
+          <span className="material-icons-outlined text-sm text-white">photo_camera</span>
+          <span className="text-xs font-black text-white uppercase tracking-widest">Tirar Foto</span>
+        </button>
       </div>
 
       {/* Photo Upload Area */}
@@ -192,11 +195,19 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
              ) : (
                <div 
                   onClick={() => !isSubmitting && fileInputRef.current?.click()}
-                  className={`flex flex-col items-center cursor-pointer p-10 text-center ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
+                  className={`flex flex-col items-center justify-center cursor-pointer p-6 sm:p-10 w-full h-full group ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
                >
-                 <span className="material-icons-outlined text-5xl text-gray-300 dark:text-slate-600 mb-4">add_a_photo</span>
-                 <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Clique para tirar uma foto da sua redação</p>
-                 <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">Certifique-se de que o texto esteja legível e bem iluminado</p>
+                 <div className="w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-4">
+                   <span className="material-icons-outlined text-4xl text-primary">add_a_photo</span>
+                 </div>
+                 <p className="text-gray-700 dark:text-gray-300 font-bold text-lg text-center mb-2">Clique aqui para enviar a foto</p>
+                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-sm">
+                   Certifique-se de que a folha esteja bem iluminada e o texto legível
+                 </p>
+                 
+                 <button className="sl-btn pointer-events-none">
+                   Abrir Câmera / Galeria
+                 </button>
                </div>
              )}
           </div>
