@@ -21,8 +21,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
   const [schoolName, setSchoolName] = useState(user?.user_metadata?.school || "Não vinculada");
   
   const userType = user?.user_metadata?.user_type;
-  const isInstitution = userType === 'institution';
-  const isProfessor = userType === 'professor';
+  const isInstitution = userType === 'institution' || userType === 'school_admin';
+  const isProfessor = userType === 'professor' || userType === 'teacher';
   const schoolId = user?.user_metadata?.school_id || null;
   const [classes, setClasses] = useState<ClassGroup[]>([]);
   
