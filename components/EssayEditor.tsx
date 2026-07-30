@@ -140,78 +140,111 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
         
         <button 
           onClick={() => !isSubmitting && fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary hover:bg-primary/90 transition-colors rounded-lg shrink-0 self-start sm:self-auto cursor-pointer"
+          className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors rounded-lg shrink-0 self-start sm:self-auto cursor-pointer ${
+            imagePreview 
+              ? 'bg-emerald-500 hover:bg-emerald-600' 
+              : 'bg-primary hover:bg-primary/90'
+          }`}
         >
-          <span className="material-icons-outlined text-sm text-white">photo_camera</span>
-          <span className="text-xs font-black text-white uppercase tracking-widest">Tirar Foto</span>
+          <span className="material-icons-outlined text-sm text-white">{imagePreview ? 'swap_horiz' : 'photo_camera'}</span>
+          <span className="text-xs font-black text-white uppercase tracking-widest">{imagePreview ? 'Trocar Foto' : 'Tirar Foto'}</span>
         </button>
       </div>
 
       {/* Photo Upload Area */}
       <div className="flex-grow p-0 relative bg-white dark:bg-slate-900/30 overflow-hidden flex flex-col">
-        {/* Instructions */}
-        <div className="p-4 sm:p-6 pb-0 w-full h-auto shrink-0 z-10">
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center shadow-sm">
-            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800/60 flex items-center justify-center shrink-0">
-              <span className="material-icons-outlined text-blue-600 dark:text-blue-400">info</span>
-            </div>
-            <div>
-              <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-1 text-sm">Instruções para o Envio</h4>
-              <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-400/90 list-disc list-inside space-y-1">
-                <li>Escreva sua redação à mão (modelo ENEM, até 30 linhas) usando caneta de <strong>tinta preta</strong>.</li>
-                <li>Escreva de forma <strong>bem legível</strong>. Se a IA não conseguir ler sua letra, a correção pode ser imprecisa.</li>
-                <li>Tire uma foto pegando a folha inteira, com boa iluminação e sem sombras fortes.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          disabled={isSubmitting}
+        />
 
-        <div className="flex-1 min-h-[300px] flex flex-col items-center justify-center p-4 sm:p-6">
-          <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 relative overflow-hidden shadow-sm">
-             <input 
-                type="file" 
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                disabled={isSubmitting}
-             />
-             
-             {imagePreview ? (
-               <div className="relative w-full h-full group">
-                 <img src={imagePreview} alt="Preview" className="w-full h-full object-contain p-4" />
-                 {!isSubmitting && (
-                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-white text-gray-900 px-4 py-2 rounded-full font-bold shadow-lg hover:scale-105 transition-transform"
-                      >
-                        Trocar Imagem
-                      </button>
-                   </div>
-                 )}
-               </div>
-             ) : (
-               <div 
-                  onClick={() => !isSubmitting && fileInputRef.current?.click()}
-                  className={`flex flex-col items-center justify-center cursor-pointer p-6 sm:p-10 w-full h-full group ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
-               >
-                 <div className="w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-4">
-                   <span className="material-icons-outlined text-4xl text-primary">add_a_photo</span>
-                 </div>
-                 <p className="text-gray-700 dark:text-gray-300 font-bold text-lg text-center mb-2">Clique aqui para enviar a foto</p>
-                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-sm">
-                   Certifique-se de que a folha esteja bem iluminada e o texto legível
-                 </p>
-                 
-                 <button className="sl-btn pointer-events-none">
-                   Abrir Câmera / Galeria
-                 </button>
-               </div>
-             )}
+        {imagePreview ? (
+          /* ===== PHOTO SELECTED STATE ===== */
+          <div className="flex flex-col h-full">
+            {/* Success Banner */}
+            <div className="p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-800/40 flex items-center gap-3 shrink-0">
+              <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                <span className="material-icons-outlined text-white text-sm">check</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Foto carregada com sucesso!</p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-400/80 truncate">
+                  {imageFile?.name || 'imagem.jpg'} • {imageFile ? `${(imageFile.size / 1024).toFixed(0)} KB` : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-3 py-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-800/50 hover:bg-emerald-200 dark:hover:bg-emerald-700/50 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <span className="material-icons-outlined text-sm">swap_horiz</span>
+                  Trocar
+                </button>
+                <button
+                  onClick={() => { setImageFile(null); setImagePreview(null); }}
+                  className="px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-800/40 rounded-lg transition-colors flex items-center gap-1"
+                >
+                  <span className="material-icons-outlined text-sm">delete</span>
+                  Remover
+                </button>
+              </div>
+            </div>
+
+            {/* Image Preview */}
+            <div className="flex-1 relative bg-gray-100 dark:bg-slate-900/50 flex items-center justify-center p-4 overflow-hidden">
+              <img 
+                src={imagePreview} 
+                alt="Preview da redação" 
+                className="max-w-full max-h-full object-contain rounded-lg shadow-lg border border-gray-200 dark:border-slate-600" 
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ===== NO PHOTO STATE ===== */
+          <>
+            {/* Instructions */}
+            <div className="p-4 sm:p-6 pb-0 w-full h-auto shrink-0 z-10">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center shadow-sm">
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800/60 flex items-center justify-center shrink-0">
+                  <span className="material-icons-outlined text-blue-600 dark:text-blue-400">info</span>
+                </div>
+                <div>
+                  <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-1 text-sm">Instruções para o Envio</h4>
+                  <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-400/90 list-disc list-inside space-y-1">
+                    <li>Escreva sua redação à mão (modelo ENEM, até 30 linhas) usando caneta de <strong>tinta preta</strong>.</li>
+                    <li>Escreva de forma <strong>bem legível</strong>. Se a IA não conseguir ler sua letra, a correção pode ser imprecisa.</li>
+                    <li>Tire uma foto pegando a folha inteira, com boa iluminação e sem sombras fortes.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Upload Area */}
+            <div className="flex-1 min-h-[250px] flex flex-col items-center justify-center p-4 sm:p-6">
+              <div 
+                onClick={() => !isSubmitting && fileInputRef.current?.click()}
+                className={`w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 hover:bg-primary/[0.02] cursor-pointer shadow-sm group ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
+              >
+                <div className="w-16 h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-4">
+                  <span className="material-icons-outlined text-4xl text-primary">add_a_photo</span>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 font-bold text-lg text-center mb-2">Clique aqui para enviar a foto</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 text-center mb-6 max-w-sm">
+                  Certifique-se de que a folha esteja bem iluminada e o texto legível
+                </p>
+                <div className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 group-hover:bg-primary/90 transition-colors pointer-events-none">
+                  <span className="material-icons-outlined text-base">photo_camera</span>
+                  Abrir Câmera / Galeria
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
       
       {/* Loading Overlay — Professional Correction UX */}
@@ -389,7 +422,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       )}
 
       {/* Footer Actions */}
-      <div className="p-3 sm:p-6 bg-gray-50 dark:bg-slate-800/50 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center gap-3">
+      <div className={`p-3 sm:p-6 border-t flex justify-between items-center gap-3 transition-colors ${imagePreview ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200 dark:border-emerald-800/40' : 'bg-gray-50 dark:bg-slate-800/50 border-gray-200 dark:border-slate-700'}`}>
         <button
           onClick={onCancel}
           disabled={isSubmitting}
@@ -397,13 +430,25 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
         >
           Cancelar
         </button>
+
+        {imagePreview && !isSubmitting && (
+          <p className="hidden sm:block text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            <span className="material-icons-outlined text-xs align-middle mr-1">check_circle</span>
+            Pronto para enviar
+          </p>
+        )}
+
         <button
           onClick={handleSubmit}
           disabled={!canSubmit()}
-          className="px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-primary hover:bg-primary-dark disabled:bg-primary/50 text-white text-sm sm:text-base font-bold shadow-lg shadow-violet-500/30 transition-all flex items-center gap-2"
+          className={`px-5 sm:px-8 py-2.5 sm:py-3 rounded-xl text-white text-sm sm:text-base font-bold shadow-lg transition-all flex items-center gap-2 ${
+            canSubmit() 
+              ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' 
+              : 'bg-gray-300 dark:bg-slate-600 cursor-not-allowed shadow-none'
+          }`}
         >
-          {isSubmitting ? 'Analisando...' : 'Entregar Redação'}
-          {!isSubmitting && <span className="material-icons-outlined text-sm">send</span>}
+          {isSubmitting ? 'Analisando...' : (imagePreview ? 'Entregar Redação ✓' : 'Selecione uma Foto')}
+          {!isSubmitting && imagePreview && <span className="material-icons-outlined text-sm">send</span>}
         </button>
       </div>
     </div>
