@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { getClassesBySchool } from '../services/databaseService';
+import { getClassesBySchool, getSchoolData } from '../services/databaseService';
 import { ClassGroup } from '../types';
 
 interface ProfileViewProps {
@@ -25,6 +25,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
   const isProfessor = userType === 'professor' || userType === 'teacher';
   const schoolId = user?.user_metadata?.school_id || null;
   const [classes, setClasses] = useState<ClassGroup[]>([]);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("ATIVA");
   
   // Credit Card States
   const [isUpdatingCard, setIsUpdatingCard] = useState(false);
@@ -49,6 +50,13 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
     if (schoolId) {
       const data = await getClassesBySchool(schoolId);
       setClasses(data);
+      
+      const school = await getSchoolData(schoolId);
+      if (school) {
+        if (school.subscription_status === 'active') setSubscriptionStatus('ATIVA');
+        else if (school.subscription_status === 'trialing') setSubscriptionStatus('AVALIAÇÃO');
+        else setSubscriptionStatus('INATIVA');
+      }
     }
   };
 
@@ -202,9 +210,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
             <h2 className="text-xl font-black text-on-surface truncate w-full">{fullName || "Sem Nome"}</h2>
             <p className="text-on-surface-variant text-sm font-bold truncate w-full mb-6">{user?.email}</p>
             <div className="w-full pt-6 border-t border-gray-50 dark:border-slate-800">
-               <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest block mb-2">Função Ativa</span>
-               <span className="px-4 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">
-                  {getUserLabel()}
+               <span className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest block mb-2">Assinatura</span>
+               <span className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${subscriptionStatus === 'INATIVA' ? 'bg-rose-50 text-rose-600' : 'bg-primary/10 text-primary'}`}>
+                  {subscriptionStatus}
                </span>
             </div>
           </div>
