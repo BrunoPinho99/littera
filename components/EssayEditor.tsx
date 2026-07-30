@@ -145,9 +145,26 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       </div>
 
       {/* Photo Upload Area */}
-      <div className="flex-grow p-0 relative bg-white dark:bg-slate-900/30 overflow-hidden">
-        <div className="h-full flex flex-col items-center justify-center p-6 bg-gray-50/30 dark:bg-slate-900/30">
-          <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 relative overflow-hidden">
+      <div className="flex-grow p-0 relative bg-white dark:bg-slate-900/30 overflow-hidden flex flex-col">
+        {/* Instructions */}
+        <div className="p-4 sm:p-6 pb-0 w-full h-auto shrink-0 z-10">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center shadow-sm">
+            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800/60 flex items-center justify-center shrink-0">
+              <span className="material-icons-outlined text-blue-600 dark:text-blue-400">info</span>
+            </div>
+            <div>
+              <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-1 text-sm">Instruções para o Envio</h4>
+              <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-400/90 list-disc list-inside space-y-1">
+                <li>Escreva sua redação à mão (modelo ENEM, até 30 linhas) usando caneta de <strong>tinta preta</strong>.</li>
+                <li>Escreva de forma <strong>bem legível</strong>. Se a IA não conseguir ler sua letra, a correção pode ser imprecisa.</li>
+                <li>Tire uma foto pegando a folha inteira, com boa iluminação e sem sombras fortes.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 min-h-[300px] flex flex-col items-center justify-center p-4 sm:p-6">
+          <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 relative overflow-hidden shadow-sm">
              <input 
                 type="file" 
                 ref={fileInputRef}
