@@ -206,44 +206,24 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
           </div>
         ) : (
           /* ===== NO PHOTO STATE ===== */
-          <>
-            {/* Instructions */}
-            <div className="p-4 sm:p-6 pb-0 w-full h-auto shrink-0 z-10">
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-xl p-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-800/60 flex items-center justify-center shrink-0">
-                  <span className="material-icons-outlined text-blue-600 dark:text-blue-400">info</span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-blue-900 dark:text-blue-300 mb-1 text-sm">Instruções para o Envio</h4>
-                  <ul className="text-xs sm:text-sm text-blue-800 dark:text-blue-400/90 list-disc list-inside space-y-1">
-                    <li>Escreva sua redação à mão (modelo ENEM, até 30 linhas) usando caneta de <strong>tinta preta</strong>.</li>
-                    <li>Escreva de forma <strong>bem legível</strong>. Se a IA não conseguir ler sua letra, a correção pode ser imprecisa.</li>
-                    <li>Tire uma foto pegando a folha inteira, com boa iluminação e sem sombras fortes.</li>
-                  </ul>
-                </div>
+          <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6">
+            <div 
+              onClick={() => !isSubmitting && fileInputRef.current?.click()}
+              className={`w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 hover:bg-primary/[0.02] cursor-pointer shadow-sm group ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-4">
+                <span className="material-icons-outlined text-3xl sm:text-4xl text-primary">add_a_photo</span>
+              </div>
+              <p className="text-gray-700 dark:text-gray-300 font-bold text-base sm:text-lg text-center mb-1">Clique para tirar uma foto da sua redação</p>
+              <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 text-center mb-5 max-w-xs">
+                Certifique-se de que o texto esteja legível e bem iluminado
+              </p>
+              <div className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 group-hover:bg-primary/90 transition-colors pointer-events-none">
+                <span className="material-icons-outlined text-base">photo_camera</span>
+                Abrir Câmera / Galeria
               </div>
             </div>
-
-            {/* Upload Area */}
-            <div className="flex-1 min-h-[180px] flex flex-col items-center justify-center p-3 sm:p-6">
-              <div 
-                onClick={() => !isSubmitting && fileInputRef.current?.click()}
-                className={`w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-2xl bg-white dark:bg-surface-dark transition-all hover:border-primary/50 hover:bg-primary/[0.02] cursor-pointer shadow-sm group ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
-              >
-                <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-3">
-                  <span className="material-icons-outlined text-3xl sm:text-4xl text-primary">add_a_photo</span>
-                </div>
-                <p className="text-gray-700 dark:text-gray-300 font-bold text-base sm:text-lg text-center mb-1 sm:mb-2">Clique aqui para enviar a foto</p>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 text-center mb-4 sm:mb-6 max-w-sm">
-                  Certifique-se de que a folha esteja bem iluminada e o texto legível
-                </p>
-                <div className="px-4 py-2 sm:px-5 sm:py-2.5 bg-primary text-white rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 group-hover:bg-primary/90 transition-colors pointer-events-none">
-                  <span className="material-icons-outlined text-base">photo_camera</span>
-                  Abrir Câmera / Galeria
-                </div>
-              </div>
-            </div>
-          </>
+          </div>
         )}
       </div>
       
