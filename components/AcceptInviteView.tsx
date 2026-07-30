@@ -172,15 +172,12 @@ const AcceptInviteView: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       const currentUser = user || (await supabase.auth.getSession()).data.session?.user;
       if (currentUser) {
-        const { error: profileError } = await supabase.from('profiles').upsert({
-          id: currentUser.id,
-          full_name: fullName.trim(),
-          email: loginEmail.trim() || currentUser.email,
-          role: currentUser.user_metadata?.user_type || 'student',
-          school_id: currentUser.user_metadata?.school_id,
-          class_id: currentUser.user_metadata?.class_id,
-          status: 'active',
-        });
+        const { error: profileError } = await supabase.from('profiles')
+          .update({
+            full_name: fullName.trim(),
+            status: 'active',
+          })
+          .eq('id', currentUser.id);
         if (profileError) {
           console.error("Erro ao atualizar status e perfil no Supabase:", profileError);
         }
