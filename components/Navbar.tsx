@@ -15,7 +15,7 @@ interface NavbarProps {
   onOpenChallenge?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, userType, user, notifications, onMarkAsRead: _onMarkAsRead, activeChallengesCount, onOpenChallenge }) => {
+const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, userType, user, notifications, onMarkAsRead: _onMarkAsRead, activeChallengesCount: _activeChallengesCount, onOpenChallenge: _onOpenChallenge }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userRank, setUserRank] = useState<any>(null);

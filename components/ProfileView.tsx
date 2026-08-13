@@ -35,8 +35,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
   const [cardExpiryYear, setCardExpiryYear] = useState("");
   const [cardCcv, setCardCcv] = useState("");
   const [cardCpfCnpj, setCardCpfCnpj] = useState("");
-  const [cardPostalCode, setCardPostalCode] = useState("");
-  const [cardAddressNumber, setCardAddressNumber] = useState("");
+  const [cardPostalCode, _setCardPostalCode] = useState("");
+  const [cardAddressNumber, _setCardAddressNumber] = useState("");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 

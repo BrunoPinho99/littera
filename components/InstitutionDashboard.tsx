@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { StudentDetail, ClassGroup, SavedEssay, School, RankUser } from '../types';
@@ -12,7 +12,6 @@ import {
   createClass,
   createProfessor,
   createStudent,
-  createStudentsBulk,
   createAssignment,
   revokeInvite
 } from '../services/databaseService';
@@ -586,7 +585,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   if (school?.subscription_status === 'unpaid') {
     const checkoutUrl = localStorage.getItem('littera_checkout_url');
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium border border-gray-100 dark:border-white/5 p-8 text-center animate-fade-in mt-8">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium shadow-ambient border-none p-8 text-center animate-fade-in mt-8">
         <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mb-6">
           <span className="material-icons-outlined text-4xl">hourglass_empty</span>
         </div>
@@ -645,7 +644,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-2">
             {userType === 'teacher' ? 'Área do Docente' : 'Painel de Controle'}
           </span>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter">
+          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter font-display">
             {userType === 'school_admin' 
               ? `Seja bem-vindo(a), ${school?.name || "Escola"}` 
               : (school?.name || "Minha Instituição")}
@@ -679,7 +678,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             </button>
             <button
               onClick={() => setIsProfessorModalOpen(true)}
-              className="px-6 py-3 bg-white dark:bg-surface-dark text-gray-900 dark:text-white border border-gray-200 dark:border-white/10 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5"
+              className="px-6 py-3 bg-white dark:bg-surface-dark text-gray-900 dark:text-white shadow-sm border-none rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5"
             >
               + Professor
             </button>
@@ -709,7 +708,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             {/* Text */}
             <div className="flex-1">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-1">Primeiros Passos</p>
-              <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-2">
+              <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-2 font-display">
                 Comece criando suas turmas! 🎓
               </h3>
               <p className="text-white/75 font-medium text-sm leading-relaxed max-w-xl">
@@ -758,19 +757,19 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {/* Grid de Métricas */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-surface-dark p-8 rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-white/5 flex items-center gap-6">
+          <div key={i} className="bg-white dark:bg-surface-dark p-8 rounded-[2.5rem] shadow-sm shadow-ambient border-none flex items-center gap-6">
             <div className={`w-14 h-14 rounded-2xl ${stat.color} flex items-center justify-center text-white shadow-lg`}>
               <span className="material-icons-outlined text-2xl">{stat.icon}</span>
             </div>
             <div>
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
-              <h3 className="text-3xl font-black text-gray-900 dark:text-white">{stat.value}</h3>
+              <h3 className="text-3xl font-black text-gray-900 dark:text-white font-display">{stat.value}</h3>
             </div>
           </div>
         ))}
       </div>
 
-      <h2 className="text-2xl font-black text-gray-900 dark:text-white mt-8 mb-4">Painel de Controle</h2>
+      <h2 className="text-2xl font-black text-gray-900 dark:text-white mt-8 mb-4 font-display">Painel de Controle</h2>
       <div className={`grid grid-cols-2 md:grid-cols-3 ${userType === 'teacher' ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4 mb-8`}>
         {availableTabs.map(tab => (
           <button
@@ -800,7 +799,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         ))}
       </div>
 
-      <div className="bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium border border-gray-100 dark:border-white/5 overflow-hidden">
+      <div className="bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium shadow-ambient border-none overflow-hidden">
 
 
         <div className="p-10">
@@ -808,7 +807,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             <div className="space-y-8 animate-fade-in">
               {/* ROI and General Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
+                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] shadow-ambient border-none shadow-ambient relative overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Média da Escola</p>
                   <div className="flex items-end gap-2">
                     <h3 className="text-5xl font-black text-gray-900 dark:text-white">
@@ -825,7 +824,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   <p className="text-xs text-gray-400 font-medium mt-3">Nota média calculada em todas as submissões deste ano.</p>
                 </div>
 
-                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-sm relative overflow-hidden">
+                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] shadow-ambient border-none shadow-ambient relative overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2">Engajamento</p>
                   <div className="flex items-end gap-2">
                     <h3 className="text-5xl font-black text-gray-900 dark:text-white">
@@ -841,7 +840,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 {/* Ranking de Alunos Simplificado */}
-                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-gray-100 dark:border-white/5 p-8 shadow-sm">
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-ambient border-none p-8 shadow-sm">
                   <div className="flex justify-between items-center mb-6">
                     <h4 className="text-lg font-black text-gray-900 dark:text-white">Alunos Destaque</h4>
                     <span className="p-2 rounded-xl bg-amber-50 text-amber-500 dark:bg-amber-500/10"><span className="material-icons-outlined text-sm">stars</span></span>
@@ -877,7 +876,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 </div>
 
                 {/* Ranking de Turmas */}
-                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-gray-100 dark:border-white/5 p-8 shadow-sm">
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-ambient border-none p-8 shadow-sm">
                   <div className="flex justify-between items-center mb-6">
                     <h4 className="text-lg font-black text-gray-900 dark:text-white">Top Turmas por Média</h4>
                     <span className="p-2 rounded-xl bg-indigo-50 text-indigo-500 dark:bg-indigo-500/10"><span className="material-icons-outlined text-sm">equalizer</span></span>
@@ -1041,7 +1040,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {activeTab === 'classes' && userType === 'school_admin' && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {classes.map(cls => (
-                <div key={cls.id} className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all group">
+                <div key={cls.id} className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-ambient border-none shadow-sm hover:shadow-md transition-all group">
                   <div className="flex justify-between items-start mb-4">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
                       <span className="material-icons-outlined">class</span>
@@ -1229,7 +1228,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-gray-100 dark:border-white/5 p-8 flex flex-col justify-between">
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-ambient border-none p-8 flex flex-col justify-between">
                   <div>
                     <h4 className="text-lg font-black text-gray-900 dark:text-white mb-1">Próxima fatura</h4>
                     <p className="text-xs text-gray-400 mb-6">Cobrada automaticamente no cartão principal</p>
@@ -1368,7 +1367,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </div>
 
               {/* Danger Zone */}
-              <div className="bg-white dark:bg-surface-dark rounded-[2rem] border border-rose-200 dark:border-rose-900/30 p-8">
+              <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-sm border-none bg-rose-50/30 dark:bg-rose-900/10 p-8">
                 <h4 className="text-lg font-black text-gray-900 dark:text-white mb-1">Zona de risco</h4>
                 <p className="text-sm text-gray-400 mb-6">Ações irreversíveis sobre a assinatura.</p>
                 <div className="flex gap-4">
@@ -1385,7 +1384,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {activeTab === 'essays' && (
             <div className="space-y-4">
               {essays.length > 0 ? essays.map(essay => (
-                <div key={essay.id} className="bg-white dark:bg-surface-dark p-6 rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all flex justify-between items-center group cursor-pointer">
+                <div key={essay.id} className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-ambient border-none shadow-sm hover:shadow-md transition-all flex justify-between items-center group cursor-pointer">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white ${essay.score >= 800 ? 'bg-green-500' : essay.score >= 600 ? 'bg-primary' : 'bg-amber-500'}`}>
                       {essay.score}
@@ -1433,7 +1432,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newClass.name}
                     onChange={e => setNewClass({ ...newClass, name: e.target.value })}
                     placeholder="Ex: 3º Ano A - Ensino Médio"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                     required
                   />
                 </div>
@@ -1446,7 +1445,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                       value={newClass.grade}
                       onChange={e => setNewClass({ ...newClass, grade: e.target.value })}
                       placeholder="Ex: 3º Ano"
-                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                       required
                     />
                   </div>
@@ -1455,7 +1454,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     <select
                       value={newClass.shift}
                       onChange={e => setNewClass({ ...newClass, shift: e.target.value })}
-                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
                     >
                       <option value="Matutino">Matutino</option>
                       <option value="Vespertino">Vespertino</option>
@@ -1510,7 +1509,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newProfessor.name}
                     onChange={e => setNewProfessor({ ...newProfessor, name: e.target.value })}
                     placeholder="Ex: João da Silva"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                     required
                   />
                 </div>
@@ -1522,7 +1521,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newProfessor.email}
                     onChange={e => setNewProfessor({ ...newProfessor, email: e.target.value })}
                     placeholder="Ex: professor@escola.com"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                     required
                   />
                 </div>
@@ -1532,7 +1531,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   <select
                     value={newProfessor.class_id}
                     onChange={e => setNewProfessor({ ...newProfessor, class_id: e.target.value })}
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
                     required
                   >
                     <option value="">Selecione uma turma...</option>
@@ -1590,7 +1589,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newStudent.name}
                     onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
                     placeholder="Ex: Maria Oliveira"
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                     required
                   />
                 </div>
@@ -1602,7 +1601,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newStudent.email}
                     onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
                     placeholder="Ex: aluno@escola.com"
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                     required
                   />
                 </div>
@@ -1614,7 +1613,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newStudent.registration_number}
                     onChange={e => setNewStudent({ ...newStudent, registration_number: e.target.value })}
                     placeholder="Ex: 20240015"
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                   />
                 </div>
 
@@ -1623,7 +1622,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   <select
                     value={newStudent.class_id}
                     onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
                     required
                   >
                     <option value="">Selecione uma turma...</option>
@@ -1695,7 +1694,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newAssignment.title}
                     onChange={e => setNewAssignment({ ...newAssignment, title: e.target.value })}
                     placeholder="Ex: Os desafios da mobilidade urbana"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                     required
                   />
                 </div>
@@ -1706,7 +1705,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={newAssignment.baseText}
                     onChange={e => setNewAssignment({ ...newAssignment, baseText: e.target.value })}
                     placeholder="Cole aqui o texto motivador ou deixe a IA gerar para você..."
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-medium text-sm transition-all min-h-[150px] resize-none leading-relaxed"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-medium text-sm transition-all min-h-[150px] resize-none leading-relaxed"
                   />
                 </div>
 
@@ -1716,7 +1715,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     <select
                       value={newAssignment.class_id}
                       onChange={e => setNewAssignment({ ...newAssignment, class_id: e.target.value })}
-                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
                       required
                     >
                       <option value="">Selecione...</option>
@@ -1732,7 +1731,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                       type="date"
                       value={newAssignment.due_date}
                       onChange={e => setNewAssignment({ ...newAssignment, due_date: e.target.value })}
-                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
                     />
                   </div>
                 </div>
@@ -1786,7 +1785,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={cardForm.number}
                     onChange={e => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })}
                     placeholder="0000 0000 0000 0000"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all pr-20 tracking-wider"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all pr-20 tracking-wider"
                     maxLength={19}
                     required={!editingCard}
                   />
@@ -1808,7 +1807,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   value={cardForm.holder}
                   onChange={e => setCardForm({ ...cardForm, holder: e.target.value.toUpperCase() })}
                   placeholder="NOME COMO ESTÁ NO CARTÃO"
-                  className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all uppercase tracking-wider"
+                  className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all uppercase tracking-wider"
                   required
                 />
               </div>
@@ -1821,7 +1820,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={cardForm.expiry}
                     onChange={e => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })}
                     placeholder="MM/AA"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-wider"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-wider"
                     maxLength={5}
                     required
                   />
@@ -1833,7 +1832,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     value={cardForm.cvv}
                     onChange={e => setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                     placeholder="•••"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-widest text-center"
+                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-widest text-center"
                     maxLength={4}
                     required={!editingCard}
                   />

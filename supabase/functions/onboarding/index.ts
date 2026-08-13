@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
   // Variáveis de ambiente
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY') || '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjQxYzI4YTc2LTEwNTYtNDk5ZC04YjI3LTc4NzNlOTcyMTlhYTo6JGFhY2hfMjRlZGVlMjItOTg4Yi00ODFkLTljYjAtOTI1MjE2YWU3ZWVl';
+  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY');
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('[onboarding] SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurada')

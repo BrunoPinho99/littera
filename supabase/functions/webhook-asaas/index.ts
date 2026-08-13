@@ -266,7 +266,7 @@ async function autoProvisionSchool(
   const customerId = payment.customer
   if (!customerId) return null
 
-  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY') || '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjQxYzI4YTc2LTEwNTYtNDk5ZC04YjI3LTc4NzNlOTcyMTlhYTo6JGFhY2hfMjRlZGVlMjItOTg4Yi00ODFkLTljYjAtOTI1MjE2YWU3ZWVl';
+  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY');
   const ASAAS_ENV = Deno.env.get('ASAAS_ENV') || 'production';
   const ASAAS_BASE = ASAAS_ENV === 'sandbox'
     ? 'https://sandbox.asaas.com/api/v3'

@@ -19,8 +19,7 @@ const ScoreBar: React.FC<{ score: number; max: number; date: string; isActive: b
   return (
     <div className="flex flex-col items-center gap-1.5 group cursor-pointer" onClick={onClick}>
       <div
-        className={`text-[9px] font-black transition-all ${isActive ? 'text-primary scale-110' : 'text-transparent group-hover:text-on-surface-variant'}`}
-        style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}
+        className={`text-[9px] font-black transition-all ${isActive ? 'text-primary scale-110' : 'text-transparent group-hover:text-on-surface-variant'} font-display`}
       >
         {score}
       </div>
@@ -140,7 +139,7 @@ const EssayCalendar: React.FC<{ history: SavedEssay[] }> = ({ history }) => {
         })}
       </div>
 
-      <div className="mt-4 pt-4 border-t ghost-border flex items-center justify-between">
+      <div className="mt-4 pt-4 border-t border-none flex items-center justify-between">
         <p className="text-xs font-bold text-on-surface-variant">{essayDays.size} redaç{essayDays.size === 1 ? 'ão' : 'ões'} este mês</p>
         {essayDays.size >= 7 && (
           <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-full">🏆 Streak!</span>
@@ -148,7 +147,7 @@ const EssayCalendar: React.FC<{ history: SavedEssay[] }> = ({ history }) => {
       </div>
 
       {/* ENEM Countdown Banner */}
-      <div className="mt-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-3 border border-indigo-100/50 relative overflow-hidden group">
+      <div className="mt-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-3 border-none shadow-sm relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
         <div className="flex items-center gap-3 relative z-10">
           <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex flex-col items-center justify-center shrink-0 border border-indigo-50">
@@ -265,7 +264,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
             </div>
             <span className="text-xs font-black uppercase tracking-widest text-primary">Painel do Aluno</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-on-surface tracking-tight" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-on-surface tracking-tight font-display">
             Minha <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Evolução</span>
           </h1>
         </div>
@@ -281,11 +280,11 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
 
         {/* Card: Nota Atual */}
-        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 ghost-border shadow-ambient relative overflow-hidden">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 border-none shadow-ambient relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none"></div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Última Nota</p>
           <div className="flex items-end gap-2">
-            <span className="text-2xl sm:text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{latestScore}</span>
+            <span className="text-2xl sm:text-4xl font-black text-on-surface font-display">{latestScore}</span>
             <span className={`text-xs font-black mb-1 ${latestDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {latestDelta !== 0 && (latestDelta > 0 ? '↑' : '↓')}{Math.abs(latestDelta)}
             </span>
@@ -294,30 +293,30 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
         </div>
 
         {/* Card: Média */}
-        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 ghost-border shadow-ambient relative overflow-hidden">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 border-none shadow-ambient relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent pointer-events-none"></div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Média Geral</p>
-          <span className="text-2xl sm:text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{stats.averageScore}</span>
+          <span className="text-2xl sm:text-4xl font-black text-on-surface font-display">{stats.averageScore}</span>
           <div className="mt-2 w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div className="h-full bg-amber-400 rounded-full transition-all duration-700" style={{ width: `${(stats.averageScore / 1000) * 100}%` }}></div>
           </div>
         </div>
 
         {/* Card: Redações */}
-        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 ghost-border shadow-ambient relative overflow-hidden">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-5 border-none shadow-ambient relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent pointer-events-none"></div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Redações</p>
-          <span className="text-2xl sm:text-4xl font-black text-on-surface" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>{stats.totalEssays}</span>
+          <span className="text-2xl sm:text-4xl font-black text-on-surface font-display">{stats.totalEssays}</span>
           <p className="text-[10px] text-on-surface-variant font-medium mt-1">enviadas</p>
         </div>
 
         {/* Card: Ranking */}
-        <div className="bg-on-surface rounded-card p-4 sm:p-5 border border-white/5 shadow-ambient relative overflow-hidden">
-          <div className="absolute -right-4 -bottom-4 text-white/5 text-[5rem] leading-none font-black select-none" style={{ fontFamily: 'Plus Jakarta Sans' }}>
+        <div className="bg-on-surface rounded-card p-4 sm:p-5 border-none shadow-ambient relative overflow-hidden">
+          <div className="absolute -right-4 -bottom-4 text-white/5 text-[5rem] leading-none font-black select-none font-display">
             #{rankPosition}
           </div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Ranking</p>
-          <span className="text-2xl sm:text-4xl font-black text-white" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>#{rankPosition}</span>
+          <span className="text-2xl sm:text-4xl font-black text-white font-display">#{rankPosition}</span>
           <p className="text-[10px] text-on-surface-variant font-medium mt-1">posição global</p>
         </div>
       </div>
@@ -326,10 +325,10 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
 
         {/* Evolution Chart (2/3 width) */}
-        <div className="lg:col-span-2 bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
+        <div className="lg:col-span-2 bg-surface-container-lowest rounded-card p-4 sm:p-6 border-none shadow-ambient">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h3 className="font-black text-on-surface text-base">Gráfico de Evolução</h3>
+              <h3 className="font-black text-on-surface text-base font-display">Gráfico de Evolução</h3>
               <p className="text-xs text-on-surface-variant font-medium mt-0.5">Últimas {chartHistory.length} redações</p>
             </div>
             {hasData && (
@@ -364,7 +363,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
 
           {/* Selected bar detail */}
           {activeBarIdx !== null && chartHistory[activeBarIdx] && (
-            <div className="mt-4 p-4 bg-surface-container-low rounded-xl border ghost-border animate-fade-in">
+            <div className="mt-4 p-4 bg-surface-container-low rounded-xl border border-none animate-fade-in">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-bold text-sm text-on-surface line-clamp-1">{chartHistory[activeBarIdx].tema}</p>
@@ -388,7 +387,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
         </div>
 
         {/* Calendar (1/3) */}
-        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
+        <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 border-none shadow-ambient">
           <EssayCalendar history={stats.history} />
         </div>
       </div>
@@ -400,9 +399,9 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
         <div className="space-y-6">
 
           {/* Rank card */}
-          <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
+          <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 border-none shadow-ambient">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="font-black text-on-surface text-sm">Nível de Escritor</h3>
+              <h3 className="font-black text-on-surface text-sm font-display">Nível de Escritor</h3>
               <div className={`w-10 h-10 ${currentRank.bg} ${currentRank.color} rounded-xl flex items-center justify-center`}>
                 <span className="material-icons-outlined text-lg">{currentRank.icon}</span>
               </div>
@@ -454,7 +453,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
           </div>
 
           {/* Competencies */}
-          <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 ghost-border shadow-ambient">
+          <div className="bg-surface-container-lowest rounded-card p-4 sm:p-6 border-none shadow-ambient">
             <h3 className="font-black text-on-surface text-sm mb-5">Competências ENEM</h3>
             <div className="space-y-4">
               {stats.competencyAverages.length > 0 ? stats.competencyAverages.map((comp: any, i: number) => {
@@ -489,10 +488,10 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
         </div>
 
         {/* Right column: Essay history list (2/3 width) */}
-        <div className="lg:col-span-2 bg-surface-container-lowest rounded-card ghost-border shadow-ambient flex flex-col overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b ghost-border flex items-center justify-between">
+        <div className="lg:col-span-2 bg-surface-container-lowest rounded-card border-none shadow-ambient flex flex-col overflow-hidden">
+          <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-none flex items-center justify-between">
             <div>
-              <h3 className="font-black text-on-surface">Histórico de Redações</h3>
+              <h3 className="font-black text-on-surface font-display">Histórico de Redações</h3>
               <p className="text-xs text-on-surface-variant font-medium mt-0.5">{stats.totalEssays} no total</p>
             </div>
             <div className="flex items-center gap-3 text-[10px] font-black text-on-surface-variant uppercase tracking-wider">
@@ -575,7 +574,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="px-6 py-4 border-t ghost-border flex items-center justify-between">
+            <div className="px-6 py-4 border-t border-none flex items-center justify-between">
               <button
                 onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
                 disabled={historyPage === 1}

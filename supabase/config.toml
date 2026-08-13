@@ -122,3 +122,14 @@ entrypoint = "./functions/activate-trial/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/activate-trial/*.html" ]
+
+[functions.update-credit-card]
+enabled = true
+verify_jwt = false
+import_map = "./functions/update-credit-card/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/update-credit-card/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/update-credit-card/*.html" ]

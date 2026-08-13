@@ -66,7 +66,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
       <div className="sticky top-24 z-50 flex justify-start mb-6 pointer-events-none">
         <button
           onClick={onBack}
-          className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 bg-surface/90 backdrop-blur-xl text-on-surface-variant rounded-pill font-bold text-label-lg shadow-ambient ghost-border hover:text-primary transition-all"
+          className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 bg-surface/90 backdrop-blur-xl text-on-surface-variant rounded-pill font-bold text-label-lg shadow-ambient border-none hover:text-primary transition-all"
         >
           <span className="material-icons-outlined text-lg">arrow_back</span>
           Voltar
@@ -85,8 +85,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
               Nota Final
             </h2>
 
-            <div className={`text-6xl sm:text-8xl md:text-9xl font-black mb-2 tabular-nums ${getScoreColor(result.totalScore)}`}
-              style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif', letterSpacing: '-0.04em' }}>
+            <div className={`text-6xl sm:text-8xl md:text-9xl font-black mb-2 tabular-nums ${getScoreColor(result.totalScore)} font-display tracking-tighter`}>
               {result.totalScore}
             </div>
             <p className="text-body-md font-bold mb-6 text-white/40">
@@ -158,8 +157,7 @@ const CorrectionResultView: React.FC<CorrectionResultProps> = ({ result, onBack,
                     <h4 className="font-bold text-on-surface text-body-md">{comp.name}</h4>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`font-black text-xl tabular-nums ${getBarColor(comp.score).replace('bg-', 'text-')}`}
-                          style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
+                    <span className={`font-black text-xl tabular-nums ${getBarColor(comp.score).replace('bg-', 'text-')} font-display`}>
                       {comp.score}
                     </span>
                     <span className="text-label-md text-on-surface-variant">/200</span>

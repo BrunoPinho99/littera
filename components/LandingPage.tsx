@@ -7,7 +7,7 @@ interface LandingPageProps {
     onCheckout?: (plan: any) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick, onCheckout }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _onDemoClick, onCheckout }) => {
     const [scrolled, setScrolled] = useState(false);
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);

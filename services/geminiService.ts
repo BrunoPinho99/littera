@@ -4,7 +4,7 @@ import { CorrectionResult, EssayInput, Topic, HandwrittenCorrectionResult } from
 
 
 
-const extractJson = (str: string): string => {
+const _extractJson = (str: string): string => {
   if (!str) return "{}";
   let cleaned = str.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
   const firstBrace = cleaned.indexOf("{");
@@ -15,7 +15,7 @@ const extractJson = (str: string): string => {
   return cleaned;
 };
 
-const generateId = () => {
+const _generateId = () => {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
     return crypto.randomUUID();
   }
@@ -37,7 +37,7 @@ const parseRetryDelay = (errorMsg: string): number => {
   return 35000; // fallback 35s
 };
 
-const formatGeminiError = (error: any, defaultMsg: string): Error => {
+const _formatGeminiError = (error: any, defaultMsg: string): Error => {
   const msg = error?.message || error?.toString() || "";
   if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota")) {
     return new Error("O sistema de IA está temporariamente sobrecarregado ou atingiu o limite de requisições. Por favor, aguarde alguns instantes e tente novamente.");
@@ -52,7 +52,7 @@ const formatGeminiError = (error: any, defaultMsg: string): Error => {
 };
 
 // Wrapper com retry automático inteligente
-const generateWithRetry = async (
+const _generateWithRetry = async (
   model: any,
   request: any,
   maxRetries: number = 2
@@ -88,7 +88,7 @@ const generateWithRetry = async (
   }
 };
 
-const generateStreamWithRetry = async (
+const _generateStreamWithRetry = async (
   model: any,
   request: any,
   onStream: (text: string) => void,

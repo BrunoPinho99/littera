@@ -302,13 +302,13 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                   <div className="w-5 h-[4px] bg-primary mt-[1px] rounded-full" />
                 </div>
               </div>
-              <span className="font-black text-3xl tracking-tighter text-white">
+              <span className="font-black text-3xl tracking-tighter text-white font-display">
                 Littera<span className="text-primary">.</span>
               </span>
             </div>
 
             <div className="space-y-6">
-              <h1 className="text-3xl font-black leading-tight tracking-tight">
+              <h1 className="text-3xl font-black leading-tight tracking-tight font-display">
                 Finalize seu acesso.
               </h1>
               <p className="text-base text-gray-400 font-medium leading-relaxed">
@@ -316,7 +316,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                 Para liberar correções I.A., relatórios e gestão de turmas, conclua o pagamento.
               </p>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 mt-8 backdrop-blur-sm">
+              <div className="bg-white/5 border-none shadow-ambient rounded-2xl p-6 mt-8 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-4">
                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">Seu Plano Atual</p>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isYearly ? 'ANUAL (-20%)' : 'MENSAL'}</p>
@@ -370,7 +370,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
              <div className="w-8 h-8 bg-slate-900 dark:bg-white rounded-xl flex items-center justify-center shrink-0">
                 <span className="text-white dark:text-slate-900 font-black text-lg leading-none">L</span>
              </div>
-             <span className="font-black text-xl tracking-tighter text-slate-900 dark:text-white">Littera.</span>
+             <span className="font-black text-xl tracking-tighter text-slate-900 dark:text-white font-display">Littera.</span>
           </div>
           <button onClick={onLogout} className="text-gray-400">
             <span className="material-icons-outlined">logout</span>
@@ -381,11 +381,11 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
           <div className="w-full max-w-lg">
 
             {checkingStatus ? (
-               <div className="bg-white dark:bg-surface-dark rounded-3xl p-10 shadow-premium border border-gray-100 dark:border-white/5 text-center animate-fade-in-up">
+               <div className="bg-white dark:bg-surface-dark rounded-3xl p-10 shadow-premium border-none shadow-ambient text-center animate-fade-in-up">
                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
                     <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
                  </div>
-                 <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-3">Aguardando Confirmação</h2>
+                 <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-3 font-display">Aguardando Confirmação</h2>
                  <p className="text-gray-500 font-medium text-sm mb-6">
                    O banco está analisando seu pagamento. Assim que for aprovado, seu acesso será liberado automaticamente.
                  </p>
@@ -401,11 +401,11 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                  </button>
                </div>
             ) : paymentResult ? (
-              <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 shadow-premium border border-gray-100 dark:border-white/5 text-center animate-fade-in-up">
+              <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 shadow-premium border-none shadow-ambient text-center animate-fade-in-up">
                 <div className="w-20 h-20 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
                   <span className="material-icons-outlined text-4xl">check_circle</span>
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-2">
+                <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight mb-2 font-display">
                   Quase lá!
                 </h2>
 
@@ -414,7 +414,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                     <p className="text-gray-500 text-sm font-medium mb-6">
                       Escaneie o QR Code abaixo para liberar seu acesso imediatamente.
                     </p>
-                    <div className="bg-white p-4 rounded-2xl inline-block shadow-md border border-gray-100">
+                    <div className="bg-white p-4 rounded-2xl inline-block shadow-md border-none shadow-sm">
                       {paymentResult.pixQrCode ? (
                         <img 
                           src={paymentResult.pixQrCode.startsWith('data:') ? paymentResult.pixQrCode : `data:image/jpeg;base64,${paymentResult.pixQrCode}`} 
@@ -434,7 +434,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                           type="text" 
                           readOnly 
                           value={paymentResult.pixCopyPaste} 
-                          className="text-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 w-full max-w-[250px] outline-none text-gray-600 dark:text-gray-300 font-medium"
+                          className="text-xs bg-gray-50 dark:bg-white/5 border-none shadow-sm rounded-xl px-4 py-3 w-full max-w-[250px] outline-none text-gray-600 dark:text-gray-300 font-medium"
                         />
                         <button 
                           type="button"
@@ -474,16 +474,16 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                 </div>
               </div>
             ) : (
-              <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 sm:p-10 shadow-premium border border-gray-100 dark:border-white/5 animate-fade-in-up">
+              <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 sm:p-10 shadow-premium border-none shadow-ambient animate-fade-in-up">
                 <div className="mb-8 text-center sm:text-left">
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight font-display">
                     Pagamento
                   </h2>
                   <p className="text-gray-500 font-medium mt-1">Ambiente 100% seguro.</p>
                 </div>
 
                 {globalError && (
-                  <div className="mb-8 p-4 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl text-rose-600 dark:text-rose-400 text-sm font-bold text-center">
+                  <div className="mb-8 p-4 bg-rose-50 dark:bg-rose-900/10 border-none shadow-sm rounded-2xl text-rose-600 dark:text-rose-400 text-sm font-bold text-center">
                     <span className="material-icons-outlined text-base mr-1 align-middle">error_outline</span>
                     {globalError}
                   </div>
