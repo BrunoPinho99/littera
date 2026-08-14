@@ -1,10 +1,10 @@
-// @ts-nocheck: legacy types
+// @ts-nocheck
 // supabase/functions/onboarding/index.ts
 // Edge Function — Fluxo atômico de onboarding self-service para escolas
 // Cria: Auth User → School → Profile → Asaas Customer → Subscription → Retorna checkout URL
 // Deno Deploy runtime (Supabase Edge Functions)
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
 

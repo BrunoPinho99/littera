@@ -2,7 +2,7 @@
 // Cria uma cobrança/assinatura no Asaas e vincula ao school_id do Supabase
 // via externalReference — para o webhook conseguir identificar a escola.
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

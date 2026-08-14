@@ -4,7 +4,7 @@
 // Rota PÚBLICA (sem verificação JWT) – valida via Asaas-Access-Token + HMAC
 // Deno Deploy runtime (Supabase Edge Functions)
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
 
@@ -266,7 +266,7 @@ async function autoProvisionSchool(
   const customerId = payment.customer
   if (!customerId) return null
 
-  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY');
+  const ASAAS_KEY = Deno.env.get('ASAAS_API_KEY') ?? '';
   const ASAAS_ENV = Deno.env.get('ASAAS_ENV') || 'production';
   const ASAAS_BASE = ASAAS_ENV === 'sandbox'
     ? 'https://sandbox.asaas.com/api/v3'

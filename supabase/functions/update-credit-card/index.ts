@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,7 +67,7 @@ Deno.serve(async (req: Request) => {
       throw new Error('A escola não possui uma assinatura ativa no Asaas.')
     }
 
-    const { subscription_id: subscriptionId, asaas_customer_id: customerId } = school
+    const { subscription_id: subscriptionId, asaas_customer_id: _customerId } = school
 
     // Update subscription in Asaas with the new credit card
     const updatePayload = {
@@ -112,9 +112,10 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
 
-  } catch (error: any) {
-    console.error('Error:', error.message)
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Error:', message)
+    return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

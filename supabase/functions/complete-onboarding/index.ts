@@ -1,6 +1,6 @@
 // supabase/functions/complete-onboarding/index.ts
 // Edge Function — Finaliza o onboarding criando a conta do usuário após o pagamento
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

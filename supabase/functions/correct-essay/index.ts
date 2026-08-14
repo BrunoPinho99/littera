@@ -1,4 +1,3 @@
-// @ts-nocheck: legacy types
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.1.1'
 
