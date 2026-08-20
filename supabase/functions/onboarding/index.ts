@@ -4,7 +4,7 @@
 // Cria: Auth User → School → Profile → Asaas Customer → Subscription → Retorna checkout URL
 // Deno Deploy runtime (Supabase Edge Functions)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient } from '@supabase/supabase-js'
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
 

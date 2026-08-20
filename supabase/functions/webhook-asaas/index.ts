@@ -4,7 +4,7 @@
 // Rota PÚBLICA (sem verificação JWT) – valida via Asaas-Access-Token + HMAC
 // Deno Deploy runtime (Supabase Edge Functions)
 
-import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 // ── Tipos ───────────────────────────────────────────────────────────────────────
 
