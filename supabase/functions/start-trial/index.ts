@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -142,7 +142,7 @@ Deno.serve(async (req: Request) => {
       .ilike('trial_school_name', school_name)
       .eq('school_id', trialSchoolId)
 
-    const adminEmail = 'bruno.pinho.brasilia@hotmail.com'
+    const adminEmail = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || 'contato@littera.com.br'
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
 
     if (!countError && count && count >= threshold) {
@@ -214,7 +214,7 @@ Deno.serve(async (req: Request) => {
             'api-key': brevoApiKey,
           },
           body: JSON.stringify({
-            sender: { name: 'Littera - Inteligência em Redação', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'bruno.pinho.brasilia@hotmail.com' },
+            sender: { name: 'Littera - Inteligência em Redação', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br' },
             to: [{ email: email, name: name }],
             subject: 'Seu Teste Gratuito de 15 Dias Começou! | Littera',
             htmlContent: studentHtml

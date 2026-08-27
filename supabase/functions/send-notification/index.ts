@@ -1,14 +1,18 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
+
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 interface NotificationPayload {
-  toEmail: string;
+  toEmail?: string;
+  email?: string;
   toName?: string;
   subject?: string;
   htmlContent?: string;
+  html?: string;
   templateId?: number;
   params?: Record<string, any>;
   senderEmail?: string;
@@ -26,6 +30,28 @@ Deno.serve(async (req: Request) => {
         status: 405,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    // Authenticate the request
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ success: false, error: 'No authorization header' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+
+    const authKey = authHeader.replace('Bearer ', '');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    // If it's not the service role key, we must verify the user
+    if (authKey !== serviceRoleKey) {
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        { global: { headers: { Authorization: authHeader } } }
+      )
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+      if (userError || !user) {
+        return new Response(JSON.stringify({ success: false, error: 'Unauthorized' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
     }
 
     const brevoApiKey = Deno.env.get('BREVO_API_KEY');
@@ -51,17 +77,19 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const { toEmail, toName, subject, htmlContent, templateId, params, senderEmail, senderName } = payload;
+    const targetEmail = payload.toEmail || payload.email;
+    const contentHtml = payload.htmlContent || payload.html;
+    const { toName, subject, templateId, params, senderEmail, senderName } = payload;
 
-    if (!toEmail) {
-      return new Response(JSON.stringify({ success: false, error: 'Missing required field: toEmail' }), {
+    if (!targetEmail) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing required field: toEmail or email' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    if (!templateId && !htmlContent) {
-      return new Response(JSON.stringify({ success: false, error: 'Either htmlContent or templateId must be provided' }), {
+    if (!templateId && !contentHtml) {
+      return new Response(JSON.stringify({ success: false, error: 'Either htmlContent/html or templateId must be provided' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -74,7 +102,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const defaultSenderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'bruno.pinho.brasilia@hotmail.com';
+    const defaultSenderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br';
     const defaultSenderName = Deno.env.get('BREVO_SENDER_NAME') || 'Littera - Inteligência em Redação';
 
     const brevoBody: Record<string, any> = {
@@ -83,8 +111,8 @@ Deno.serve(async (req: Request) => {
         name: senderName || defaultSenderName,
       },
       to: [{
-        email: toEmail,
-        name: toName || toEmail.split('@')[0],
+        email: targetEmail,
+        name: toName || targetEmail.split('@')[0],
       }],
     };
 
@@ -97,11 +125,11 @@ Deno.serve(async (req: Request) => {
       if (params) {
         brevoBody.params = params;
       }
-    } else if (htmlContent) {
-      brevoBody.htmlContent = htmlContent;
+    } else if (contentHtml) {
+      brevoBody.htmlContent = contentHtml;
     }
 
-    console.log(`[send-notification] Dispatching email to ${toEmail} via Brevo API...`);
+    console.log(`[send-notification] Dispatching email to ${targetEmail} via Brevo API...`);
 
     const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',

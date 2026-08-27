@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -81,7 +81,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 2. Send Email to Admin via Brevo
-    const adminEmail = 'bruno.pinho.brasilia@hotmail.com'
+    const adminEmail = Deno.env.get('ADMIN_NOTIFICATION_EMAIL') || 'contato@littera.com.br'
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
 
     if (brevoApiKey) {

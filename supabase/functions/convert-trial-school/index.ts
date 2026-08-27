@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -36,7 +36,7 @@ Deno.serve(async (req: Request) => {
     )
 
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user || user.email !== 'bruno.pinho.brasilia@hotmail.com') {
+    if (userError || !user || user.user_metadata?.role !== 'littera_admin') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 403, headers: corsHeaders })
     }
 

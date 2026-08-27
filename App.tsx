@@ -26,7 +26,7 @@ import ClassRegistration from './components/ClassRegistration';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
-import { saveEssayToDatabase, getNotifications, getSchoolData, checkEssayCache, getStudentAssignments } from './services/databaseService';
+import { saveEssayToDatabase, getNotifications, markNotificationAsRead, markAllNotificationsRead, getSchoolData, checkEssayCache, getStudentAssignments } from './services/databaseService';
 import { supabase } from './supabaseClient';
 import { exploreTopics } from './data/exploreTopics';
 import { notificationsData } from './data/notificationsData';
@@ -226,11 +226,14 @@ const App: React.FC = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    localStorage.clear();
+    const LITTERA_KEYS = ['littera_', 'scritta_', 'checkout_', 'draft_'];
+    Object.keys(localStorage).forEach(key => {
+      if (LITTERA_KEYS.some(p => key.startsWith(p))) localStorage.removeItem(key);
+    });
     setSession(null);
     setIsDemoMode(false);
     setUserType('student');
-    navigate('/');
+    navigate('/login');
   };
 
   const handleStartChallengeWriting = (assignment: Assignment) => {
@@ -349,7 +352,10 @@ const App: React.FC = () => {
           user={session?.user}
           userType={userType as any}
           notifications={notifications}
-          onMarkAsRead={() => { }}
+          onMarkAsRead={async (id) => {
+            setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+            await markNotificationAsRead(id, session?.user?.id || 'demo');
+          }}
           activeChallengesCount={activeAssignments.length}
           onOpenChallenge={() => { 
             if (activeAssignments.length > 0) {
@@ -460,8 +466,14 @@ const App: React.FC = () => {
               <Route path="notifications" element={
                 <NotificationsView
                   notifications={notifications}
-                  onMarkAsRead={() => { }}
-                  onMarkAllAsRead={() => { }}
+                  onMarkAsRead={async (id) => {
+                    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+                    await markNotificationAsRead(id, session?.user?.id || 'demo');
+                  }}
+                  onMarkAllAsRead={async () => {
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                    await markAllNotificationsRead(session?.user?.id || 'demo');
+                  }}
                   onClose={() => navigate(`/app/${getDefaultView(userType)}`)}
                 />
               } />
@@ -484,8 +496,14 @@ const App: React.FC = () => {
               <Route path="notifications" element={
                 <NotificationsView
                   notifications={notifications}
-                  onMarkAsRead={() => { }}
-                  onMarkAllAsRead={() => { }}
+                  onMarkAsRead={async (id) => {
+                    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+                    await markNotificationAsRead(id, session?.user?.id || 'demo');
+                  }}
+                  onMarkAllAsRead={async () => {
+                    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+                    await markAllNotificationsRead(session?.user?.id || 'demo');
+                  }}
                   onClose={() => navigate(`/app/${getDefaultView(userType)}`)}
                 />
               } />

@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -47,7 +47,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, phone, postalCode, addressNumber, paymentMethod, creditCardData } = body
+    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, phone, postalCode, addressNumber, paymentMethod } = body
 
     // 1. Cálculo de preço
     const isYearly = billingCycle === 'YEARLY'
@@ -115,23 +115,7 @@ Deno.serve(async (req: Request) => {
       description: `Assinatura Littera – Plano ${planId} (${studentCount} alunos)`
     }
 
-    if (asaasBillingType === 'CREDIT_CARD' && creditCardData) {
-      subscriptionPayload.creditCard = {
-        holderName: creditCardData.holderName,
-        number: creditCardData.number,
-        expiryMonth: creditCardData.expiryMonth,
-        expiryYear: creditCardData.expiryYear,
-        ccv: creditCardData.ccv
-      }
-      subscriptionPayload.creditCardHolderInfo = {
-        name: directorName,
-        email: email,
-        cpfCnpj: cnpj,
-        postalCode: postalCode || "01310900",
-        addressNumber: addressNumber || "157",
-        phone: phone || "11999999999"
-      }
-    }
+
 
     const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
       method: 'POST',

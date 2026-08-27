@@ -33,7 +33,7 @@ const ActivateTrialDashboard: React.FC = () => {
 
     const checkAdmin = async () => {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session || session.user.email !== 'bruno.pinho.brasilia@hotmail.com') {
+        if (!session || session.user.user_metadata?.role !== 'littera_admin') {
             navigate('/app');
         }
     };

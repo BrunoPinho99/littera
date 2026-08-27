@@ -158,22 +158,9 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
     setGlobalError(null);
 
     try {
-      let creditCardData = undefined;
-      if (data.paymentMethod === 'CREDIT_CARD') {
-        const expiryClean = data.ccExpiry?.replace(/\D/g, '') || '';
-        creditCardData = {
-          holderName: data.ccHolderName,
-          number: data.ccNumber?.replace(/\D/g, ''),
-          expiryMonth: expiryClean.slice(0, 2),
-          expiryYear: expiryClean.length === 4 ? `20${expiryClean.slice(2, 4)}` : expiryClean.slice(2),
-          ccv: data.ccCvv?.replace(/\D/g, '')
-        };
-      }
-
       const { data: fnData, error: fnError } = await supabase.functions.invoke('pay-subscription', {
         body: {
           paymentMethod: data.paymentMethod,
-          creditCardData,
           billingCpfCnpj: data.billingCpfCnpj?.replace(/\D/g, ''),
           billingPostalCode: data.billingPostalCode,
           billingAddressNumber: data.billingAddressNumber
@@ -190,10 +177,9 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         return;
       }
 
-      // Cartão aprovado imediatamente
+      // Cartão aprovado imediatamente (caso remoto em fallback)
       if (fnData.status === 'PAID') {
         setIsLoading(false);
-        // Limpar dados e redirecionar para login
         localStorage.removeItem('checkout_studentCount');
         localStorage.removeItem('checkout_billingCycle');
         await supabase.auth.signOut();
@@ -201,22 +187,8 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         return;
       }
 
-      // Cartão em análise (PENDING)
-      if (fnData.status === 'PENDING_CARD') {
-        setCheckingStatus(true);
-        setIsLoading(false);
-        return;
-      }
-
-      if (data.paymentMethod === 'PIX' || data.paymentMethod === 'BOLETO') {
-        setPaymentResult(fnData);
-        setIsLoading(false);
-      } else {
-        // Fallback: aguardar polling
-        setCheckingStatus(true);
-        setIsLoading(false);
-      }
-      
+      setPaymentResult(fnData);
+      setIsLoading(false);
     } catch (err: any) {
       console.error('[PendingCheckoutPage] Error:', err);
       setGlobalError(err.message || 'Falha ao processar o pagamento. Tente novamente.');
@@ -466,12 +438,29 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                   </div>
                 )}
                 
-                <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/5">
-                   <div className="flex items-center justify-center gap-3 text-sm text-gray-400 font-bold">
-                     <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                     Aguardando confirmação do banco...
-                   </div>
-                </div>
+                {paymentResult.billingType === 'CREDIT_CARD' && (
+                  <div className="mt-6 w-full">
+                    <p className="text-gray-500 text-sm font-medium mb-4">
+                      Preencha os dados de pagamento no ambiente seguro do Asaas abaixo:
+                    </p>
+                    <div className="w-full h-[600px] rounded-2xl overflow-hidden shadow-inner border border-gray-100 dark:border-white/5">
+                      <iframe src={paymentResult.invoiceUrl} className="w-full h-full bg-white" title="Pagamento Seguro" />
+                    </div>
+                    <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mt-4 flex items-center justify-center gap-1">
+                      <span className="material-icons-outlined text-sm">lock</span>
+                      100% Protegido pelo Asaas
+                    </p>
+                  </div>
+                )}
+                
+                {paymentResult.billingType !== 'CREDIT_CARD' && (
+                  <div className="mt-8 pt-8 border-t border-gray-100 dark:border-white/5">
+                     <div className="flex items-center justify-center gap-3 text-sm text-gray-400 font-bold">
+                       <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                       Aguardando confirmação do banco...
+                     </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 sm:p-10 shadow-premium border-none shadow-ambient animate-fade-in-up">
@@ -514,16 +503,6 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
 
                   {formValues.paymentMethod === 'CREDIT_CARD' && (
                     <div className="space-y-5 pt-2 animate-fade-in">
-                      {renderField('Nome impresso no cartão', 'ccHolderName', 'text', 'Ex: JOAO S SILVA')}
-                      {renderField('Número do cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
-                      <div className="flex gap-4">
-                        <div className="flex-[2]">
-                          {renderField('Validade (MM/AA)', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
-                        </div>
-                        <div className="flex-1">
-                          {renderField('CVV', 'ccCvv', 'text', '123')}
-                        </div>
-                      </div>
                       <div>
                         <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">CPF/CNPJ do titular</label>
                         <Controller

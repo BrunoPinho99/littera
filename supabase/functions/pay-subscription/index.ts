@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { paymentMethod, creditCardData, action, billingCpfCnpj } = body
+    const { paymentMethod, action, billingCpfCnpj } = body
 
     // 1. Obter Profile e School do usuário logado
     const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
@@ -88,130 +88,22 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ status: 'PENDING_CARD' })
     }
 
-    // 2. Atualizar assinatura no Asaas se for Cartão de Crédito
-    if (paymentMethod === 'CREDIT_CARD' && creditCardData) {
-      // Obter dados do customer no Asaas para preencher creditCardHolderInfo corretamente
-      const customerRes = await fetch(`${ASAAS_BASE}/customers/${customerId}`, { headers: asaasHeaders })
-      const customerInfo = await customerRes.json()
-
-      const finalCpfCnpj = (billingCpfCnpj || customerInfo.cpfCnpj || school?.cnpj || '').replace(/\D/g, '')
-      if (finalCpfCnpj && finalCpfCnpj !== '00000000000') {
-        await fetch(`${ASAAS_BASE}/customers/${customerId}`, {
-          method: 'POST',
-          headers: asaasHeaders,
-          body: JSON.stringify({
-            cpfCnpj: finalCpfCnpj,
-            name: customerInfo.name || 'Escola',
-            email: user.email || customerInfo.email
-          })
-        }).catch(e => console.warn('[pay-subscription] Falha ao atualizar customer no Asaas:', e))
-      }
-
+    // 2. Atualizar assinatura no Asaas para o método de pagamento escolhido
+    if (paymentMethod === 'CREDIT_CARD' || paymentMethod === 'PIX' || paymentMethod === 'BOLETO') {
       const updatePayload: Record<string, unknown> = {
-        billingType: 'CREDIT_CARD',
-        updatePendingPayments: true, // Garante que a cobrança já criada mude para Cartão e tente cobrar agora
-        creditCard: creditCardData
+        billingType: paymentMethod,
+        updatePendingPayments: true
       }
       
-      if (creditCardData.holderName) {
-        updatePayload.creditCardHolderInfo = {
-          name: creditCardData.holderName,
-          email: user.email,
-          cpfCnpj: finalCpfCnpj || '00000000000',
-          postalCode: (body.billingPostalCode || customerInfo.postalCode || '01310900').replace(/\D/g, ''),
-          addressNumber: body.billingAddressNumber || customerInfo.addressNumber || '157',
-          phone: customerInfo.phone || customerInfo.mobilePhone || '11999999999'
-        }
-      }
-
       const updateRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
         method: 'POST',
         headers: asaasHeaders,
         body: JSON.stringify(updatePayload),
       })
       
-      const updateData = await updateRes.json()
       if (!updateRes.ok) {
-        console.error('[pay-subscription] Asaas update error:', updateData)
-        return jsonResponse({ error: `Erro ao atualizar assinatura: ${updateData.errors?.[0]?.description || 'Erro desconhecido'}` })
+        console.error('[pay-subscription] Asaas update to', paymentMethod, 'error')
       }
-
-      // NOVO: Pegar a cobrança pendente gerada e pagá-la explicitamente
-      const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments?status=PENDING`, { headers: asaasHeaders })
-      const paymentsData = await paymentsRes.json()
-      const pendingPayment = paymentsData.data?.[0]
-
-      if (pendingPayment) {
-        const payPayload = {
-          creditCard: creditCardData,
-          creditCardHolderInfo: updatePayload.creditCardHolderInfo
-        }
-        const payRes = await fetch(`${ASAAS_BASE}/payments/${pendingPayment.id}/payWithCreditCard`, {
-          method: 'POST',
-          headers: asaasHeaders,
-          body: JSON.stringify(payPayload)
-        })
-        const payData = await payRes.json()
-        if (!payRes.ok) {
-          console.error('[pay-subscription] Asaas pay error:', JSON.stringify(payData))
-          const asaasMsg = payData.errors?.[0]?.description || 'Transação não autorizada. Verifique os dados e tente novamente.'
-          return jsonResponse({ error: `Erro retornado pelo banco/Asaas: ${asaasMsg}` })
-        }
-
-        // Verificar se o pagamento foi recusado imediatamente
-        if (payData.status === 'REPROVED' || payData.status === 'REFUSED' || payData.status === 'DECLINED') {
-          return jsonResponse({ error: 'Cartão recusado pelo banco emissor. Tente outro cartão ou use PIX.' })
-        }
-      }
-    } else if (paymentMethod === 'PIX' || paymentMethod === 'BOLETO') {
-      // Opcionalmente atualizamos o tipo de cobrança da assinatura para PIX/Boleto
-      const updateRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
-        method: 'POST',
-        headers: asaasHeaders,
-        body: JSON.stringify({ billingType: paymentMethod }),
-      })
-      if (!updateRes.ok) {
-        console.error('[pay-subscription] Asaas update to PIX/BOLETO error')
-      }
-    }
-
-    // 3. Para cartão de crédito, fazer polling no Asaas até obter resposta definitiva
-    if (paymentMethod === 'CREDIT_CARD') {
-      // Esperar até 5 tentativas (3s cada = ~15s total) para o Asaas processar
-      for (let attempt = 0; attempt < 5; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, 3000))
-        
-        const checkRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, {
-          headers: asaasHeaders
-        })
-        
-        if (!checkRes.ok) continue
-        
-        const checkData = await checkRes.json()
-        const payments = checkData.data || []
-        if (payments.length === 0) continue
-        
-        const latestPayment = payments[0]
-        console.log(`[pay-subscription] Attempt ${attempt + 1}: payment status = ${latestPayment.status}`)
-        
-        if (latestPayment.status === 'CONFIRMED' || latestPayment.status === 'RECEIVED') {
-          await supabase.from('schools').update({ subscription_status: 'active' }).eq('id', profile.school_id)
-          return jsonResponse({ message: 'Pagamento aprovado!', status: 'PAID', billingType: 'CREDIT_CARD' })
-        }
-        
-        if (latestPayment.status === 'FAILED' || latestPayment.status === 'REJECTED' || latestPayment.status === 'REFUNDED') {
-          return jsonResponse({ error: 'Cartão recusado pelo banco. Verifique os dados e tente novamente.' })
-        }
-        
-        // Se PENDING, continua tentando...
-      }
-      
-      // Após 5 tentativas (~15s), retornar que está em análise
-      return jsonResponse({ 
-        message: 'Pagamento em análise pelo banco. Aguarde alguns instantes e a tela será liberada automaticamente.', 
-        status: 'PENDING_CARD',
-        billingType: 'CREDIT_CARD'
-      })
     }
 
     // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto

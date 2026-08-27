@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -63,8 +63,12 @@ Deno.serve(async (req: Request) => {
     }
 
     const { id: class_id, name: class_name, school_id, max_students, schools } = classData
-    const school_name = schools?.name || 'Escola'
-    const is_trial = schools?.is_trial_school === true
+    
+    // Supabase generated types often infer joined tables as arrays. 
+    // We safely handle it by getting the first item if it's an array.
+    const schoolData = Array.isArray(schools) ? schools[0] : (schools as any)
+    const school_name = schoolData?.name || 'Escola'
+    const is_trial = schoolData?.is_trial_school === true
 
     // 2. Check if class is full
     const { count, error: countError } = await supabaseAdmin
@@ -218,7 +222,7 @@ Deno.serve(async (req: Request) => {
             'api-key': brevoApiKey,
           },
           body: JSON.stringify({
-            sender: { name: 'Littera - Inteligência em Redação', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'bruno.pinho.brasilia@hotmail.com' },
+            sender: { name: 'Littera - Inteligência em Redação', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br' },
             to: [{ email: email, name: name }],
             subject: is_trial ? 'Seu Teste Gratuito de Redação Começou! | Littera' : 'Acesso Liberado! | Littera',
             htmlContent: studentHtml

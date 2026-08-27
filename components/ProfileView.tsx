@@ -29,14 +29,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
   
   // Credit Card States
   const [isUpdatingCard, setIsUpdatingCard] = useState(false);
-  const [cardHolderName, setCardHolderName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiryMonth, setCardExpiryMonth] = useState("");
-  const [cardExpiryYear, setCardExpiryYear] = useState("");
-  const [cardCcv, setCardCcv] = useState("");
-  const [cardCpfCnpj, setCardCpfCnpj] = useState("");
-  const [cardPostalCode, _setCardPostalCode] = useState("");
-  const [cardAddressNumber, _setCardAddressNumber] = useState("");
+  const [cardIframeUrl, setCardIframeUrl] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,38 +113,21 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
   };
   
   const handleUpdateCreditCard = async () => {
-    if (!cardHolderName || !cardNumber || !cardExpiryMonth || !cardExpiryYear || !cardCcv || !cardCpfCnpj) {
-      alert("Preencha todos os campos do cartão.");
-      return;
-    }
-    
     setIsUpdatingCard(true);
+    setCardIframeUrl(null);
     try {
       const { data, error } = await supabase.functions.invoke('update-credit-card', {
-        body: {
-          schoolId,
-          creditCardData: {
-            holderName: cardHolderName,
-            number: cardNumber,
-            expiryMonth: cardExpiryMonth,
-            expiryYear: cardExpiryYear,
-            ccv: cardCcv,
-            cpfCnpj: cardCpfCnpj,
-            postalCode: cardPostalCode,
-            addressNumber: cardAddressNumber,
-            phone: phone
-          }
-        }
+        body: { schoolId }
       });
       
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       
-      alert("Cartão atualizado com sucesso no Asaas!");
-      setCardNumber("");
-      setCardCcv("");
+      if (data?.invoiceUrl) {
+        setCardIframeUrl(data.invoiceUrl);
+      }
     } catch (err: any) {
-      alert(`Erro ao atualizar cartão: ${err.message}`);
+      alert(`Erro ao buscar link de atualização: ${err.message}`);
     } finally {
       setIsUpdatingCard(false);
     }
@@ -277,53 +253,32 @@ const ProfileView: React.FC<ProfileViewProps> = ({ user }) => {
           
           {/* Pagamento (Somente Instituição) */}
           {isInstitution && (
-            <div className="bg-surface-container-lowest rounded-card p-8 border border-gray-100 dark:border-slate-800 shadow-sm">
-              <h3 className="text-lg font-black text-on-surface mb-6 flex items-center gap-2">
-                <span className="material-icons-outlined text-primary">credit_card</span>
-                Cartão de Crédito
+            <div className="bg-surface-container-lowest rounded-card p-8 border border-gray-100 dark:border-slate-800 shadow-sm mt-8">
+              <h3 className="text-lg font-black text-on-surface mb-2 flex items-center gap-2">
+                 <span className="material-icons-outlined text-primary">credit_card</span>
+                 Atualizar Cartão de Crédito
               </h3>
-              <p className="text-sm text-on-surface-variant mb-6">Atualize o cartão de crédito utilizado para a assinatura da escola. O cartão será validado imediatamente.</p>
+              <p className="text-on-surface-variant text-sm mb-6 font-medium">
+                Atualize sua forma de pagamento através do ambiente 100% seguro do Asaas.
+              </p>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Nome no Cartão</label>
-                  <input type="text" value={cardHolderName} onChange={(e) => setCardHolderName(e.target.value)} placeholder="Como impresso no cartão" className="w-full px-5 py-3 rounded-xl bg-surface-container-low border-none outline-none font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all" />
+              {!cardIframeUrl ? (
+                <button 
+                  onClick={handleUpdateCreditCard}
+                  disabled={isUpdatingCard}
+                  className="px-6 py-3 bg-primary text-white rounded-xl font-bold w-full md:w-auto flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors disabled:opacity-50"
+                >
+                  {isUpdatingCard ? (
+                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                     <><span className="material-icons-outlined">lock</span> Acessar Ambiente Seguro</>
+                  )}
+                </button>
+              ) : (
+                <div className="w-full h-[600px] rounded-2xl overflow-hidden shadow-inner border border-gray-100 dark:border-white/5 mt-4">
+                  <iframe src={cardIframeUrl} className="w-full h-full bg-white" title="Atualizar Cartão" />
                 </div>
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Número do Cartão</label>
-                  <input type="text" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="0000 0000 0000 0000" className="w-full px-5 py-3 rounded-xl bg-surface-container-low border-none outline-none font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Mês de Expiração (MM)</label>
-                  <input type="text" value={cardExpiryMonth} onChange={(e) => setCardExpiryMonth(e.target.value)} placeholder="MM" maxLength={2} className="w-full px-5 py-3 rounded-xl bg-surface-container-low border-none outline-none font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Ano de Expiração (AAAA)</label>
-                  <input type="text" value={cardExpiryYear} onChange={(e) => setCardExpiryYear(e.target.value)} placeholder="AAAA" maxLength={4} className="w-full px-5 py-3 rounded-xl bg-surface-container-low border-none outline-none font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">CVC</label>
-                  <input type="text" value={cardCcv} onChange={(e) => setCardCcv(e.target.value)} placeholder="123" maxLength={4} className="w-full px-5 py-3 rounded-xl bg-surface-container-low border-none outline-none font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">CPF/CNPJ do Titular</label>
-                  <input type="text" value={cardCpfCnpj} onChange={(e) => setCardCpfCnpj(e.target.value)} placeholder="Apenas números" className="w-full px-5 py-3 rounded-xl bg-surface-container-low border-none outline-none font-bold text-sm focus:ring-2 focus:ring-primary/10 transition-all" />
-                </div>
-                
-                <div className="mt-4 md:col-span-2">
-                  <button 
-                    onClick={handleUpdateCreditCard}
-                    disabled={isUpdatingCard}
-                    className="px-6 py-3 bg-primary text-white rounded-xl font-bold w-full md:w-auto flex items-center justify-center gap-2 hover:bg-primary-dark transition-colors disabled:opacity-50"
-                  >
-                    {isUpdatingCard ? (
-                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                       <><span className="material-icons-outlined">credit_score</span> Salvar Novo Cartão no Asaas</>
-                    )}
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           )}
 

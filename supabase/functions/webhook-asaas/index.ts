@@ -93,7 +93,7 @@ async function verifyHmacSignature(
 // ── CORS ────────────────────────────────────────────────────────────────────────
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, asaas-access-token, x-asaas-signature',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }

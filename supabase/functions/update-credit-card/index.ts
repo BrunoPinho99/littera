@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -34,10 +34,10 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     if (authError || !user) throw new Error('Não autorizado.')
 
-    const { schoolId, creditCardData } = await req.json()
+    const { schoolId } = await req.json()
 
-    if (!schoolId || !creditCardData) {
-      throw new Error('Parâmetros incompletos.')
+    if (!schoolId) {
+      throw new Error('Parâmetro schoolId obrigatório.')
     }
 
     // Verify if user belongs to this school
@@ -69,48 +69,20 @@ Deno.serve(async (req: Request) => {
 
     const { subscription_id: subscriptionId, asaas_customer_id: _customerId } = school
 
-    // Update subscription in Asaas with the new credit card
-    const updatePayload = {
-      updatePendingPayments: true,
-      creditCard: {
-        holderName: creditCardData.holderName,
-        number: creditCardData.number,
-        expiryMonth: creditCardData.expiryMonth,
-        expiryYear: creditCardData.expiryYear,
-        ccv: creditCardData.ccv
-      },
-      creditCardHolderInfo: {
-        name: user.user_metadata?.full_name || 'Usuário Escola',
-        email: user.email,
-        cpfCnpj: creditCardData.cpfCnpj || '00000000000',
-        postalCode: creditCardData.postalCode || '00000000',
-        addressNumber: creditCardData.addressNumber || '0',
-        phone: user.user_metadata?.phone || creditCardData.phone || ''
-      }
+    // Busca a próxima cobrança pendente para retornar a url
+    console.log(`Buscando cobrança pendente para assinatura ${subscriptionId}...`)
+    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments?status=PENDING`, { headers: asaasHeaders })
+    const paymentsData = await paymentsRes.json()
+    const pendingPayment = paymentsData.data?.[0]
+
+    if (!pendingPayment?.invoiceUrl) {
+      throw new Error('Não há faturas pendentes onde o cartão possa ser atualizado no momento.')
     }
 
-    console.log(`Updating credit card for subscription ${subscriptionId}...`)
-    
-    const updateRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
-      method: 'POST',
-      headers: asaasHeaders,
-      body: JSON.stringify(updatePayload)
-    })
-
-    const updateData = await updateRes.json()
-
-    if (!updateRes.ok) {
-      console.error('Asaas update error:', updateData)
-      const asaasMsg = updateData.errors?.[0]?.description || 'Erro ao validar o cartão no Asaas.'
-      return new Response(JSON.stringify({ error: asaasMsg }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    return new Response(JSON.stringify({ success: true, message: 'Cartão atualizado com sucesso!' }), {
+    return new Response(JSON.stringify({ success: true, invoiceUrl: pendingPayment.invoiceUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
+
 
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'

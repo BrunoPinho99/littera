@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
-import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.1.1'
+import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.21.0'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }

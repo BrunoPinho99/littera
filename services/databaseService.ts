@@ -126,38 +126,14 @@ export const saveEssayToDatabase = async (topicTitle: string, input: EssayInput,
     return [newEssay];
   }
 
-  // MODO ONLINE: Salva no Supabase
+  // MODO ONLINE: A Edge Function correct-essay já salva a redação na tabela 'redacoes'.
+  // Aqui apenas incrementamos o contador de redações do aluno (gamification).
   try {
-    const dbPayload = {
-      tema: topicTitle,
-      conteudo: content,
-      status: 'corrigida',
-      data_envio: new Date().toISOString(),
-      user_id: userId,
-      total_score: result?.totalScore || 0,
-      competencias_json: result ? JSON.stringify(result.competencies) : null,
-      comentario_geral: result?.generalComment || "",
-      user_metadata: userMetadata ? JSON.stringify(userMetadata) : null,
-      student_name: userMetadata?.full_name || null,
-      school_id: userMetadata?.school_id || null,
-      class_id: userMetadata?.class_id || null
-    };
-
-    const { data, error } = await supabase
-      .from('redacoes')
-      .insert([dbPayload])
-      .select();
-
-    if (error) throw error;
-
-    // Tenta incrementar contador, mas não bloqueia se falhar
     const { error: rpcError } = await supabase.rpc('increment_essay_count', { user_id: userId, score: result?.totalScore || 0 });
-    if (rpcError) console.error(rpcError);
-
-    return data;
+    if (rpcError) console.error('Erro ao incrementar contador:', rpcError);
   } catch (error: any) {
-    console.error("Erro ao salvar no banco:", error);
-    throw error; // Propaga erro para a UI tratar
+    console.error("Erro ao atualizar contador:", error);
+    // Não propaga — a redação já foi salva pelo backend
   }
 };
 
@@ -646,7 +622,20 @@ export const notifyStudentsAboutAssignment = async (assignment: { id: string; ti
       }
     }
 
-    // Salvar notificação in-app
+    // Salvar notificação in-app (Supabase Bulk Insert)
+    const newNotifications = students.map(student => ({
+      user_id: student.id,
+      type: 'assignment',
+      title: '🎯 ' + assignment.title,
+      message: `Novo desafio de redação! Prazo: ${dueDateStr}. ${textBase.slice(0, 80)}...`,
+    }));
+
+    if (newNotifications.length > 0) {
+      const { error: notifError } = await supabase.from('notifications').insert(newNotifications);
+      if (notifError) console.error('Error inserting notifications:', notifError);
+    }
+
+    // Demo compatibility
     const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
     const newNotif = {
       id: generateUUID(),
@@ -655,14 +644,10 @@ export const notifyStudentsAboutAssignment = async (assignment: { id: string; ti
       message: `Novo desafio de redação! Prazo: ${dueDateStr}. ${textBase.slice(0, 80)}...`,
       timestamp: 'Agora',
       read: false,
-      class_id: assignment.class_id,
-      school_id: schoolId,
-      assignment_id: assignment.id,
-      due_date: assignment.due_date
     };
     localStorage.setItem('scritta_custom_notifications', JSON.stringify([newNotif, ...customNotifs]));
   } catch (error) {
-    console.warn('Falha ao notificar alunos (modo offline):', error);
+    console.error('Falha ao notificar alunos:', error);
   }
 };
 
@@ -772,17 +757,53 @@ const calculateDetailedMetrics = (history: SavedEssay[]) => {
 };
 
 // --- RECOVERY & CUSTOM NOTIFICATIONS MODE ---
-export const getNotifications = async (_userId: string): Promise<Notification[]> => {
-  const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
-  return customNotifs;
+export const getNotifications = async (userId: string): Promise<Notification[]> => {
+  if (userId === 'demo') {
+    return JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
+  }
+  
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', userId)
+    .order('timestamp', { ascending: false });
+    
+  if (error) {
+    console.error('Error fetching notifications:', error);
+    return [];
+  }
+  return data || [];
 };
-export const markNotificationAsRead = async (id: string) => {
-  const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
-  const updated = customNotifs.map((n: any) => n.id === id ? { ...n, read: true } : n);
-  localStorage.setItem('scritta_custom_notifications', JSON.stringify(updated));
+
+export const markNotificationAsRead = async (id: string, userId?: string) => {
+  if (userId === 'demo' || id.startsWith('demo-')) {
+    const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
+    const updated = customNotifs.map((n: any) => n.id === id ? { ...n, read: true } : n);
+    localStorage.setItem('scritta_custom_notifications', JSON.stringify(updated));
+    return;
+  }
+  
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('id', id);
+    
+  if (error) console.error('Error marking notification as read:', error);
 };
-export const markAllNotificationsRead = async (_userId: string) => {
-  const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
-  const updated = customNotifs.map((n: any) => ({ ...n, read: true }));
-  localStorage.setItem('scritta_custom_notifications', JSON.stringify(updated));
+
+export const markAllNotificationsRead = async (userId: string) => {
+  if (userId === 'demo') {
+    const customNotifs = JSON.parse(localStorage.getItem('scritta_custom_notifications') || '[]');
+    const updated = customNotifs.map((n: any) => ({ ...n, read: true }));
+    localStorage.setItem('scritta_custom_notifications', JSON.stringify(updated));
+    return;
+  }
+  
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true })
+    .eq('user_id', userId)
+    .eq('read', false);
+    
+  if (error) console.error('Error marking all notifications as read:', error);
 };

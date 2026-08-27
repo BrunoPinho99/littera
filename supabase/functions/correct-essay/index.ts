@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
-import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.1.1'
+import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.21.0'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
@@ -149,17 +149,19 @@ Responda seguindo o schema abaixo:
     const essayToSave = {
       tema: topicTitle,
       conteudo: isHandwritten ? '[Manuscrito Base64]' : input.content,
-      score: parsed.totalScore,
+      total_score: parsed.totalScore,
       data_envio: new Date().toISOString(),
-      student_id: studentId,
+      user_id: studentId,
       student_name: user.user_metadata?.full_name || 'Estudante',
       class_id: classId || user.user_metadata?.class_id || null,
       school_id: schoolId || user.user_metadata?.school_id || null,
       status: 'corrigida',
-      result: parsed
+      competencias_json: JSON.stringify(parsed.competencies),
+      comentario_geral: parsed.generalComment || '',
+      user_metadata: JSON.stringify(user.user_metadata || {}),
     }
 
-    const { error: insertError } = await supabase.from('saved_essays').insert(essayToSave)
+    const { error: insertError } = await supabase.from('redacoes').insert(essayToSave)
 
     if (insertError) {
       console.error('[correct-essay] Erro ao salvar redação:', insertError)
