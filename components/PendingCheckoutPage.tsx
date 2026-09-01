@@ -174,6 +174,17 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
 
       setPaymentResult(fnData);
       setIsLoading(false);
+
+      // Redirecionamento automático após 3 segundos para cartão de crédito aprovado
+      if (fnData.billingType === 'CREDIT_CARD') {
+        setTimeout(async () => {
+          localStorage.removeItem('checkout_studentCount');
+          localStorage.removeItem('checkout_billingCycle');
+          await supabase.auth.refreshSession();
+          window.location.href = '/app/inst-overview';
+        }, 3000);
+      }
+
     } catch (err: any) {
       console.error('[PendingCheckoutPage] Error:', err);
       setGlobalError(err.message || 'Falha ao processar o pagamento. Tente novamente.');

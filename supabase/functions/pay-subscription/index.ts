@@ -143,19 +143,45 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto ou URL de Fatura
-    let firstPayment: Record<string, unknown> | null = null;
-    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, { headers: asaasHeaders });
-    if (paymentsRes.ok) {
-      const paymentsData = await paymentsRes.json();
-      const payments = paymentsData.data || [];
-      if (payments.length > 0) {
-        firstPayment = payments[0];
+    // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto ou verificar status do Cartão
+    let firstPayment: Record<string, any> | null = null;
+    let paymentStatus = 'PENDING';
+    
+    // Fazer polling de até 10 segundos (5 tentativas x 2s) para dar tempo ao Asaas processar o cartão
+    for (let i = 0; i < 5; i++) {
+      const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, { headers: asaasHeaders });
+      if (paymentsRes.ok) {
+        const paymentsData = await paymentsRes.json();
+        const payments = paymentsData.data || [];
+        if (payments.length > 0) {
+          firstPayment = payments[0];
+          paymentStatus = firstPayment.status;
+          
+          if (paymentMethod !== 'CREDIT_CARD') {
+            break; // Para PIX e Boleto não precisamos aguardar mudança de status síncrona
+          }
+          
+          // Se o pagamento do cartão já teve um desfecho, paramos de fazer polling
+          if (paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED' || paymentStatus === 'REJECTED' || paymentStatus === 'FAILED') {
+            break;
+          }
+        }
       }
+      
+      if (paymentMethod !== 'CREDIT_CARD') break;
+      await new Promise(res => setTimeout(res, 2000));
     }
 
     if (!firstPayment) {
       return jsonResponse({ error: 'Nenhum pagamento encontrado para esta assinatura.' }, 404);
+    }
+
+    // 5. Tratamento rigoroso de recusa do Cartão de Crédito
+    if (paymentMethod === 'CREDIT_CARD' && (paymentStatus === 'REJECTED' || paymentStatus === 'FAILED')) {
+      const reason = firstPayment.creditCard?.transactionReceiptUrl 
+        ? 'Cartão recusado pelo banco emissor.' 
+        : 'Transação falhou ou foi bloqueada pelo antifraude.';
+      return jsonResponse({ error: `Pagamento recusado: ${reason} Verifique os dados e tente novamente.` }, 400);
     }
 
     let pixQrCode = null
