@@ -88,11 +88,44 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ status: 'PENDING_CARD' })
     }
 
-    // 2. Atualizar assinatura no Asaas para o método de pagamento escolhido
+    // 2. Buscar o cliente no Asaas para obter dados do titular do cartão (CreditCardHolderInfo)
+    let customerInfo: any = null;
+    if (paymentMethod === 'CREDIT_CARD') {
+      const customerRes = await fetch(`${ASAAS_BASE}/customers/${customerId}`, { headers: asaasHeaders });
+      if (customerRes.ok) {
+        customerInfo = await customerRes.json();
+      }
+    }
+
+    // 3. Atualizar assinatura no Asaas para o método de pagamento escolhido
     if (paymentMethod === 'CREDIT_CARD' || paymentMethod === 'PIX' || paymentMethod === 'BOLETO') {
       const updatePayload: Record<string, unknown> = {
         billingType: paymentMethod,
         updatePendingPayments: true
+      }
+
+      if (paymentMethod === 'CREDIT_CARD' && body.ccNumber) {
+        const [month, year] = (body.ccExpiry || '').split('/');
+        const expiryYear = year?.length === 2 ? `20${year}` : year;
+
+        updatePayload.creditCard = {
+          holderName: body.ccHolderName,
+          number: body.ccNumber.replace(/\D/g, ''),
+          expiryMonth: month,
+          expiryYear: expiryYear,
+          ccv: body.ccCvv
+        };
+
+        if (customerInfo) {
+          updatePayload.creditCardHolderInfo = {
+            name: customerInfo.name,
+            email: customerInfo.email,
+            cpfCnpj: customerInfo.cpfCnpj,
+            postalCode: customerInfo.postalCode,
+            addressNumber: customerInfo.addressNumber,
+            phone: customerInfo.phone || customerInfo.mobilePhone
+          };
+        }
       }
       
       const updateRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
@@ -102,11 +135,15 @@ Deno.serve(async (req: Request) => {
       })
       
       if (!updateRes.ok) {
-        console.error('[pay-subscription] Asaas update to', paymentMethod, 'error')
+        const errData = await updateRes.json();
+        console.error('[pay-subscription] Asaas update error:', errData);
+        if (paymentMethod === 'CREDIT_CARD' && errData.errors?.[0]) {
+           return jsonResponse({ error: `Erro no cartão: ${errData.errors[0].description}` });
+        }
       }
     }
 
-    // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto
+    // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto ou URL de Fatura
     let firstPayment: Record<string, unknown> | null = null;
     const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, { headers: asaasHeaders });
     if (paymentsRes.ok) {

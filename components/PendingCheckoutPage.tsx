@@ -19,6 +19,25 @@ function formatExpiry(value: string): string {
 
 const paymentSchema = z.object({
   paymentMethod: z.enum(['CREDIT_CARD', 'PIX', 'BOLETO']).default('CREDIT_CARD'),
+  ccHolderName: z.string().optional(),
+  ccNumber: z.string().optional(),
+  ccExpiry: z.string().optional(),
+  ccCvv: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.paymentMethod === 'CREDIT_CARD') {
+    if (!data.ccHolderName) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nome impresso no cartão é obrigatório', path: ['ccHolderName'] });
+    }
+    if (!data.ccNumber || data.ccNumber.replace(/\D/g, '').length < 14) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Número do cartão inválido', path: ['ccNumber'] });
+    }
+    if (!data.ccExpiry || data.ccExpiry.length < 5) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Validade inválida (MM/AA)', path: ['ccExpiry'] });
+    }
+    if (!data.ccCvv || data.ccCvv.length < 3) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'CVV inválido', path: ['ccCvv'] });
+    }
+  }
 });
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
@@ -126,6 +145,10 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
       const { data: fnData, error: fnError } = await supabase.functions.invoke('pay-subscription', {
         body: {
           paymentMethod: data.paymentMethod,
+          ccHolderName: data.ccHolderName,
+          ccNumber: data.ccNumber,
+          ccExpiry: data.ccExpiry,
+          ccCvv: data.ccCvv
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -413,15 +436,11 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                 
                 {paymentResult.billingType === 'CREDIT_CARD' && (
                   <div className="mt-6 w-full">
-                    <p className="text-gray-500 text-sm font-medium mb-4">
-                      Preencha os dados de pagamento no ambiente seguro do Asaas abaixo:
+                    <p className="text-emerald-600 dark:text-emerald-400 text-sm font-bold mb-4">
+                      Pagamento com cartão processado com sucesso!
                     </p>
-                    <div className="w-full h-[600px] rounded-2xl overflow-hidden shadow-inner border border-gray-100 dark:border-white/5">
-                      <iframe src={paymentResult.invoiceUrl} className="w-full h-full bg-white" title="Pagamento Seguro" />
-                    </div>
-                    <p className="text-gray-400 text-[10px] uppercase font-black tracking-widest mt-4 flex items-center justify-center gap-1">
-                      <span className="material-icons-outlined text-sm">lock</span>
-                      100% Protegido pelo Asaas
+                    <p className="text-gray-500 text-sm font-medium mb-4">
+                      Seu acesso será liberado em alguns instantes.
                     </p>
                   </div>
                 )}
@@ -475,10 +494,19 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                   </div>
 
                   {formValues.paymentMethod === 'CREDIT_CARD' && (
-                    <div className="pt-2 animate-fade-in text-center">
-                      <p className="text-gray-500 text-sm font-medium">
-                        Você será direcionado para o ambiente seguro do Asaas para inserir os dados do cartão.
-                      </p>
+                    <div className="pt-2 animate-fade-in space-y-4">
+                      {renderField('Nome no Cartão', 'ccHolderName', 'text', 'Ex: JOAO A SILVA')}
+                      <div className="grid grid-cols-12 gap-4">
+                        <div className="col-span-12 sm:col-span-6">
+                          {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
+                        </div>
+                        <div className="col-span-6 sm:col-span-3">
+                          {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
+                        </div>
+                        <div className="col-span-6 sm:col-span-3">
+                          {renderField('CVV', 'ccCvv', 'text', '123', (v) => v.replace(/\D/g, '').slice(0, 4))}
+                        </div>
+                      </div>
                     </div>
                   )}
 
