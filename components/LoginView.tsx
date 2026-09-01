@@ -310,13 +310,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               >
                 Debug Conexão
               </button>
-              <button
-                type="button"
-                onClick={() => onEnterDemo(userType)}
-                className="text-[10px] font-black text-primary hover:text-primary-dark uppercase tracking-[0.2em] transition-colors"
-              >
-                Acesso Demonstrativo ({userType === 'student' ? 'Aluno' : userType === 'teacher' ? 'Docente' : 'Escola'})
-              </button>
+
               <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                 {isLogin
                   ? (userType === 'school_admin' ? 'Ainda não tem conta?' : 'Foi convidado pela escola?')

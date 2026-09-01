@@ -106,15 +106,27 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack, onLogin }) => {
   const getDynamicPrice = () => {
     const students = parseInt(form.studentCount) || 0;
     const isYearly = form.billingCycle === 'YEARLY';
-    const discount = isYearly ? 0.8 : 1;
-    const pricePerStudent = students <= 200 ? 9 * discount : 7 * discount;
+    const discount = isYearly ? 0.6 : 1;
+    
+    let pricePerStudent = 0;
+    if (students <= 200) {
+      pricePerStudent = 8.90;
+    } else if (students <= 500) {
+      pricePerStudent = 7.90;
+    } else if (students <= 1000) {
+      pricePerStudent = 6.90;
+    } else if (students <= 2000) {
+      pricePerStudent = 5.90;
+    }
+    pricePerStudent = pricePerStudent * discount;
+    
     const monthlyTotal = students * pricePerStudent;
     const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
     
     return {
       monthlyEquivalent: monthlyTotal,
       finalTotal,
-      planName: students <= 200 ? 'Starter' : 'School',
+      planName: 'School',
       isYearly
     };
   };

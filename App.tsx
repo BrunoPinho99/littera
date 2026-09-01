@@ -51,7 +51,6 @@ const INITIAL_TOPIC: Topic = {
 // --- APP COMPONENT ---
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const [userType, setUserType] = useState<string>('student');
   const navigate = useNavigate();
   const location = useLocation();
@@ -79,9 +78,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (userType === 'student') {
-      const u = session?.user || { id: 'demo' };
-      const schoolId = u.user_metadata?.school_id || localStorage.getItem('checkout_schoolId') || 'demo-school';
-      const classId = u.user_metadata?.class_id || 'demo-class';
+      const u = session?.user;
+      const schoolId = u?.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
+      const classId = u?.user_metadata?.class_id;
       getStudentAssignments(schoolId, classId).then((assignments) => {
         const now = Date.now();
         const valid = (assignments || []).filter(a => !a.due_date || new Date(a.due_date).getTime() > now);
@@ -126,12 +125,6 @@ const App: React.FC = () => {
             // so they don't bypass the paywall
             setSchoolStatus('inactive');
           }
-        } else if (localStorage.getItem('littera_demo_mode')) {
-          setIsDemoMode(true);
-          const type = localStorage.getItem('littera_demo_type') || 'student';
-          setUserType(type);
-          setSession({ user: { id: 'demo', email: 'demo@tese.com.br' } });
-          setNotifications(notificationsData);
         }
       } catch (error) {
         console.error('Init error:', error);
@@ -143,9 +136,6 @@ const App: React.FC = () => {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        localStorage.removeItem('littera_demo_mode');
-        localStorage.removeItem('littera_demo_type');
-        setIsDemoMode(false);
         setSession(prev => (prev?.access_token === session.access_token && prev?.user?.id === session.user?.id ? prev : session));
         
         const metaType = session.user.user_metadata?.user_type;
@@ -176,7 +166,6 @@ const App: React.FC = () => {
         if (!localStorage.getItem('littera_demo_mode')) {
           localStorage.removeItem('littera_user_type');
           setSession(null);
-          setIsDemoMode(false);
           setUserType('student');
         }
       }
@@ -231,7 +220,7 @@ const App: React.FC = () => {
       if (LITTERA_KEYS.some(p => key.startsWith(p))) localStorage.removeItem(key);
     });
     setSession(null);
-    setIsDemoMode(false);
+
     setUserType('student');
     navigate('/login');
   };
@@ -249,7 +238,7 @@ const App: React.FC = () => {
   const handleEssaySubmit = async (input: EssayInput) => {
     setIsCorrecting(true);
     try {
-      const userId = session?.user?.id || 'demo';
+      const userId = session?.user?.id;
 
       if (input.type === 'text') {
         const cached = await checkEssayCache(userId, input.content);
@@ -303,7 +292,7 @@ const App: React.FC = () => {
   }
 
   // --- TRAVA DE ASSINATURA (PAYWALL B2B) ---
-  const isSuspended = session && !isDemoMode && schoolStatus !== 'active' && schoolStatus !== null;
+  const isSuspended = session && schoolStatus !== 'active' && schoolStatus !== null;
 
   const renderSuspended = () => {
     if (userType === 'school_admin') {
@@ -459,7 +448,7 @@ const App: React.FC = () => {
                     forceShowId={forceShowChallengeId}
                     onClearForceShow={() => setForceShowChallengeId(null)}
                   />
-                  <PerformanceView userId={session?.user?.id} isDemo={isDemoMode} />
+                  <PerformanceView userId={session?.user?.id} isDemo={false} />
                 </div>
               } />
               <Route path="ranking" element={<RankingView />} />
@@ -518,58 +507,42 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={
-        (session || isDemoMode) && !isSuspended ? (
+        session && !isSuspended ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
           <LandingPage
             onLoginClick={() => navigate('/login')}
-            onDemoClick={(t) => {
-              setIsDemoMode(true);
-              setUserType(t);
-              setSession({ user: { id: 'demo', email: 'demo@tese.com.br' } });
-              localStorage.setItem('littera_demo_mode', 'true');
-              localStorage.setItem('littera_demo_type', t);
-              setNotifications(notificationsData);
-              navigate('/app/practice');
-            }}
-            onCheckout={() => {}} // Não mais usado, redireciona direto pelo componente LandingPage
+            onDemoClick={() => {}}
+            onCheckout={() => {}}
           />
         )
       } />
       <Route path="/login" element={
-        session || isDemoMode ? (
+        session ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
           <LoginView
             onLoginSuccess={() => navigate(`/app/${getDefaultView('student')}`)}
-            onEnterDemo={(t) => {
-              setIsDemoMode(true);
-              setUserType(t);
-              setSession({ user: { id: 'demo', email: 'demo@tese.com.br' } });
-              localStorage.setItem('littera_demo_mode', 'true');
-              localStorage.setItem('littera_demo_type', t);
-              setNotifications(notificationsData);
-              navigate('/app/practice');
-            }}
+            onEnterDemo={() => {}}
           />
         )
       } />
       <Route path="/cadastro" element={
-        (session || isDemoMode) && !isSuspended ? (
+        session && !isSuspended ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
           <CheckoutWizard onBack={() => window.location.href = '/'} onLogin={() => window.location.href = '/login'} />
         )
       } />
       <Route path="/cadastro/finalizar" element={
-        session || isDemoMode
+        session
           ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
           : <FinalizarCadastroView />
       } />
       <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
       <Route path="/convite" element={<AcceptInviteView />} />
       <Route path="/invite/:inviteCode" element={
-        (session || isDemoMode) && !isSuspended ? (
+        session && !isSuspended ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
           <ClassRegistration />

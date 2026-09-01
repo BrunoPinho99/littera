@@ -81,10 +81,29 @@ Deno.serve(async (req: Request) => {
 
     // ── Cálculo de preço ──────────────────────────────────────────────────
     const isYearly        = billingCycle === 'YEARLY'
-    const discount        = isYearly ? 0.8 : 1
-    const pricePerStudent = count <= 200 ? 9 * discount : 7 * discount
-    const planId          = count <= 200 ? 'starter' : 'school'
+    const discount        = isYearly ? 0.6 : 1
+    
+    let pricePerStudent = 0;
+    if (count <= 200) {
+      pricePerStudent = 8.90;
+    } else if (count <= 500) {
+      pricePerStudent = 7.90;
+    } else if (count <= 1000) {
+      pricePerStudent = 6.90;
+    } else if (count <= 2500) {
+      pricePerStudent = 5.90;
+    } else {
+      return jsonResponse({ error: 'Acima de 2500 alunos deve ser negociado via Enterprise (WhatsApp).' }, 400);
+    }
+    
+    pricePerStudent = pricePerStudent * discount;
+    const planId          = 'school'; // Plano único
     const monthlyTotal    = count * pricePerStudent
+    
+    if (monthlyTotal > 2900) {
+      return jsonResponse({ error: 'O valor excede o teto de R$ 2900/mês. Deve ser negociado via plano Enterprise.' }, 400);
+    }
+    
     const planPrice       = isYearly ? monthlyTotal * 12 : monthlyTotal
 
     // ── Buscar ou Criar Customer no Asaas ─────────────────────────────────

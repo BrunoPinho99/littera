@@ -19,11 +19,17 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
 
     // Cálculo dinâmico
     const getPlanPrices = () => {
-        const discount = simBillingCycle === 'YEARLY' ? 0.8 : 1;
-        const starterMonthly = 9 * discount;
-        const schoolMonthly = 7 * discount;
+        const discount = simBillingCycle === 'YEARLY' ? 0.6 : 1;
+        let unit = 0;
+        if (simStudents <= 200) unit = 8.90;
+        else if (simStudents <= 500) unit = 7.90;
+        else if (simStudents <= 1000) unit = 6.90;
+        else if (simStudents <= 2500) unit = 5.90;
         
-        return { starterMonthly, schoolMonthly };
+        const finalUnitPrice = unit * discount;
+        const monthlyTotal = finalUnitPrice * simStudents;
+        
+        return { unitPrice: finalUnitPrice, monthlyTotal, isEnterprise: monthlyTotal > 2900 };
     };
 
     const prices = getPlanPrices();
@@ -411,17 +417,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
                                 </div>
                                 <input 
                                     type="range" 
-                                    min="50" max="1500" step="10" 
+                                    min="50" max="2500" step="10" 
                                     value={simStudents}
                                     onChange={(e) => setSimStudents(Number(e.target.value))}
                                     style={{ width: '100%', accentColor: '#004ac6' }}
                                 />
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '12px', color: '#64748b', fontWeight: 600 }}>
                                     <span>50</span>
-                                    <span>1000+ (Enterprise)</span>
+                                    <span>2500+</span>
                                 </div>
                             </div>
-
                             {/* Billing Cycle Toggle */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#ffffff', padding: '6px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
                                 <button 
@@ -434,110 +439,76 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
                                     onClick={() => setSimBillingCycle('YEARLY')}
                                     style={{ padding: '8px 24px', borderRadius: '99px', fontSize: '14px', fontWeight: 700, border: 'none', cursor: 'pointer', transition: 'all 0.2s', background: simBillingCycle === 'YEARLY' ? '#004ac6' : 'transparent', color: simBillingCycle === 'YEARLY' ? '#fff' : '#64748b' }}
                                 >
-                                    Anual <span style={{ color: simBillingCycle === 'YEARLY' ? '#bfdbfe' : '#10b981', fontSize: '11px', verticalAlign: 'middle', marginLeft: '4px' }}>-20%</span>
+                                    Anual <span style={{ color: simBillingCycle === 'YEARLY' ? '#bfdbfe' : '#10b981', fontSize: '11px', verticalAlign: 'middle', marginLeft: '4px' }}>-40%</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-
-
                     {/* Pricing Cards */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: 24, alignItems: 'center' }}>
-                        {/* Starter */}
-                        <div className="sl-reveal sl-d1" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 24, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
-                            <p style={{ fontSize: 18, fontWeight: 700, color: '#131b2e', marginBottom: 16 }}>Starter</p>
-                            <div style={{ marginBottom: 8 }}>
-                                <span style={{ fontSize: 48, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.03em' }}>R$ {formatBRL(prices.starterMonthly)}</span>
-                            </div>
-                            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 32 }}>/aluno/mês · total: R$ {formatBRL(prices.starterMonthly * Math.min(simStudents, 1000))}/mês</p>
-                            
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {[
-                                    { text: 'Correção ilimitada', included: true },
-                                    { text: 'Feedback por competência', included: true },
-                                    { text: 'Relatório mensal', included: true },
-                                    { text: 'Dashboard gestor', included: false },
-                                    { text: 'Suporte dedicado', included: false },
-                                ].map((item, i) => (
-                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: item.included ? '#374151' : '#9ca3af', fontSize: 14 }}>
-                                        <span className="material-icons-outlined" style={{ fontSize: 18, color: item.included ? '#10b981' : '#d1d5db' }}>{item.included ? 'check' : 'close'}</span>
-                                        {item.text}
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <button onClick={() => navigate(`/cadastro?students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
-                            >
-                                {simStudents > 1000 ? 'Apenas até 1000 alunos' : 'Assinar Starter'}
-                            </button>
-                        </div>
-
-                        {/* School (Popular) */}
-                        <div className="sl-reveal sl-d2" style={{ border: '2px solid #004ac6', borderRadius: 24, padding: 24, background: '#131b2e', color: '#ffffff', position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 64px rgba(0,74,198,0.15)' }}>
-                            <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#004ac6', color: '#fff', fontSize: 11, fontWeight: 800, padding: '4px 16px', borderRadius: 9999, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                Mais popular
-                            </div>
-                            <p style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginBottom: 16 }}>School</p>
-                            <div style={{ marginBottom: 8 }}>
-                                <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>R$ {formatBRL(prices.schoolMonthly)}</span>
-                            </div>
-                            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>/aluno/mês · total: R$ {formatBRL(prices.schoolMonthly * Math.min(simStudents, 1000))}/mês</p>
-                            
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {[
-                                    { text: 'Correção ilimitada' },
-                                    { text: 'Feedback por competência' },
-                                    { text: 'Dashboard para gestor' },
-                                    { text: 'Relatório para pais' },
-                                    { text: 'Onboarding assistido' },
-                                ].map((item, i) => (
-                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
-                                        <span className="material-icons-outlined" style={{ fontSize: 18, color: '#3b82f6' }}>check</span>
-                                        {item.text}
-                                    </li>
-                                ))}
-                            </ul>
-                            
-                            <button onClick={() => navigate(`/cadastro?students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s', opacity: simStudents > 1000 ? 0.5 : 1, pointerEvents: simStudents > 1000 ? 'none' : 'auto' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
-                            >
-                                {simStudents > 1000 ? 'Apenas até 1000 alunos' : 'Assinar School'}
-                            </button>
-                        </div>
-
-                        {/* Enterprise */}
-                        <div className="sl-reveal sl-d3" style={{ border: '1px solid #e5e7eb', borderRadius: 24, padding: 24, background: '#ffffff', display: 'flex', flexDirection: 'column' }}>
-                            <p style={{ fontSize: 18, fontWeight: 700, color: '#131b2e', marginBottom: 16 }}>Enterprise</p>
-                            <div style={{ marginBottom: 8, height: 56, display: 'flex', alignItems: 'center' }}>
-                                <span style={{ fontSize: 32, fontWeight: 900, color: '#131b2e', letterSpacing: '-0.02em' }}>Sob consulta</span>
-                            </div>
-                            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 32 }}>redes de ensino e EAD</p>
-                            
-                            <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                {[
-                                    { text: 'Tudo do School' },
-                                    { text: 'API + Integração SIS' },
-                                    { text: 'White-label opcional' },
-                                    { text: 'CS dedicado' },
-                                    { text: 'Contrato multi-unidade' },
-                                ].map((item, i) => (
-                                    <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#374151', fontSize: 14 }}>
-                                        <span className="material-icons-outlined" style={{ fontSize: 18, color: '#10b981' }}>check</span>
-                                        {item.text}
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <button onClick={() => onCheckout?.({ id: 'enterprise', name: 'Enterprise', price: 'Sob consulta', frequency: 1 })} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#131b2e', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'all 0.2s' }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#1e293b'}
-                                onMouseLeave={e => e.currentTarget.style.background = '#131b2e'}
-                            >
-                                Falar com comercial
-                            </button>
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: 40 }}>
+                        <div className="sl-reveal sl-d2" style={{ border: '2px solid #004ac6', borderRadius: 24, padding: 32, background: '#131b2e', color: '#ffffff', position: 'relative', display: 'flex', flexDirection: 'column', boxShadow: '0 32px 64px rgba(0,74,198,0.15)', maxWidth: 500, width: '100%' }}>
+                            {prices.isEnterprise ? (
+                                <>
+                                    <p style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginBottom: 16 }}>Plano Enterprise</p>
+                                    <div style={{ marginBottom: 8, height: 56, display: 'flex', alignItems: 'center' }}>
+                                        <span style={{ fontSize: 40, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.02em' }}>Sob consulta</span>
+                                    </div>
+                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>Soluções personalizadas para grandes redes de ensino e EAD</p>
+                                    
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        {[
+                                            { text: 'Tudo do plano School' },
+                                            { text: 'SLA garantido (99.9%)' },
+                                            { text: 'Integração via API (LMS, ERP)' },
+                                            { text: 'Gerente de Sucesso dedicado' },
+                                            { text: 'Treinamento presencial/online' },
+                                        ].map((item, i) => (
+                                            <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
+                                                <span className="material-icons-outlined" style={{ fontSize: 18, color: '#3b82f6' }}>check</span>
+                                                {item.text}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    
+                                    <button onClick={() => window.open('https://wa.me/5511999999999?text=Olá, tenho interesse no plano Enterprise do Littera', '_blank')} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                                        onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                                    >
+                                        Falar com Consultor
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <p style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginBottom: 16 }}>Plano School</p>
+                                    <div style={{ marginBottom: 8 }}>
+                                        <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>R$ {formatBRL(prices.unitPrice * simStudents)}</span>
+                                    </div>
+                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>/mês · equivalente a R$ {formatBRL(prices.unitPrice)} por aluno</p>
+                                    
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        {[
+                                            { text: 'Correção ilimitada' },
+                                            { text: 'Feedback por competência' },
+                                            { text: 'Dashboard para gestor' },
+                                            { text: 'Relatório para pais' },
+                                            { text: 'Onboarding assistido' },
+                                        ].map((item, i) => (
+                                            <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, color: 'rgba(255,255,255,0.9)', fontSize: 14 }}>
+                                                <span className="material-icons-outlined" style={{ fontSize: 18, color: '#3b82f6' }}>check</span>
+                                                {item.text}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    
+                                    <button onClick={() => navigate(`/cadastro?students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                                        onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                                    >
+                                        Assinar Agora
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -66,7 +66,8 @@ Deno.serve(async (req: Request) => {
     
     // Supabase generated types often infer joined tables as arrays. 
     // We safely handle it by getting the first item if it's an array.
-    const schoolData = Array.isArray(schools) ? schools[0] : (schools as any)
+    type SchoolData = { name: string; is_trial_school: boolean };
+    const schoolData = Array.isArray(schools) ? (schools[0] as SchoolData) : (schools as SchoolData | null);
     const school_name = schoolData?.name || 'Escola'
     const is_trial = schoolData?.is_trial_school === true
 

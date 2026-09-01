@@ -217,6 +217,10 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
                     <p className="text-xs sm:text-body-sm text-on-surface-variant leading-relaxed line-clamp-2 pl-11">
                       {text.content}
                     </p>
+                    <p className="pl-11 mt-1.5 text-[10px] font-black uppercase tracking-widest text-primary/60 group-hover/card:text-primary transition-colors flex items-center gap-1">
+                      Ler mais
+                      <span className="material-icons-outlined text-[10px] group-hover/card:translate-x-0.5 transition-transform duration-200">arrow_forward</span>
+                    </p>
                   </div>
                 ))}
               </div>

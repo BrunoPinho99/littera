@@ -250,12 +250,23 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   const isYearly = savedCycle === 'YEARLY';
   
   // Dynamic pricing (per student)
-  const discount = isYearly ? 0.8 : 1;
-  const pricePerStudent = studentCount <= 200 ? 9 * discount : 7 * discount;
-  const monthlyTotal = studentCount * pricePerStudent;
+  const discount = isYearly ? 0.6 : 1;
   
+  let pricePerStudent = 0;
+  if (studentCount <= 200) {
+    pricePerStudent = 8.90;
+  } else if (studentCount <= 500) {
+    pricePerStudent = 7.90;
+  } else if (studentCount <= 1000) {
+    pricePerStudent = 6.90;
+  } else if (studentCount <= 2000) {
+    pricePerStudent = 5.90;
+  }
+  pricePerStudent = pricePerStudent * discount;
+  
+  const monthlyTotal = studentCount * pricePerStudent;
   const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
-  const _planName = studentCount <= 200 ? 'Starter' : 'School';
+  const _planName = 'School'; // Plano único
   
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background-light dark:bg-background-dark font-sans overflow-hidden">
