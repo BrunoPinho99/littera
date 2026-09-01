@@ -26,7 +26,7 @@ import ClassRegistration from './components/ClassRegistration';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
-import { saveEssayToDatabase, getNotifications, markNotificationAsRead, markAllNotificationsRead, getSchoolData, checkEssayCache, getStudentAssignments } from './services/databaseService';
+import { saveEssayToDatabase, getNotifications, markNotificationAsRead, markAllNotificationsRead, getSchoolData, getStudentAssignments } from './services/databaseService';
 import { supabase } from './supabaseClient';
 import { exploreTopics } from './data/exploreTopics';
 import { notificationsData } from './data/notificationsData';
@@ -240,18 +240,7 @@ const App: React.FC = () => {
     try {
       const userId = session?.user?.id;
 
-      if (input.type === 'text') {
-        const cached = await checkEssayCache(userId, input.content);
-        if (cached) {
-          // Pequeno delay para UX
-          await new Promise(r => setTimeout(r, 1000));
-          setCorrectionResult({ ...cached, timeTaken: 'Cache', topicTitle: writingTopicTitle });
-          navigate('/app/result');
-          // Small delay before hiding overlay to prevent flash
-          setTimeout(() => setIsCorrecting(false), 100);
-          return;
-        }
-      }
+
 
       const result = await correctEssay(writingTopicTitle, input);
       setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });

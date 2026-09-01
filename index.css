@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    color: #131b2e;                      /* on-surface */
+    background-color: #faf8ff;           /* surface */
+  }
+
+  /* Ghost Border utility */
+  .ghost-border {
+    border: 1px solid rgba(199, 197, 208, 0.15); /* outline-variant @ 15% */
+  }
+
+  /* Premium scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c7c5d0; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+  /* Selection */
+  ::selection { background: rgba(0, 74, 198, 0.12); color: inherit; }
+
+  /* Gradient button utility */
+  .btn-gradient {
+    background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);
+  }
+  .btn-gradient:hover {
+    box-shadow: 0 0 24px rgba(0, 74, 198, 0.3);
+  }
+
+  /* Intelligence card */
+  .intelligence-card {
+    background: linear-gradient(135deg, rgba(91, 107, 125, 0.05) 0%, rgba(0, 74, 198, 0.05) 100%);
+    backdrop-filter: blur(8px);
+  }
+
+  /* Ghost border on focus for inputs */
+  .input-littera {
+    border: 1px solid rgba(199, 197, 208, 0.15);
+    transition: all 0.2s ease;
+  }
+  .input-littera:focus {
+    border-color: #004ac6;
+    border-width: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 74, 198, 0.08);
+  }
+}
+
+@layer utilities {
+  .sl-reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), transform 0.8s cubic-bezier(0.16,1,0.3,1); }
+  .sl-reveal.sl-revealed { opacity: 1; transform: none; }
+  .sl-d1 { transition-delay: 100ms; }
+  .sl-d2 { transition-delay: 200ms; }
+  .sl-d3 { transition-delay: 300ms; }
+  .sl-d4 { transition-delay: 400ms; }
+  .sl-d5 { transition-delay: 500ms; }
+
+  .sl-nav-scrolled {
+      background: rgba(255,255,255,0.88) !important;
+      backdrop-filter: blur(20px) saturate(180%);
+      box-shadow: 0 1px 0 rgba(0,0,0,0.04);
+  }
+
+  .sl-btn-primary {
+      background: linear-gradient(135deg, #004ac6 0%, #2563eb 100%);
+      color: #fff;
+      border: none;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      letter-spacing: -0.01em;
+  }
+  .sl-btn-primary:hover {
+      box-shadow: 0 0 28px rgba(0,74,198,0.3);
+      transform: translateY(-1px);
+  }
+
+  .sl-btn-secondary {
+      background: transparent;
+      color: #49454f;
+      border: none;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: color 0.2s;
+      padding: 14px 20px;
+  }
+  .sl-btn-secondary:hover { color: #004ac6; }
+
+  .sl-card {
+      background: #ffffff;
+      border-radius: 1.5rem;
+      box-shadow: 0px 20px 40px rgba(19, 27, 46, 0.06);
+  }
+
+  .sl-intelligence-card {
+      background: linear-gradient(135deg, rgba(91,107,125,0.04) 0%, rgba(0,74,198,0.06) 100%);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(199,197,208,0.15);
+      border-radius: 1.5rem;
+  }
+
+  .sl-float-card {
+      background: #ffffff;
+      border-radius: 1rem;
+      padding: 12px 18px;
+      box-shadow: 0 10px 32px rgba(19,27,46,0.07);
+      align-items: center;
+      gap: 12px;
+      animation: slFloat 4s ease-in-out infinite;
+  }
+
+  .sl-headline {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      letter-spacing: -0.02em;
+      line-height: 1.08;
+  }
+
+  .sl-section-gap {
+      padding-top: 8rem;
+      padding-bottom: 8rem;
+  }
+
+  @media (max-width: 640px) {
+      .sl-section-gap {
+          padding-top: 4rem;
+          padding-bottom: 4rem;
+      }
+  }
+
+  .sl-stat-number {
+      font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+  }
+}
