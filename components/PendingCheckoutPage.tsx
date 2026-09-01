@@ -19,37 +19,6 @@ function formatExpiry(value: string): string {
 
 const paymentSchema = z.object({
   paymentMethod: z.enum(['CREDIT_CARD', 'PIX', 'BOLETO']).default('CREDIT_CARD'),
-  ccHolderName: z.string().optional(),
-  ccNumber: z.string().optional(),
-  ccExpiry: z.string().optional(),
-  ccCvv: z.string().optional(),
-  billingCpfCnpj: z.string().optional(),
-  billingPostalCode: z.string().optional(),
-  billingAddressNumber: z.string().optional(),
-}).superRefine((data, ctx) => {
-  if (data.paymentMethod === 'CREDIT_CARD') {
-    if (!data.ccHolderName || data.ccHolderName.trim().length < 3) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nome do titular obrigatório", path: ["ccHolderName"] });
-    }
-    if (!data.ccNumber || data.ccNumber.replace(/\D/g, '').length < 13) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Número do cartão inválido", path: ["ccNumber"] });
-    }
-    if (!data.ccExpiry || data.ccExpiry.replace(/\D/g, '').length < 4) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Validade inválida (MM/AA)", path: ["ccExpiry"] });
-    }
-    if (!data.ccCvv || data.ccCvv.replace(/\D/g, '').length < 3) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CVV inválido", path: ["ccCvv"] });
-    }
-    if (!data.billingCpfCnpj || data.billingCpfCnpj.replace(/\D/g, '').length < 11) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CPF/CNPJ do titular obrigatório", path: ["billingCpfCnpj"] });
-    }
-    if (!data.billingPostalCode || data.billingPostalCode.replace(/\D/g, '').length < 8) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "CEP inválido", path: ["billingPostalCode"] });
-    }
-    if (!data.billingAddressNumber || data.billingAddressNumber.trim() === '') {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Número obrigatório", path: ["billingAddressNumber"] });
-    }
-  }
 });
 
 type PaymentFormData = z.infer<typeof paymentSchema>;
@@ -144,10 +113,6 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
     mode: 'onChange',
     defaultValues: {
       paymentMethod: 'CREDIT_CARD',
-      ccHolderName: '',
-      ccNumber: '',
-      ccExpiry: '',
-      ccCvv: '',
     }
   });
 
@@ -161,9 +126,6 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
       const { data: fnData, error: fnError } = await supabase.functions.invoke('pay-subscription', {
         body: {
           paymentMethod: data.paymentMethod,
-          billingCpfCnpj: data.billingCpfCnpj?.replace(/\D/g, ''),
-          billingPostalCode: data.billingPostalCode,
-          billingAddressNumber: data.billingAddressNumber
         },
         headers: {
           Authorization: `Bearer ${session.access_token}`
@@ -513,66 +475,10 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                   </div>
 
                   {formValues.paymentMethod === 'CREDIT_CARD' && (
-                    <div className="space-y-5 pt-2 animate-fade-in">
-                      <div>
-                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">CPF/CNPJ do titular</label>
-                        <Controller
-                          name="billingCpfCnpj"
-                          control={control}
-                          render={({ field }) => (
-                            <input
-                              {...field}
-                              placeholder="000.000.000-00"
-                              className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 outline-none font-bold text-sm"
-                              onChange={(e) => {
-                                const val = e.target.value.replace(/\D/g, '').slice(0, 14);
-                                if (val.length <= 11) {
-                                  field.onChange(val.replace(/(\d{3})(\d{3})(\d{3})(\d{0,2})/, (_, a, b, c, d) => d ? `${a}.${b}.${c}-${d}` : val.length > 6 ? `${a}.${b}.${c}` : val.length > 3 ? `${a}.${b}` : a));
-                                } else {
-                                  field.onChange(val.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{0,2})/, (_, a, b, c, d, e) => e ? `${a}.${b}.${c}/${d}-${e}` : `${a}.${b}.${c}/${d}`));
-                                }
-                              }}
-                            />
-                          )}
-                        />
-                        {errors.billingCpfCnpj && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{errors.billingCpfCnpj.message as string}</p>}
-                      </div>
-                      <div className="flex gap-4">
-                        <div className="flex-1">
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">CEP</label>
-                          <Controller
-                            name="billingPostalCode"
-                            control={control}
-                            render={({ field }) => (
-                              <input
-                                {...field}
-                                placeholder="00000-000"
-                                className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 outline-none font-bold text-sm"
-                                onChange={(e) => {
-                                  const val = e.target.value.replace(/\D/g, '');
-                                  field.onChange(val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 8)}` : val);
-                                }}
-                              />
-                            )}
-                          />
-                          {errors.billingPostalCode && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{errors.billingPostalCode.message as string}</p>}
-                        </div>
-                        <div className="flex-1">
-                          <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-1 block">Número</label>
-                          <Controller
-                            name="billingAddressNumber"
-                            control={control}
-                            render={({ field }) => (
-                              <input
-                                {...field}
-                                placeholder="Ex: 123"
-                                className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 outline-none font-bold text-sm"
-                              />
-                            )}
-                          />
-                          {errors.billingAddressNumber && <p className="text-rose-500 text-[10px] font-bold mt-1 ml-1">{errors.billingAddressNumber.message as string}</p>}
-                        </div>
-                      </div>
+                    <div className="pt-2 animate-fade-in text-center">
+                      <p className="text-gray-500 text-sm font-medium">
+                        Você será direcionado para o ambiente seguro do Asaas para inserir os dados do cartão.
+                      </p>
                     </div>
                   )}
 
