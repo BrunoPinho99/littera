@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { paymentMethod, action, billingCpfCnpj } = body
+    const { paymentMethod, action } = body
 
     // 1. Obter Profile e School do usuário logado
     const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
@@ -89,7 +89,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // 2. Buscar o cliente no Asaas para obter dados do titular do cartão (CreditCardHolderInfo)
-    let customerInfo: any = null;
+    let customerInfo: Record<string, unknown> | null = null;
     if (paymentMethod === 'CREDIT_CARD') {
       const customerRes = await fetch(`${ASAAS_BASE}/customers/${customerId}`, { headers: asaasHeaders });
       if (customerRes.ok) {
@@ -144,7 +144,14 @@ Deno.serve(async (req: Request) => {
     }
 
     // 4. Buscar o pagamento vinculado à assinatura para retornar o código PIX/Boleto ou verificar status do Cartão
-    let firstPayment: Record<string, any> | null = null;
+    let firstPayment: {
+      id?: string;
+      status?: string;
+      invoiceUrl?: string;
+      bankSlipUrl?: string;
+      creditCard?: { transactionReceiptUrl?: string };
+      [key: string]: unknown;
+    } | null = null;
     let paymentStatus = 'PENDING';
     
     // Fazer polling de até 10 segundos (5 tentativas x 2s) para dar tempo ao Asaas processar o cartão
@@ -153,9 +160,9 @@ Deno.serve(async (req: Request) => {
       if (paymentsRes.ok) {
         const paymentsData = await paymentsRes.json();
         const payments = paymentsData.data || [];
-        if (payments.length > 0) {
+        if (payments.length > 0 && payments[0]) {
           firstPayment = payments[0];
-          paymentStatus = firstPayment.status;
+          paymentStatus = firstPayment!.status || 'PENDING';
           
           if (paymentMethod !== 'CREDIT_CARD') {
             break; // Para PIX e Boleto não precisamos aguardar mudança de status síncrona

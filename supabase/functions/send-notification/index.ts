@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
+import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
@@ -14,7 +14,7 @@ interface NotificationPayload {
   htmlContent?: string;
   html?: string;
   templateId?: number;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
   senderEmail?: string;
   senderName?: string;
 }
@@ -105,7 +105,7 @@ Deno.serve(async (req: Request) => {
     const defaultSenderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br';
     const defaultSenderName = Deno.env.get('BREVO_SENDER_NAME') || 'Littera - Inteligência em Redação';
 
-    const brevoBody: Record<string, any> = {
+    const brevoBody: Record<string, unknown> = {
       sender: {
         email: senderEmail || defaultSenderEmail,
         name: senderName || defaultSenderName,
@@ -142,7 +142,7 @@ Deno.serve(async (req: Request) => {
     });
 
     const resText = await brevoRes.text();
-    let resJson: any;
+    let resJson: { message?: string; messageId?: string; [key: string]: unknown };
     try {
       resJson = JSON.parse(resText);
     } catch {
@@ -168,7 +168,7 @@ Deno.serve(async (req: Request) => {
       success: true,
       messageId: resJson.messageId,
       data: resJson,
-      message: `Notification sent successfully to ${toEmail}`,
+      message: `Notification sent successfully to ${targetEmail}`,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
