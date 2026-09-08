@@ -222,11 +222,25 @@ Deno.serve(async (req: Request) => {
     }
 
     // 5. Tratamento rigoroso de recusa do Cartão de Crédito
-    if (paymentMethod === 'CREDIT_CARD' && (paymentStatus === 'REJECTED' || paymentStatus === 'FAILED')) {
-      const reason = firstPayment.creditCard?.transactionReceiptUrl 
-        ? 'Cartão recusado pelo banco emissor.' 
-        : 'Transação falhou ou foi bloqueada pelo antifraude.';
-      return jsonResponse({ error: `Pagamento recusado: ${reason} Verifique os dados e tente novamente.` }, 400);
+    if (paymentMethod === 'CREDIT_CARD') {
+      if (paymentStatus === 'REJECTED' || paymentStatus === 'FAILED') {
+        const reason = firstPayment.creditCard?.transactionReceiptUrl 
+          ? 'Cartão recusado pelo banco emissor.' 
+          : 'Transação falhou ou foi bloqueada pelo antifraude.';
+        return jsonResponse({ error: `Pagamento recusado: ${reason} Verifique os dados e tente novamente.` }, 400);
+      }
+      
+      if (paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED') {
+        await supabase.from('schools').update({ subscription_status: 'active' }).eq('id', profile.school_id);
+      }
+
+      if (paymentStatus === 'PENDING') {
+        return jsonResponse({
+          message: 'Pagamento em análise.',
+          status: 'PENDING_CARD',
+          billingType: 'CREDIT_CARD'
+        });
+      }
     }
 
     let pixQrCode = null

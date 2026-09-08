@@ -230,6 +230,13 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         window.location.href = '/login?activated=true';
         return;
       }
+      
+      // Cartão ainda em análise pelo antifraude do Asaas
+      if (fnData.status === 'PENDING_CARD') {
+        setIsLoading(false);
+        setCheckingStatus(true);
+        return;
+      }
 
       setPaymentResult(fnData);
       setIsLoading(false);
