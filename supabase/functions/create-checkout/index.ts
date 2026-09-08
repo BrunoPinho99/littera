@@ -65,12 +65,30 @@ Deno.serve(async (req: Request) => {
   // Buscar dados completos da escola
   const { data: school, error: schoolErr } = await supabase
     .from('schools')
-    .select('id, name, cnpj, email, student_count, asaas_customer_id')
+    .select('id, name, cnpj, email, student_count, asaas_customer_id, subscription_id')
     .eq('id', schoolId)
     .single()
 
   if (schoolErr || !school) {
     return jsonResponse({ error: 'Escola não encontrada.' }, 404)
+  }
+
+  if (school.subscription_id && !school.subscription_id.startsWith('PENDING_CREATION_')) {
+    return jsonResponse({ error: 'Já existe uma assinatura para esta escola.' }, 400)
+  }
+
+  // ── 1. Trava de Idempotência (Lock Otimista) ──────────────────────────────
+  const lockId = 'PENDING_CREATION_' + crypto.randomUUID();
+  const { data: lockedSchool, error: lockError } = await supabase
+    .from('schools')
+    .update({ subscription_id: lockId })
+    .eq('id', schoolId)
+    .is('subscription_id', null)
+    .select('id')
+    .single();
+
+  if (lockError || !lockedSchool) {
+    return jsonResponse({ error: 'Sua assinatura já está sendo processada. Aguarde um instante.' }, 409)
   }
 
   try {
@@ -183,6 +201,7 @@ Deno.serve(async (req: Request) => {
       .from('schools')
       .update({ subscription_id: subscriptionId })
       .eq('id', schoolId)
+      .eq('subscription_id', lockId) // Garante que atualiza apenas se a trava for a nossa
 
     // ── Buscar link/QR Code do primeiro pagamento ─────────────────────────
     let invoiceUrl:    string | null = null
@@ -233,6 +252,13 @@ Deno.serve(async (req: Request) => {
     })
 
   } catch (err: unknown) {
+    // ── Reverter a trava em caso de erro ──────────────────────────────────────
+    await supabase
+      .from('schools')
+      .update({ subscription_id: null })
+      .eq('id', schoolId)
+      .eq('subscription_id', lockId);
+
     console.error('[create-checkout] Erro:', err)
     const message = err instanceof Error ? err.message : 'Erro interno no servidor de pagamento'
     return jsonResponse({ error: message })

@@ -301,8 +301,8 @@ const App: React.FC = () => {
               totalScore: updatedRecord.total_score,
               competencies: JSON.parse(updatedRecord.competencias_json || '[]'),
               generalComment: updatedRecord.comentario_geral,
-              aiDetected: false,
-              aiJustification: "",
+              annotatedSegments: [],
+              overallSuggestions: [],
               transcribedText: "[Transcrição Oculta - Processado no Backend]",
               topicTitle: writingTopicTitle,
               timeTaken: '0m'

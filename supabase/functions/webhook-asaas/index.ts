@@ -318,6 +318,24 @@ async function autoProvisionSchool(
     })
 
     if (authError || !authData.user) {
+      // ── Tratamento de Condição de Corrida (Webhooks Duplicados) ─────────────
+      // Se 2 webhooks baterem juntos, o 2º falha aqui pois o 1º já criou o auth.
+      if (authError?.message?.toLowerCase().includes('already registered') || authError?.status === 422 || authError?.code === 'user_already_exists') {
+        console.log(`[webhook-asaas] Race condition detectada para ${email}. Aguardando 2s para tentar recuperar o school_id criado pelo outro webhook...`);
+        await new Promise(r => setTimeout(r, 2000));
+        const { data: retryProfile } = await supabase
+          .from('profiles')
+          .select('school_id')
+          .eq('email', email)
+          .single();
+        
+        if (retryProfile?.school_id) {
+          // Garante o vínculo do customer_id
+          await supabase.from('schools').update({ asaas_customer_id: customerId }).eq('id', retryProfile.school_id);
+          return retryProfile.school_id;
+        }
+      }
+
       console.error('[webhook-asaas] Erro ao criar auth user:', authError)
       return null
     }
