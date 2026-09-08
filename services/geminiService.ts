@@ -157,7 +157,7 @@ export const correctEssay = async (
   topicTitle: string,
   input: EssayInput,
   _onStream?: (text: string) => void
-): Promise<CorrectionResult> => {
+): Promise<{ success: boolean; essayId: string }> => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Usuário não autenticado.");
 
@@ -181,7 +181,7 @@ export const correctEssay = async (
     throw new Error(data.message || data.error);
   }
 
-  return data as CorrectionResult;
+  return data as { success: boolean; essayId: string };
 };
 
 // --- GERAÇÃO DE TEMA PARA ATIVIDADE ---
@@ -205,12 +205,7 @@ export const correctHandwrittenEssay = async (
   topicTitle: string,
   base64Image: string,
   mimeType: string
-): Promise<HandwrittenCorrectionResult> => {
+): Promise<{ success: boolean; essayId: string }> => {
   const input: EssayInput = { type: 'image', base64: base64Image, mimeType };
-  const correction = await correctEssay(topicTitle, input);
-  
-  return {
-    ...correction,
-    transcribedText: "[Transcrição Oculta - Processado no Backend]"
-  } as unknown as HandwrittenCorrectionResult;
+  return await correctEssay(topicTitle, input);
 };

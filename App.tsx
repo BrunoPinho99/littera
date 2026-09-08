@@ -240,15 +240,41 @@ const App: React.FC = () => {
     try {
       const userId = session?.user?.id;
 
-
-
-      const result = await correctEssay(writingTopicTitle, input);
-      setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
+      const { essayId } = await correctEssay(writingTopicTitle, input);
       
-      await saveEssayToDatabase(writingTopicTitle, input, userId, result, session?.user?.user_metadata);
-      navigate('/app/result');
-      // Small delay before hiding overlay to prevent flash
-      setTimeout(() => setIsCorrecting(false), 100);
+      const channel = supabase.channel(`essay-${essayId}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'redacoes',
+          filter: `id=eq.${essayId}`
+        }, async (payload) => {
+          const updatedRecord = payload.new;
+          
+          if (updatedRecord.status === 'corrigida') {
+            const result: CorrectionResult = {
+              totalScore: updatedRecord.total_score,
+              competencies: JSON.parse(updatedRecord.competencias_json || '[]'),
+              generalComment: updatedRecord.comentario_geral,
+              aiDetected: false,
+              aiJustification: ""
+            };
+            setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
+            
+            if (userId) {
+              await saveEssayToDatabase(writingTopicTitle, input, userId, result, session?.user?.user_metadata);
+            }
+            navigate('/app/result');
+            setTimeout(() => setIsCorrecting(false), 100);
+            supabase.removeChannel(channel);
+          } else if (updatedRecord.status === 'erro') {
+            setIsCorrecting(false);
+            alert('Erro ao corrigir: ' + (updatedRecord.comentario_geral || 'Erro desconhecido.'));
+            supabase.removeChannel(channel);
+          }
+        })
+        .subscribe();
+        
     } catch (err: unknown) {
       setIsCorrecting(false);
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -259,10 +285,40 @@ const App: React.FC = () => {
   const handleHandwrittenSubmit = async (base64: string, mimeType: string) => {
     setIsCorrecting(true);
     try {
-      const result = await correctHandwrittenEssay(writingTopicTitle, base64, mimeType);
-      setHandwrittenResult({ ...result, topicTitle: writingTopicTitle, timeTaken: '0m' });
-      navigate('/app/handwritten-result');
-      setTimeout(() => setIsCorrecting(false), 100);
+      const { essayId } = await correctHandwrittenEssay(writingTopicTitle, base64, mimeType);
+      
+      const channel = supabase.channel(`handwritten-essay-${essayId}`)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'redacoes',
+          filter: `id=eq.${essayId}`
+        }, async (payload) => {
+          const updatedRecord = payload.new;
+          
+          if (updatedRecord.status === 'corrigida') {
+            const result: HandwrittenCorrectionResult = {
+              totalScore: updatedRecord.total_score,
+              competencies: JSON.parse(updatedRecord.competencias_json || '[]'),
+              generalComment: updatedRecord.comentario_geral,
+              aiDetected: false,
+              aiJustification: "",
+              transcribedText: "[Transcrição Oculta - Processado no Backend]",
+              topicTitle: writingTopicTitle,
+              timeTaken: '0m'
+            };
+            setHandwrittenResult(result);
+            navigate('/app/handwritten-result');
+            setTimeout(() => setIsCorrecting(false), 100);
+            supabase.removeChannel(channel);
+          } else if (updatedRecord.status === 'erro') {
+            setIsCorrecting(false);
+            alert('Erro ao corrigir manuscrito: ' + (updatedRecord.comentario_geral || 'Erro desconhecido.'));
+            supabase.removeChannel(channel);
+          }
+        })
+        .subscribe();
+        
     } catch (err: unknown) {
       setIsCorrecting(false);
       const message = err instanceof Error ? err.message : 'Unknown error';

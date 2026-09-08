@@ -87,90 +87,74 @@ Deno.serve(async (req: Request) => {
       }, 403)
     }
 
-    // 3. Chamar Gemini API
-    const genAI = new GoogleGenerativeAI(geminiKey)
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      generationConfig: { 
-        temperature: 0.2,
-        responseMimeType: "application/json"
-      },
-    })
-
-    const systemPrompt = `
-Você é um corretor oficial do ENEM. Corrija a redação sobre: "${topicTitle}".
-Avalie pelas 5 competências do ENEM (cada uma de 0 a 200, múltiplos de 40).
-Responda seguindo o schema abaixo:
-{
-  "totalScore": <soma>,
-  "aiDetected": false,
-  "aiJustification": "",
-  "generalComment": "<análise geral em 2 frases>",
-  "competencies": [
-    { "name": "Competência 1 – Domínio da norma culta", "score": <0-200>, "feedback": "..." },
-    { "name": "Competência 2 – Compreensão da proposta", "score": <0-200>, "feedback": "..." },
-    { "name": "Competência 3 – Argumentação", "score": <0-200>, "feedback": "..." },
-    { "name": "Competência 4 – Coesão textual", "score": <0-200>, "feedback": "..." },
-    { "name": "Competência 5 – Proposta de intervenção", "score": <0-200>, "feedback": "..." }
-  ]
-}
-`
-    let requestContent: any
-    let isHandwritten = false
-
-    if (input.type === "text") {
-      requestContent = systemPrompt + `\n\nREDAÇÃO DO ALUNO:\n${input.content}`
-    } else {
-      isHandwritten = true
-      const base64Data = input.base64?.includes(",") ? input.base64.split(",")[1] : input.base64 || ""
-      requestContent = {
-        contents: [{
-          role: "user",
-          parts: [
-            { text: systemPrompt + "\n\nA redação está na imagem a seguir:" },
-            { inlineData: { mimeType: input.mimeType || "image/jpeg", data: base64Data } },
-          ],
-        }],
-      }
-    }
-
-    const result = await model.generateContent(requestContent)
-    const text = result.response.text()
-    const parsed = JSON.parse(extractJson(text))
-    
-    parsed.aiDetected = false
-    parsed.aiJustification = ""
-
-    if (typeof parsed.totalScore !== "number" || !Array.isArray(parsed.competencies)) {
-      throw new Error("Resposta da IA em formato inesperado.")
-    }
-
-    // 4. Salvar redação no Supabase Database
+    // 3. Salvar redação no Supabase Database com status 'processando'
+    const isHandwritten = input.type !== "text";
     const essayToSave = {
       tema: topicTitle,
       conteudo: isHandwritten ? '[Manuscrito Base64]' : input.content,
-      total_score: parsed.totalScore,
+      total_score: 0,
       data_envio: new Date().toISOString(),
       user_id: studentId,
       student_name: user.user_metadata?.full_name || 'Estudante',
       class_id: classId || user.user_metadata?.class_id || null,
       school_id: schoolId || user.user_metadata?.school_id || null,
-      status: 'corrigida',
-      competencias_json: JSON.stringify(parsed.competencies),
-      comentario_geral: parsed.generalComment || '',
+      status: 'processando',
+      competencias_json: '[]',
+      comentario_geral: '',
       user_metadata: JSON.stringify(user.user_metadata || {}),
     }
 
-    const { error: insertError } = await supabase.from('redacoes').insert(essayToSave)
+    const { data: insertedEssay, error: insertError } = await supabase
+      .from('redacoes')
+      .insert(essayToSave)
+      .select('id')
+      .single()
 
-    if (insertError) {
+    if (insertError || !insertedEssay) {
       console.error('[correct-essay] Erro ao salvar redação:', insertError)
-      // Retorna a correção mesmo que o salvamento falhe, pois o custo do Gemini já foi pago, 
-      // mas seria ideal logar isso criticamente
+      return jsonResponse({ error: 'Erro ao criar registro da redação.' }, 500)
     }
 
-    // 5. Retornar resposta ao frontend
-    return jsonResponse(parsed)
+    // 4. Disparar processamento em background via Fila (QStash) ou direto
+    const processUrl = `${supabaseUrl}/functions/v1/process-essay`;
+    const qstashToken = Deno.env.get('QSTASH_TOKEN');
+    
+    if (qstashToken) {
+      // QStash Queue
+      const qstashUrl = `https://qstash.upstash.io/v2/publish/${processUrl}`;
+      fetch(qstashUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${qstashToken}`,
+          'Content-Type': 'application/json',
+          'Upstash-Forward-Authorization': authHeader,
+          // Upstash-Retries controla o Circuit Breaker/Retries
+          'Upstash-Retries': '3', 
+        },
+        body: JSON.stringify({
+          essayId: insertedEssay.id,
+          topicTitle,
+          input,
+        })
+      }).catch(err => console.error('[correct-essay] Erro ao enviar para QStash:', err));
+    } else {
+      // Fallback sem fila (risco de Rate Limit no Gemini)
+      fetch(processUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          essayId: insertedEssay.id,
+          topicTitle,
+          input,
+        })
+      }).catch(err => console.error('[correct-essay] Erro ao disparar process-essay:', err));
+    }
+
+    // 5. Retornar resposta imediata ao frontend com o ID
+    return jsonResponse({ success: true, essayId: insertedEssay.id })
 
   } catch (error: any) {
     console.error("[correct-essay] Erro geral:", error)
