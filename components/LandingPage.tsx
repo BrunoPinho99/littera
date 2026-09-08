@@ -481,10 +481,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
                             ) : (
                                 <>
                                     <p style={{ fontSize: 18, fontWeight: 700, color: '#ffffff', marginBottom: 16 }}>Plano School</p>
-                                    <div style={{ marginBottom: 8 }}>
-                                        <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>R$ {formatBRL(prices.unitPrice * simStudents)}</span>
+                                    <div style={{ marginBottom: 8, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                                        <span style={{ fontSize: 48, fontWeight: 900, color: '#ffffff', letterSpacing: '-0.03em' }}>R$ {formatBRL(prices.unitPrice)}</span>
+                                        <span style={{ fontSize: 18, fontWeight: 500, color: 'rgba(255,255,255,0.6)' }}>/aluno</span>
                                     </div>
-                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>/mês · equivalente a R$ {formatBRL(prices.unitPrice)} por aluno</p>
+                                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 32 }}>Total de R$ {formatBRL(prices.unitPrice * simStudents)} /mês</p>
                                     
                                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
                                         {[
