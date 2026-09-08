@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.21.0'
 import { Receiver } from 'https://esm.sh/@upstash/qstash@2.7.2'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('ALLOWED_ORIGIN') || 'https://app.littera.com.br',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
