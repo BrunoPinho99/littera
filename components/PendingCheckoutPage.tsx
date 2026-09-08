@@ -340,29 +340,38 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   
   // Calculate price to display based on student count
   const savedCount = typeof window !== 'undefined' ? localStorage.getItem('checkout_studentCount') : null;
-  const studentCount = schoolData?.student_count || parseInt(savedCount || '0', 10);
+  const dbStudentCount = schoolData?.student_count || parseInt(savedCount || '0', 10);
   
   // Retrieve billingCycle from localStorage
   const savedCycle = localStorage.getItem('checkout_billingCycle');
-  const isYearly = savedCycle === 'YEARLY';
+  const dbIsYearly = savedCycle === 'YEARLY';
+
+  // For display (especially during editing)
+  const effectiveStudentCount = isEditingPlan 
+    ? (parseInt(editStudentCount, 10) || dbStudentCount) 
+    : dbStudentCount;
+  
+  const effectiveIsYearly = isEditingPlan 
+    ? (editBillingCycle === 'YEARLY') 
+    : dbIsYearly;
   
   // Dynamic pricing (per student)
-  const discount = isYearly ? 0.6 : 1;
+  const discount = effectiveIsYearly ? 0.6 : 1;
   
   let pricePerStudent = 0;
-  if (studentCount <= 200) {
+  if (effectiveStudentCount <= 200) {
     pricePerStudent = 8.90;
-  } else if (studentCount <= 500) {
+  } else if (effectiveStudentCount <= 500) {
     pricePerStudent = 7.90;
-  } else if (studentCount <= 1000) {
+  } else if (effectiveStudentCount <= 1000) {
     pricePerStudent = 6.90;
   } else {
     pricePerStudent = 5.90;
   }
   pricePerStudent = pricePerStudent * discount;
   
-  const monthlyTotal = studentCount * pricePerStudent;
-  const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
+  const monthlyTotal = effectiveStudentCount * pricePerStudent;
+  const finalTotal = effectiveIsYearly ? monthlyTotal * 12 : monthlyTotal;
   const _planName = 'School'; // Plano único
   
   return (
@@ -399,16 +408,16 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
               <div className="bg-white/5 border-none shadow-ambient rounded-2xl p-6 mt-8 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-4">
                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">Seu Plano Atual</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isYearly ? 'ANUAL (-40%)' : 'MENSAL'}</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{effectiveIsYearly ? 'ANUAL (-40%)' : 'MENSAL'}</p>
                 </div>
                 <div className="flex justify-between items-end mb-2">
                   <div className="flex items-end gap-2">
-                    <span className="text-4xl font-black text-white">{studentCount}</span>
+                    <span className="text-4xl font-black text-white">{effectiveStudentCount}</span>
                     <span className="text-gray-400 font-bold mb-1">Alunos</span>
                   </div>
                   <div className="text-right">
                     <span className="text-2xl font-black text-white">R$ {formatBRL(finalTotal)}</span>
-                    <span className="text-xs text-gray-400 block mt-1">/{isYearly ? 'ano' : 'mês'}</span>
+                    <span className="text-xs text-gray-400 block mt-1">/{effectiveIsYearly ? 'ano' : 'mês'}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-gray-300">
@@ -579,8 +588,8 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                     <button 
                       type="button"
                       onClick={() => {
-                        setEditStudentCount(studentCount.toString());
-                        setEditBillingCycle(isYearly ? 'YEARLY' : 'MONTHLY');
+                        setEditStudentCount(dbStudentCount.toString());
+                        setEditBillingCycle(dbIsYearly ? 'YEARLY' : 'MONTHLY');
                         setGlobalError(null);
                         setIsEditingPlan(true);
                       }} 
@@ -629,6 +638,11 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                       >
                         Anual <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">-40%</span>
                       </button>
+                    </div>
+
+                    <div className="mt-6 bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
+                      <p className="text-gray-500 text-xs font-bold mb-1">Novo valor {effectiveIsYearly ? '(Anual)' : '(Mensal)'}</p>
+                      <p className="text-3xl font-black text-slate-900 dark:text-white">R$ {formatBRL(finalTotal)}</p>
                     </div>
 
                     <div className="flex gap-3 mt-8">
@@ -705,7 +719,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                             <span className="text-xs uppercase tracking-widest">Desconto expirado</span>
                           </div>
                         )}
-                        <p className="text-gray-500 text-xs font-bold mb-1">Total a pagar {isYearly ? '(Anual)' : '(Mensal)'}</p>
+                        <p className="text-gray-500 text-xs font-bold mb-1">Total a pagar {effectiveIsYearly ? '(Anual)' : '(Mensal)'}</p>
                         <p className="text-3xl font-black text-slate-900 dark:text-white">R$ {formatBRL(finalTotal)}</p>
                       </div>
 
