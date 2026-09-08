@@ -78,6 +78,12 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(30 * 60);
 
+  // Plan editing state
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
+  const [editStudentCount, setEditStudentCount] = useState('');
+  const [editBillingCycle, setEditBillingCycle] = useState<'MONTHLY' | 'YEARLY'>('MONTHLY');
+  const [isUpdatingPlan, setIsUpdatingPlan] = useState(false);
+
   // Timer de 30 minutos
   useEffect(() => {
     const savedTime = localStorage.getItem('checkout_startTime');
@@ -242,6 +248,48 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
       console.error('[PendingCheckoutPage] Error:', err);
       setGlobalError(err.message || 'Falha ao processar o pagamento. Tente novamente.');
       setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePlan = async () => {
+    const students = parseInt(editStudentCount, 10);
+    if (isNaN(students) || students <= 0) {
+      setGlobalError('Quantidade de alunos inválida.');
+      return;
+    }
+
+    setIsUpdatingPlan(true);
+    setGlobalError(null);
+
+    try {
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('pay-subscription', {
+        body: {
+          action: 'update_plan',
+          studentCount: students,
+          billingCycle: editBillingCycle
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (fnError || fnData?.error) {
+        setGlobalError(fnError?.message || fnData?.error || 'Erro ao atualizar o plano.');
+      } else {
+        // Sucesso! Atualiza localStorage
+        localStorage.setItem('checkout_studentCount', students.toString());
+        localStorage.setItem('checkout_billingCycle', editBillingCycle);
+        
+        // Atualiza o schoolData localmente
+        setSchoolData(prev => prev ? { ...prev, student_count: students } : prev);
+        
+        // Volta para a tela de pagamento
+        setIsEditingPlan(false);
+      }
+    } catch (err: any) {
+      setGlobalError(err.message || 'Falha ao atualizar o plano.');
+    } finally {
+      setIsUpdatingPlan(false);
     }
   };
 
@@ -520,11 +568,28 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
               </div>
             ) : (
               <div className="bg-white dark:bg-surface-dark rounded-3xl p-8 sm:p-10 shadow-premium border-none shadow-ambient animate-fade-in-up">
-                <div className="mb-8 text-center sm:text-left">
-                  <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight font-display">
-                    Pagamento
-                  </h2>
-                  <p className="text-gray-500 font-medium mt-1">Ambiente 100% seguro.</p>
+                <div className="mb-8 flex justify-between items-start text-center sm:text-left">
+                  <div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight font-display">
+                      Pagamento
+                    </h2>
+                    <p className="text-gray-500 font-medium mt-1">Ambiente 100% seguro.</p>
+                  </div>
+                  {!isEditingPlan && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setEditStudentCount(studentCount.toString());
+                        setEditBillingCycle(isYearly ? 'YEARLY' : 'MONTHLY');
+                        setGlobalError(null);
+                        setIsEditingPlan(true);
+                      }} 
+                      className="text-primary text-xs sm:text-sm font-bold flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-lg hover:bg-primary/20 transition-colors"
+                    >
+                      <span className="material-icons-outlined text-[16px]">edit</span>
+                      <span className="hidden sm:inline">Editar Plano</span>
+                    </button>
+                  )}
                 </div>
 
                 {globalError && (
@@ -534,88 +599,140 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="mb-6">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
-                      Forma de Pagamento
-                    </label>
-                    <div className="flex gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl">
-                      {['CREDIT_CARD', 'PIX', 'BOLETO'].map(method => (
-                        <button
-                          key={method}
-                          type="button"
-                          onClick={() => setValue('paymentMethod', method as any)}
-                          className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all ${
-                            formValues.paymentMethod === method
-                              ? 'bg-white dark:bg-surface-dark shadow text-primary'
-                              : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                          }`}
-                        >
-                          {method === 'CREDIT_CARD' ? 'Cartão' : method === 'PIX' ? 'PIX' : 'Boleto'}
-                        </button>
-                      ))}
+                {isEditingPlan ? (
+                  <div className="space-y-6 animate-fade-in">
+                    <div className="space-y-1.5 group">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                        Quantidade de Alunos
+                      </label>
+                      <input
+                        type="number"
+                        value={editStudentCount}
+                        onChange={(e) => setEditStudentCount(e.target.value)}
+                        placeholder="Ex: 350"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 font-bold text-sm transition-all outline-none"
+                      />
+                    </div>
+                    
+                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl">
+                      <button 
+                        type="button"
+                        onClick={() => setEditBillingCycle('MONTHLY')}
+                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${editBillingCycle === 'MONTHLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
+                      >
+                        Mensal
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={() => setEditBillingCycle('YEARLY')}
+                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${editBillingCycle === 'YEARLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
+                      >
+                        Anual <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">-40%</span>
+                      </button>
+                    </div>
+
+                    <div className="flex gap-3 mt-8">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingPlan(false)}
+                        className="px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleUpdatePlan}
+                        disabled={isUpdatingPlan}
+                        className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all active:scale-[0.97]"
+                      >
+                        {isUpdatingPlan ? <span className="material-icons-outlined animate-spin">refresh</span> : 'Salvar Plano'}
+                      </button>
                     </div>
                   </div>
-
-                  {formValues.paymentMethod === 'CREDIT_CARD' && (
-                    <div className="pt-2 animate-fade-in space-y-4">
-                      {renderField('Nome no Cartão', 'ccHolderName', 'text', 'Ex: JOAO A SILVA')}
-                      {renderField('CPF/CNPJ do Titular', 'ccCpfCnpj', 'text', '000.000.000-00', formatCpfCnpj)}
-                      <div className="grid grid-cols-12 gap-4">
-                        <div className="col-span-12 sm:col-span-6">
-                          {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
-                        </div>
-                        <div className="col-span-6 sm:col-span-3">
-                          {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
-                        </div>
-                        <div className="col-span-6 sm:col-span-3">
-                          {renderField('CVV', 'ccCvv', 'text', '123', (v) => v.replace(/\D/g, '').slice(0, 4))}
-                        </div>
+                ) : (
+                  <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 animate-fade-in">
+                    <div className="mb-6">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">
+                        Forma de Pagamento
+                      </label>
+                      <div className="flex gap-2 bg-gray-100 dark:bg-white/5 p-1.5 rounded-2xl">
+                        {['CREDIT_CARD', 'PIX', 'BOLETO'].map(method => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => setValue('paymentMethod', method as any)}
+                            className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-xl transition-all ${
+                              formValues.paymentMethod === method
+                                ? 'bg-white dark:bg-surface-dark shadow text-primary'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                            }`}
+                          >
+                            {method === 'CREDIT_CARD' ? 'Cartão' : method === 'PIX' ? 'PIX' : 'Boleto'}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  )}
 
-                  {/* Resumo da Compra + Timer */}
-                  <div className="mt-8">
-                    <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden mb-4">
-                      {timeLeft > 0 ? (
-                        <div className="flex items-center gap-2 text-rose-500 font-black mb-2 animate-pulse">
-                          <span className="material-icons-outlined text-sm">timer</span>
-                          <span className="text-xs uppercase tracking-widest">Desconto expira em: {formatTime(timeLeft)}</span>
+                    {formValues.paymentMethod === 'CREDIT_CARD' && (
+                      <div className="pt-2 animate-fade-in space-y-4">
+                        {renderField('Nome no Cartão', 'ccHolderName', 'text', 'Ex: JOAO A SILVA')}
+                        {renderField('CPF/CNPJ do Titular', 'ccCpfCnpj', 'text', '000.000.000-00', formatCpfCnpj)}
+                        <div className="grid grid-cols-12 gap-4">
+                          <div className="col-span-12 sm:col-span-6">
+                            {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
+                          </div>
+                          <div className="col-span-6 sm:col-span-3">
+                            {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
+                          </div>
+                          <div className="col-span-6 sm:col-span-3">
+                            {renderField('CVV', 'ccCvv', 'text', '123', (v) => v.replace(/\D/g, '').slice(0, 4))}
+                          </div>
                         </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-gray-400 font-black mb-2">
-                          <span className="material-icons-outlined text-sm">timer_off</span>
-                          <span className="text-xs uppercase tracking-widest">Desconto expirado</span>
-                        </div>
-                      )}
-                      <p className="text-gray-500 text-xs font-bold mb-1">Total a pagar {isYearly ? '(Anual)' : '(Mensal)'}</p>
-                      <p className="text-3xl font-black text-slate-900 dark:text-white">R$ {formatBRL(finalTotal)}</p>
+                      </div>
+                    )}
+
+                    {/* Resumo da Compra + Timer */}
+                    <div className="mt-8">
+                      <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden mb-4">
+                        {timeLeft > 0 ? (
+                          <div className="flex items-center gap-2 text-rose-500 font-black mb-2 animate-pulse">
+                            <span className="material-icons-outlined text-sm">timer</span>
+                            <span className="text-xs uppercase tracking-widest">Desconto expira em: {formatTime(timeLeft)}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-gray-400 font-black mb-2">
+                            <span className="material-icons-outlined text-sm">timer_off</span>
+                            <span className="text-xs uppercase tracking-widest">Desconto expirado</span>
+                          </div>
+                        )}
+                        <p className="text-gray-500 text-xs font-bold mb-1">Total a pagar {isYearly ? '(Anual)' : '(Mensal)'}</p>
+                        <p className="text-3xl font-black text-slate-900 dark:text-white">R$ {formatBRL(finalTotal)}</p>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full bg-primary hover:bg-primary-dark text-white font-black py-4 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-base uppercase tracking-widest"
+                      >
+                        {isLoading ? (
+                          <span className="material-icons-outlined animate-spin">refresh</span>
+                        ) : (
+                          <>
+                            <span className="material-icons-outlined">lock</span>
+                            {formValues.paymentMethod === 'CREDIT_CARD' ? 'Pagar e Acessar' : 'Gerar Pagamento'}
+                          </>
+                        )}
+                      </button>
                     </div>
-
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full bg-primary hover:bg-primary-dark text-white font-black py-4 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-base uppercase tracking-widest"
-                    >
-                      {isLoading ? (
-                        <span className="material-icons-outlined animate-spin">refresh</span>
-                      ) : (
-                        <>
-                          <span className="material-icons-outlined">lock</span>
-                          {formValues.paymentMethod === 'CREDIT_CARD' ? 'Pagar e Acessar' : 'Gerar Pagamento'}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  
-                  <div className="flex items-center justify-center gap-2 opacity-50 mt-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                      <span className="material-icons-outlined text-[14px]">shield</span>
-                      Processado com segurança pelo Asaas
-                    </span>
-                  </div>
-                </form>
+                    
+                    <div className="flex items-center justify-center gap-2 opacity-50 mt-4">
+                      <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
+                        <span className="material-icons-outlined text-[14px]">shield</span>
+                        Processado com segurança pelo Asaas
+                      </span>
+                    </div>
+                  </form>
+                )}
 
               </div>
             )}

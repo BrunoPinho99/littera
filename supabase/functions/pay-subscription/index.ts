@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { paymentMethod, action } = body
+    const { paymentMethod, action, studentCount, billingCycle } = body
 
     // 1. Obter Profile e School do usuário logado
     const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
@@ -86,6 +86,44 @@ Deno.serve(async (req: Request) => {
         return jsonResponse({ status: 'REJECTED' })
       }
       return jsonResponse({ status: 'PENDING_CARD' })
+    }
+
+    // Action para alterar o plano atual
+    if (action === 'update_plan') {
+      if (!studentCount || !billingCycle) return jsonResponse({ error: 'Faltam parâmetros para atualizar o plano.' }, 400);
+
+      const isYearly = billingCycle === 'YEARLY'
+      const discount = isYearly ? 0.6 : 1
+      
+      let pricePerStudent = 0;
+      if (studentCount <= 200) pricePerStudent = 8.90;
+      else if (studentCount <= 500) pricePerStudent = 7.90;
+      else if (studentCount <= 1000) pricePerStudent = 6.90;
+      else pricePerStudent = 5.90;
+      
+      pricePerStudent = pricePerStudent * discount;
+      const monthlyTotal = studentCount * pricePerStudent;
+      const planPrice = isYearly ? monthlyTotal * 12 : monthlyTotal;
+
+      const updateRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
+        method: 'POST',
+        headers: asaasHeaders,
+        body: JSON.stringify({ 
+          value: planPrice, 
+          cycle: isYearly ? 'YEARLY' : 'MONTHLY',
+          description: `Assinatura Littera – Plano School (${studentCount} alunos)`,
+          updatePendingPayments: true 
+        }),
+      })
+
+      if (!updateRes.ok) {
+        const errData = await updateRes.json()
+        return jsonResponse({ error: errData.errors?.[0]?.description || 'Erro ao atualizar plano no Asaas' }, 500)
+      }
+
+      await supabase.from('schools').update({ student_count: studentCount }).eq('id', profile.school_id)
+
+      return jsonResponse({ success: true, message: 'Plano atualizado com sucesso' })
     }
 
     // 2. Buscar o cliente no Asaas para obter dados do titular do cartão (CreditCardHolderInfo)
