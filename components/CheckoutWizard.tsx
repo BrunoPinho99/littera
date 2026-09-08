@@ -142,14 +142,26 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const getDynamicPrice = () => {
     const students = parseInt(formValues.studentCount) || 0;
     const isYearly = formValues.billingCycle === 'YEARLY';
-    const discount = isYearly ? 0.8 : 1;
-    const pricePerStudent = students <= 200 ? 9 * discount : 7 * discount;
+    const discount = isYearly ? 0.6 : 1;
+    
+    let pricePerStudent = 0;
+    if (students <= 200) {
+      pricePerStudent = 8.90;
+    } else if (students <= 500) {
+      pricePerStudent = 7.90;
+    } else if (students <= 1000) {
+      pricePerStudent = 6.90;
+    } else {
+      pricePerStudent = 5.90;
+    }
+    
+    pricePerStudent = pricePerStudent * discount;
     const monthlyTotal = students * pricePerStudent;
     const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
     
     return {
       finalTotal,
-      planName: students <= 200 ? 'Starter' : 'School',
+      planName: 'School',
       isYearly
     };
   };
@@ -484,7 +496,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                         onClick={() => setValue('billingCycle', 'YEARLY')}
                         className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${formValues.billingCycle === 'YEARLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
                       >
-                        Anual <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">-20%</span>
+                        Anual <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">-40%</span>
                       </button>
                     </div>
 

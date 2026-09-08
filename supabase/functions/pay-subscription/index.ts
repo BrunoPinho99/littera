@@ -118,9 +118,9 @@ Deno.serve(async (req: Request) => {
 
         if (customerInfo) {
           updatePayload.creditCardHolderInfo = {
-            name: customerInfo.name,
+            name: body.ccHolderName || customerInfo.name,
             email: customerInfo.email,
-            cpfCnpj: customerInfo.cpfCnpj,
+            cpfCnpj: body.ccCpfCnpj ? body.ccCpfCnpj.replace(/\D/g, '') : customerInfo.cpfCnpj,
             postalCode: customerInfo.postalCode,
             addressNumber: customerInfo.addressNumber,
             phone: customerInfo.phone || customerInfo.mobilePhone

@@ -5,6 +5,24 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate } from 'react-router-dom';
 
+function formatCpfCnpj(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 14);
+  if (digits.length <= 11) {
+    // CPF
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+  } else {
+    // CNPJ
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+    if (digits.length <= 8) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5)}`;
+    if (digits.length <= 12) return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8)}`;
+    return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
+  }
+}
+
 function formatCardNumber(value: string): string {
   return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
 }
@@ -20,6 +38,7 @@ function formatExpiry(value: string): string {
 const paymentSchema = z.object({
   paymentMethod: z.enum(['CREDIT_CARD', 'PIX', 'BOLETO']).default('CREDIT_CARD'),
   ccHolderName: z.string().optional(),
+  ccCpfCnpj: z.string().optional(),
   ccNumber: z.string().optional(),
   ccExpiry: z.string().optional(),
   ccCvv: z.string().optional(),
@@ -27,6 +46,9 @@ const paymentSchema = z.object({
   if (data.paymentMethod === 'CREDIT_CARD') {
     if (!data.ccHolderName) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Nome impresso no cartão é obrigatório', path: ['ccHolderName'] });
+    }
+    if (!data.ccCpfCnpj || data.ccCpfCnpj.replace(/\D/g, '').length < 11) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'CPF ou CNPJ inválido', path: ['ccCpfCnpj'] });
     }
     if (!data.ccNumber || data.ccNumber.replace(/\D/g, '').length < 14) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Número do cartão inválido', path: ['ccNumber'] });
@@ -54,6 +76,36 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
   const [paymentResult, setPaymentResult] = useState<any>(null);
   const [schoolData, setSchoolData] = useState<any>(null);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(30 * 60);
+
+  // Timer de 30 minutos
+  useEffect(() => {
+    const savedTime = localStorage.getItem('checkout_startTime');
+    let startTime = parseInt(savedTime || '0', 10);
+    
+    if (!startTime) {
+      startTime = Date.now();
+      localStorage.setItem('checkout_startTime', startTime.toString());
+    }
+
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, (30 * 60) - elapsed);
+      setTimeLeft(remaining);
+      
+      if (remaining === 0) {
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   // Polling: verifica o status da escola a cada 5s — funciona para PIX, Boleto e Cartão
   useEffect(() => {
@@ -146,6 +198,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         body: {
           paymentMethod: data.paymentMethod,
           ccHolderName: data.ccHolderName,
+          ccCpfCnpj: data.ccCpfCnpj,
           ccNumber: data.ccNumber,
           ccExpiry: data.ccExpiry,
           ccCvv: data.ccCvv
@@ -255,7 +308,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
     pricePerStudent = 7.90;
   } else if (studentCount <= 1000) {
     pricePerStudent = 6.90;
-  } else if (studentCount <= 2000) {
+  } else {
     pricePerStudent = 5.90;
   }
   pricePerStudent = pricePerStudent * discount;
@@ -298,7 +351,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
               <div className="bg-white/5 border-none shadow-ambient rounded-2xl p-6 mt-8 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-4">
                   <p className="text-[10px] font-black text-primary uppercase tracking-widest">Seu Plano Atual</p>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isYearly ? 'ANUAL (-20%)' : 'MENSAL'}</p>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{isYearly ? 'ANUAL (-40%)' : 'MENSAL'}</p>
                 </div>
                 <div className="flex justify-between items-end mb-2">
                   <div className="flex items-end gap-2">
@@ -507,6 +560,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                   {formValues.paymentMethod === 'CREDIT_CARD' && (
                     <div className="pt-2 animate-fade-in space-y-4">
                       {renderField('Nome no Cartão', 'ccHolderName', 'text', 'Ex: JOAO A SILVA')}
+                      {renderField('CPF/CNPJ do Titular', 'ccCpfCnpj', 'text', '000.000.000-00', formatCpfCnpj)}
                       <div className="grid grid-cols-12 gap-4">
                         <div className="col-span-12 sm:col-span-6">
                           {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
@@ -521,20 +575,39 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
                     </div>
                   )}
 
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full bg-primary hover:bg-primary-dark text-white font-black py-4 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 mt-8 active:scale-95 text-base uppercase tracking-widest"
-                  >
-                    {isLoading ? (
-                      <span className="material-icons-outlined animate-spin">refresh</span>
-                    ) : (
-                      <>
-                        <span className="material-icons-outlined">lock</span>
-                        {formValues.paymentMethod === 'CREDIT_CARD' ? 'Pagar e Acessar' : 'Gerar Pagamento'}
-                      </>
-                    )}
-                  </button>
+                  {/* Resumo da Compra + Timer */}
+                  <div className="mt-8">
+                    <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-4 flex flex-col items-center justify-center text-center relative overflow-hidden mb-4">
+                      {timeLeft > 0 ? (
+                        <div className="flex items-center gap-2 text-rose-500 font-black mb-2 animate-pulse">
+                          <span className="material-icons-outlined text-sm">timer</span>
+                          <span className="text-xs uppercase tracking-widest">Desconto expira em: {formatTime(timeLeft)}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-gray-400 font-black mb-2">
+                          <span className="material-icons-outlined text-sm">timer_off</span>
+                          <span className="text-xs uppercase tracking-widest">Desconto expirado</span>
+                        </div>
+                      )}
+                      <p className="text-gray-500 text-xs font-bold mb-1">Total a pagar {isYearly ? '(Anual)' : '(Mensal)'}</p>
+                      <p className="text-3xl font-black text-slate-900 dark:text-white">R$ {formatBRL(finalTotal)}</p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-primary hover:bg-primary-dark text-white font-black py-4 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-base uppercase tracking-widest"
+                    >
+                      {isLoading ? (
+                        <span className="material-icons-outlined animate-spin">refresh</span>
+                      ) : (
+                        <>
+                          <span className="material-icons-outlined">lock</span>
+                          {formValues.paymentMethod === 'CREDIT_CARD' ? 'Pagar e Acessar' : 'Gerar Pagamento'}
+                        </>
+                      )}
+                    </button>
+                  </div>
                   
                   <div className="flex items-center justify-center gap-2 opacity-50 mt-4">
                     <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
