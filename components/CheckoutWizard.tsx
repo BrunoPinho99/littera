@@ -231,11 +231,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Aguarda um momento para o updateUserById da Edge Function propagar
-      // e força refresh da sessão para garantir que user_metadata tenha school_id e user_type
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      await supabase.auth.refreshSession();
-
       // Salva dados no localStorage como fallback para PendingCheckoutPage
       localStorage.setItem('checkout_billingCycle', data.billingCycle);
       if (fnData?.schoolId) localStorage.setItem('checkout_schoolId', fnData.schoolId);
