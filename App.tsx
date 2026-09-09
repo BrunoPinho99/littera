@@ -337,7 +337,7 @@ const App: React.FC = () => {
   }
 
   // --- TRAVA DE ASSINATURA (PAYWALL B2B) ---
-  const isSuspended = session && schoolStatus !== 'active' && schoolStatus !== null;
+  const isSuspended = session && schoolStatus !== 'active' && schoolStatus !== null && userType !== 'school_admin';
 
   const renderSuspended = () => {
     if (userType === 'school_admin') {

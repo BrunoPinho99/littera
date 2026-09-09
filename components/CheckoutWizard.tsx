@@ -155,6 +155,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(checkoutSchema),
@@ -303,25 +304,22 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       });
 
       if (payError || payData?.error) {
-        // Conta criada mas pagamento falhou — redireciona pro dashboard onde pode tentar de novo
-        console.warn('[CheckoutWizard] Pagamento falhou, redirecionando:', payError?.message || payData?.error);
-        localStorage.setItem('checkout_billingCycle', data.billingCycle);
-        window.location.href = '/app/inst-overview';
+        // Pagamento falhou — avisa o usuário e não redireciona
+        console.warn('[CheckoutWizard] Pagamento falhou:', payError?.message || payData?.error);
+        setGlobalError(payError?.message || payData?.error || 'Falha ao processar o pagamento. Verifique os dados do cartão e tente novamente.');
+        setIsLoading(false);
         return;
       }
 
-      // 4. Pagamento processado! Redirecionar direto pro dashboard
+      // 4. Pagamento processado! Exibir tela de sucesso
       localStorage.setItem('checkout_billingCycle', data.billingCycle);
       if (fnData?.schoolId) localStorage.setItem('checkout_schoolId', fnData.schoolId);
       
-      // Se aprovado imediatamente
-      if (payData?.status === 'PAID') {
-        await supabase.auth.refreshSession();
-        window.location.href = '/app/inst-overview';
-      } else {
-        // Cartão em análise antifraude — redireciona e o polling cuida
-        window.location.href = '/app/inst-overview';
-      }
+      // Atualiza a sessão para pegar o novo status
+      await supabase.auth.refreshSession();
+      
+      // Mostra a tela de sucesso
+      setIsSuccess(true);
 
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
@@ -389,6 +387,40 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       <h3 className="text-lg font-bold text-on-surface tracking-tight">{title}</h3>
     </div>
   );
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0a0f1c] flex flex-col items-center justify-center font-sans p-4 relative overflow-hidden">
+        {/* Elementos Decorativos Fundo */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-green-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30vw] h-[30vw] bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="bg-white dark:bg-surface-dark p-10 rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
+          <div className="relative z-10">
+            <div className="relative w-24 h-24 mx-auto mb-8 bg-green-50 dark:bg-green-500/10 rounded-full flex items-center justify-center">
+              <span className="material-icons-outlined text-green-500 text-5xl">check_circle</span>
+            </div>
+
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight font-display">
+              Pagamento Confirmado!
+            </h2>
+            
+            <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium leading-relaxed">
+              Muito obrigado pela confiança! Sua assinatura foi ativada com sucesso. Você já pode acessar a plataforma e começar a utilizar todos os nossos recursos.
+            </p>
+
+            <button
+              onClick={() => window.location.href = '/app/inst-overview'}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-xl shadow-xl shadow-green-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-sm uppercase tracking-widest"
+            >
+              <span className="material-icons-outlined text-lg">login</span>
+              Acessar Plataforma
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-surface font-sans overflow-x-hidden relative">
