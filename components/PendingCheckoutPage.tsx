@@ -9,6 +9,8 @@ interface PendingCheckoutPageProps {
 export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogout, session }) => {
   const [schoolData, setSchoolData] = useState<any>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isRejected, setIsRejected] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Polling: verifica o status da escola a cada 5s
   useEffect(() => {
@@ -21,6 +23,34 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
       const schoolId = session?.user?.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
       if (!schoolId) return;
 
+      try {
+        // Tenta verificar o status real no Asaas via Edge Function
+        const { data: statusData, error: statusError } = await supabase.functions.invoke('pay-subscription', {
+          body: { action: 'check_status' },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+        });
+
+        if (!statusError && statusData) {
+          if (statusData.status === 'PAID') {
+             redirecting = true;
+             clearInterval(intervalRef.current);
+             await supabase.auth.refreshSession();
+             setIsSuccess(true);
+             return;
+          } else if (statusData.status === 'REJECTED') {
+             redirecting = true; // Para de executar os próximos passos
+             clearInterval(intervalRef.current);
+             setIsRejected(true);
+             return;
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao chamar edge function check_status:', err);
+      }
+
+      // Fallback: busca na tabela schools
       const { data: school, error } = await supabase
         .from('schools')
         .select('id, name, subscription_status')
@@ -47,7 +77,55 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
     intervalRef.current = setInterval(checkStatus, 5000);
 
     return () => clearInterval(intervalRef.current);
-  }, [session]);
+  }, [session, retryCount]);
+
+  if (isRejected) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0a0f1c] flex flex-col items-center justify-center font-sans p-4 relative overflow-hidden">
+        {/* Elementos Decorativos Fundo */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-red-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30vw] h-[30vw] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="bg-white dark:bg-surface-dark p-10 rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
+          <div className="relative z-10">
+            <div className="relative w-24 h-24 mx-auto mb-8 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center">
+              <span className="material-icons-outlined text-red-500 text-5xl">error_outline</span>
+            </div>
+
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight font-display">
+              Pagamento Recusado
+            </h2>
+            
+            <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium leading-relaxed">
+              Ocorreu um problema com o pagamento da sua assinatura. Isso pode acontecer por falta de limite, bloqueio de segurança do banco ou dados incorretos.
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setIsRejected(false);
+                  window.open('/cadastro', '_blank');
+                  // Força o useEffect a rodar novamente para voltar a fazer o polling
+                  setRetryCount(c => c + 1);
+                }}
+                className="w-full bg-primary hover:bg-primary-dark text-white font-black py-4 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-sm uppercase tracking-widest"
+              >
+                <span className="material-icons-outlined text-lg">credit_card</span>
+                Tentar Novamente
+              </button>
+
+              <button
+                onClick={onLogout}
+                className="w-full px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all uppercase tracking-widest"
+              >
+                Sair da Conta
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isSuccess) {
     return (
