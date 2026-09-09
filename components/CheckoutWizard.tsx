@@ -341,7 +341,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     const errorMsg = (errors as any)[name]?.message;
     return (
       <div className="space-y-1.5">
-        <label className="text-[11px] font-semibold text-slate-400 tracking-wide block">
+        <label className="text-[11px] font-semibold text-on-surface-variant tracking-wide uppercase block">
           {label}
         </label>
         <Controller
@@ -357,18 +357,18 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                 const val = formatter ? formatter(e.target.value) : e.target.value;
                 field.onChange(val);
               }}
-              className={`w-full px-4 py-3 rounded-xl bg-slate-800/60 border text-sm text-white placeholder:text-slate-500 font-medium transition-all outline-none focus:ring-2 focus:ring-primary/40 ${
-                disabled ? 'opacity-60 cursor-not-allowed' : ''
+              className={`w-full px-4 py-3 rounded-xl bg-surface-container-low border text-sm text-on-surface placeholder:text-on-surface-variant/50 font-medium transition-all outline-none focus:ring-2 focus:ring-primary/30 ${
+                disabled ? 'opacity-60 cursor-not-allowed bg-surface-container-high' : ''
               } ${
                 errorMsg
-                  ? 'border-rose-500/50 bg-rose-950/20'
-                  : 'border-slate-700/50 hover:border-slate-600 focus:border-primary/60'
+                  ? 'border-rose-400 bg-rose-50'
+                  : 'border-outline-variant hover:border-secondary focus:border-primary'
               }`}
             />
           )}
         />
         {errorMsg && (
-          <p className="text-rose-400 text-[11px] font-medium flex items-center gap-1">
+          <p className="text-rose-600 text-[11px] font-medium flex items-center gap-1">
             <span className="material-icons-outlined text-xs">error_outline</span>
             {errorMsg as string}
           </p>
@@ -384,37 +384,37 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-lg shadow-primary/30">
         {number}
       </div>
-      <h3 className="text-lg font-bold text-white tracking-tight">{title}</h3>
+      <h3 className="text-lg font-bold text-on-surface tracking-tight">{title}</h3>
     </div>
   );
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 font-sans overflow-x-hidden relative">
+    <div className="min-h-screen w-full bg-surface font-sans overflow-x-hidden relative">
       {/* Background effects */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px]" />
-        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px]" />
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary-fixed/30 rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary-fixed/20 rounded-full blur-[120px]" />
       </div>
 
       {/* Header */}
-      <header className="relative z-10 border-b border-slate-800/50 backdrop-blur-md bg-slate-950/80">
+      <header className="relative z-10 border-b border-outline-variant/40 backdrop-blur-md bg-surface/90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
               <span className="text-white font-black text-lg leading-none">L</span>
             </div>
-            <span className="font-black text-xl tracking-tight text-white">
+            <span className="font-black text-xl tracking-tight text-on-surface">
               Littera<span className="text-primary">.</span>
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <span className="material-icons-outlined text-emerald-400 text-sm">lock</span>
+            <span className="hidden sm:flex items-center gap-1.5 text-xs text-on-surface-variant font-medium">
+              <span className="material-icons-outlined text-emerald-600 text-sm">lock</span>
               Ambiente 100% Seguro
             </span>
             <button
               onClick={onBack}
-              className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-sm font-medium"
+              className="text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1 text-sm font-medium"
             >
               <span className="material-icons-outlined text-lg">close</span>
             </button>
@@ -431,14 +431,14 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
             <div className="flex-1 w-full lg:max-w-2xl space-y-6">
 
               {globalError && (
-                <div className="p-4 bg-rose-950/40 border border-rose-500/30 rounded-2xl text-rose-300 text-sm font-medium flex items-center gap-2">
+                <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-rose-700 text-sm font-medium flex items-center gap-2">
                   <span className="material-icons-outlined text-base">error_outline</span>
                   {globalError}
                 </div>
               )}
 
               {/* ─ Section 1: Dados Pessoais ─ */}
-              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
+              <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 sm:p-7 shadow-card">
                 <SectionHeader number={1} title="Dados Pessoais & Conta" />
 
                 <div className="space-y-4">
@@ -459,11 +459,11 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                           <div className="flex h-1.5 flex-1 gap-0.5">
                             {[1, 2, 3, 4, 5].map(level => (
                               <div key={level} className={`flex-1 rounded-full transition-all duration-300 ${
-                                passwordStrength.score >= level ? passwordStrength.color : 'bg-slate-700'
+                                passwordStrength.score >= level ? passwordStrength.color : 'bg-gray-200'
                               }`} />
                             ))}
                           </div>
-                          <span className={`text-[10px] font-bold ${passwordStrength.score <= 2 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                          <span className={`text-[10px] font-bold ${passwordStrength.score <= 2 ? 'text-orange-600' : 'text-emerald-600'}`}>
                             {passwordStrength.label}
                           </span>
                         </div>
@@ -472,8 +472,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     {renderField('Confirmar Senha', 'confirmPassword', 'password', 'Repita a senha')}
                   </div>
 
-                  <div className="border-t border-slate-800/50 pt-4 mt-4">
-                    <p className="text-xs text-slate-500 font-medium mb-3 flex items-center gap-1.5">
+                  <div className="border-t border-outline-variant/30 pt-4 mt-4">
+                    <p className="text-xs text-on-surface-variant font-medium mb-3 flex items-center gap-1.5">
                       <span className="material-icons-outlined text-sm text-primary">school</span>
                       Dados da Instituição
                     </p>
@@ -486,7 +486,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
               </div>
 
               {/* ─ Section 2: Endereço de Cobrança ─ */}
-              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
+              <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 sm:p-7 shadow-card">
                 <SectionHeader number={2} title="Endereço de Cobrança" />
 
                 <div className="space-y-4">
@@ -514,7 +514,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
               </div>
 
               {/* ─ Section 3: Dados do Cartão ─ */}
-              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
+              <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 sm:p-7 shadow-card">
                 <SectionHeader number={3} title="Dados do Cartão" />
 
                 <div className="space-y-4">
@@ -545,8 +545,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                   )}
                 </button>
                 <div className="flex items-center justify-center gap-2 mt-3 opacity-50">
-                  <span className="material-icons-outlined text-xs text-slate-400">shield</span>
-                  <span className="text-[10px] text-slate-400 font-medium">Processado com segurança pelo Asaas</span>
+                  <span className="material-icons-outlined text-xs text-on-surface-variant">shield</span>
+                  <span className="text-[10px] text-on-surface-variant font-medium">Processado com segurança pelo Asaas</span>
                 </div>
               </div>
 
@@ -554,8 +554,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
 
             {/* ── Right: Resumo do Pedido (Sidebar) ────────────────── */}
             <div className="w-full lg:w-[380px] lg:sticky lg:top-8 shrink-0">
-              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
-                <h3 className="text-lg font-bold text-white mb-6 tracking-tight">Resumo do Pedido</h3>
+              <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 sm:p-7 shadow-card">
+                <h3 className="text-lg font-bold text-on-surface mb-6 tracking-tight">Resumo do Pedido</h3>
 
                 {/* Plan Icon + Title */}
                 <div className="flex items-center gap-4 mb-6">
@@ -563,10 +563,10 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     <span className="material-icons-outlined text-white text-2xl">school</span>
                   </div>
                   <div>
-                    <p className="text-white font-bold text-base">
+                    <p className="text-on-surface font-bold text-base">
                       Plano {priceInfo.isYearly ? 'Anual' : 'Mensal'}
                     </p>
-                    <p className="text-sm text-slate-400">
+                    <p className="text-sm text-on-surface-variant">
                       {priceInfo.isYearly ? '12x sem juros' : 'Cobrança mensal'}
                     </p>
                   </div>
@@ -574,7 +574,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
 
                 {/* Quantidade de Alunos */}
                 <div className="mb-5 space-y-2">
-                  <label className="text-[11px] font-semibold text-slate-400 tracking-wide block">
+                  <label className="text-[11px] font-semibold text-on-surface-variant tracking-wide uppercase block">
                     Quantidade de Alunos
                   </label>
                   <Controller
@@ -585,30 +585,30 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                         {...field}
                         type="number"
                         placeholder="Ex: 350"
-                        className="w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-sm text-white placeholder:text-slate-500 font-medium transition-all outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 hover:border-slate-600"
+                        className="w-full px-4 py-3 rounded-xl bg-surface-container-low border border-outline-variant text-sm text-on-surface placeholder:text-on-surface-variant/50 font-medium transition-all outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary hover:border-secondary"
                       />
                     )}
                   />
                   {(errors as any).studentCount?.message && (
-                    <p className="text-rose-400 text-[11px] font-medium">{(errors as any).studentCount.message as string}</p>
+                    <p className="text-rose-600 text-[11px] font-medium">{(errors as any).studentCount.message as string}</p>
                   )}
                   {priceInfo.students > 0 && (
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-on-surface-variant mt-1">
                       Faixa {priceInfo.tierLabel} — R$ {formatBRL(priceInfo.basePrice)}/aluno
-                      {priceInfo.isYearly && <span className="text-emerald-400"> (c/ 40% off)</span>}
+                      {priceInfo.isYearly && <span className="text-emerald-600"> (c/ 40% off)</span>}
                     </p>
                   )}
                 </div>
 
                 {/* Billing Cycle Toggle */}
-                <div className="flex bg-slate-800/80 p-1 rounded-xl mb-6">
+                <div className="flex bg-surface-container-high p-1 rounded-xl mb-6">
                   <button
                     type="button"
                     onClick={() => setValue('billingCycle', 'MONTHLY')}
                     className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
                       formValues.billingCycle === 'MONTHLY'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                        : 'text-slate-400 hover:text-slate-300'
+                        : 'text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     Mensal
@@ -619,30 +619,30 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                       formValues.billingCycle === 'YEARLY'
                         ? 'bg-primary text-white shadow-lg shadow-primary/30'
-                        : 'text-slate-400 hover:text-slate-300'
+                        : 'text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     Anual
-                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">-40%</span>
+                    <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">-40%</span>
                   </button>
                 </div>
 
                 {/* Price breakdown */}
-                <div className="border-t border-slate-800/60 pt-5 space-y-3">
+                <div className="border-t border-outline-variant/30 pt-5 space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-400">Valor total</span>
-                    <span className="text-white font-semibold">R$ {formatBRL(priceInfo.finalTotal)}</span>
+                    <span className="text-on-surface-variant">Valor total</span>
+                    <span className="text-on-surface font-semibold">R$ {formatBRL(priceInfo.finalTotal)}</span>
                   </div>
 
                   {priceInfo.isYearly && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-slate-400">Parcelamento</span>
-                      <span className="text-white font-semibold">12x sem juros</span>
+                      <span className="text-on-surface-variant">Parcelamento</span>
+                      <span className="text-on-surface font-semibold">12x sem juros</span>
                     </div>
                   )}
 
-                  <div className="flex justify-between items-end pt-3 border-t border-slate-800/60">
-                    <span className="text-sm font-bold text-white">Valor da parcela</span>
+                  <div className="flex justify-between items-end pt-3 border-t border-outline-variant/30">
+                    <span className="text-sm font-bold text-on-surface">Valor da parcela</span>
                     <span className="text-2xl font-black text-primary">
                       R$ {formatBRL(priceInfo.isYearly ? priceInfo.finalTotal / 12 : priceInfo.finalTotal)}
                     </span>
@@ -657,8 +657,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                     'Suporte prioritário',
                     'Atualizações gratuitas',
                   ].map(benefit => (
-                    <div key={benefit} className="flex items-center gap-2 text-sm text-slate-300">
-                      <span className="material-icons-outlined text-emerald-400 text-base">check_circle</span>
+                    <div key={benefit} className="flex items-center gap-2 text-sm text-on-surface-variant">
+                      <span className="material-icons-outlined text-emerald-600 text-base">check_circle</span>
                       {benefit}
                     </div>
                   ))}
@@ -682,16 +682,16 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                   </button>
 
                   <div className="flex items-center justify-center gap-2 mt-3 opacity-50">
-                    <span className="material-icons-outlined text-xs text-slate-400">shield</span>
-                    <span className="text-[10px] text-slate-400 font-medium">Processado com segurança pelo Asaas</span>
+                    <span className="material-icons-outlined text-xs text-on-surface-variant">shield</span>
+                    <span className="text-[10px] text-on-surface-variant font-medium">Processado com segurança pelo Asaas</span>
                   </div>
                 </div>
               </div>
 
               {/* Login link */}
-              <p className="text-center text-xs text-slate-500 mt-4">
+              <p className="text-center text-xs text-on-surface-variant mt-4">
                 Já possui cadastro?{' '}
-                <button type="button" onClick={onLogin} className="text-primary hover:text-primary-light font-semibold underline underline-offset-2 transition-colors">
+                <button type="button" onClick={onLogin} className="text-primary hover:text-primary-dark font-semibold underline underline-offset-2 transition-colors">
                   Fazer Login
                 </button>
               </p>
