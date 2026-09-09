@@ -127,70 +127,11 @@ Deno.serve(async (req: Request) => {
       }).catch(e => console.warn('[process-subscription] Falha ao atualizar cliente existente:', e))
     }
 
-    // 3. Criar Assinatura no Asaas
-    const today = new Date().toISOString().split('T')[0]
-    
-    // O billingType inicial é UNDEFINED pois o método de pagamento real
-    // será definido pelo usuário na tela de PendingCheckoutPage (via pay-subscription).
-    const asaasBillingType = paymentMethod || 'UNDEFINED'
+    // 3. Opcional: Auto-complete endereço via ViaCEP (agora já foi feito acima)
+    // A criação da cobrança (Subscription ou Installment) será feita na Edge Function `pay-subscription` 
+    // com base no customerId gerado aqui.
 
-    const subscriptionPayload: Record<string, unknown> = {
-      customer: asaasCustomerId,
-      billingType: asaasBillingType,
-      value: planPrice,
-      nextDueDate: today,
-      cycle: isYearly ? 'YEARLY' : 'MONTHLY',
-      description: `Assinatura Littera – Plano ${planId} (${studentCount} alunos)`
-    }
-
-
-
-    const subRes = await fetch(`${ASAAS_BASE}/subscriptions`, {
-      method: 'POST',
-      headers: asaasHeaders,
-      body: JSON.stringify(subscriptionPayload),
-    })
-
-    const subData = await subRes.json()
-
-    if (!subRes.ok) {
-      return jsonResponse({ error: subData.errors?.[0]?.description || 'Falha ao criar assinatura no Asaas.' })
-    }
-
-    const subscriptionId = subData.id
-
-    // 4. Buscar a cobrança gerada para obter o Link de Pagamento, PIX ou Boleto
-    let invoiceUrl = null
-    let pixQrCode = null
-    let pixCopyPaste = null
-    let bankSlipUrl = null
-
-    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`, {
-      headers: asaasHeaders
-    })
-    if (paymentsRes.ok) {
-      const paymentsData = await paymentsRes.json()
-      if (paymentsData.data && paymentsData.data.length > 0) {
-        const firstPayment = paymentsData.data[0]
-        invoiceUrl = firstPayment.invoiceUrl
-        bankSlipUrl = firstPayment.bankSlipUrl
-
-        if (asaasBillingType === 'PIX') {
-          const pixRes = await fetch(`${ASAAS_BASE}/payments/${firstPayment.id}/pixQrCode`, { headers: asaasHeaders })
-          if (pixRes.ok) {
-            const pixData = await pixRes.json()
-            pixQrCode = pixData.encodedImage
-            pixCopyPaste = pixData.payload
-          }
-        }
-      }
-    }
-
-    if (!invoiceUrl && asaasBillingType !== 'CREDIT_CARD') {
-      return jsonResponse({ error: 'Erro ao gerar link de pagamento.' })
-    }
-
-    // CONTA CRIADA E ASSINATURA PENDENTE! Agora criamos o usuário no banco.
+    // CONTA CRIADA E CLIENTE PRONTO! Agora criamos o usuário no banco.
 
     // 4. Criar ou Recuperar usuário no Supabase Auth
     let createdAuthUserId = null;
@@ -246,11 +187,10 @@ Deno.serve(async (req: Request) => {
         .single()
 
       if (existingSchool) {
-        // Escola já existe — atualizar dados da assinatura
+        // Escola já existe — atualizar dados (cliente Asaas)
         createdSchoolId = existingSchool.id
         await supabase.from('schools').update({
           asaas_customer_id: asaasCustomerId,
-          subscription_id: subscriptionId,
           student_count: studentCount,
           subscription_status: 'inactive'
         }).eq('id', createdSchoolId)
@@ -264,7 +204,6 @@ Deno.serve(async (req: Request) => {
             email: email.toLowerCase().trim(),
             student_count: studentCount,
             asaas_customer_id: asaasCustomerId,
-            subscription_id: subscriptionId,
             subscription_status: 'inactive',
             cep: postalCode?.replace(/\D/g, ''),
             numero: addressNumber,
@@ -277,20 +216,14 @@ Deno.serve(async (req: Request) => {
           .single()
 
         if (schoolError || !schoolData) {
-          // ROLLBACK: deletar assinatura no Asaas se não conseguiu criar escola
-          await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
-            method: 'DELETE',
-            headers: asaasHeaders,
-          }).catch(e => console.error('[process-subscription] Rollback failed:', e))
           return jsonResponse({ error: `Usuário autenticado, mas erro ao salvar escola: ${schoolError?.message || 'Desconhecido'}` })
         }
         createdSchoolId = schoolData.id
       }
     } else {
-      // Usuário já tem escola, apenas atualizamos a assinatura
+      // Usuário já tem escola, apenas atualizamos a referência do Asaas
       await supabase.from('schools').update({
         asaas_customer_id: asaasCustomerId,
-        subscription_id: subscriptionId,
       }).eq('id', createdSchoolId);
     }
 
@@ -307,22 +240,8 @@ Deno.serve(async (req: Request) => {
         whatsapp: whatsapp?.replace(/\D/g, ''),
       })
       
-    if (profileError) {
+      if (profileError) {
       return jsonResponse({ error: `Usuário criado, escola salva, mas erro no perfil: ${profileError.message}` })
-    }
-
-    // Inserir registro na tabela payments
-    const { error: paymentError } = await supabase.from('payments').insert({
-      school_id: createdSchoolId,
-      user_id: createdAuthUserId,
-      plan: `school_${studentCount}_${billingCycle.toLowerCase()}`,
-      amount: planPrice,
-      status: 'pending',
-      asaas_subscription_id: subscriptionId,
-    })
-    
-    if (paymentError) {
-      console.warn('[process-subscription] Falha ao inserir payment:', paymentError)
     }
 
     // IMPORTANTE: incluir user_type para não sobrescrever o valor existente
@@ -334,27 +253,11 @@ Deno.serve(async (req: Request) => {
       },
     })
 
-    // 7. Atualizar a assinatura no Asaas com externalReference = schoolId
-    // Isso garante que o webhook sempre encontre a escola correta pelo externalReference,
-    // mesmo que o subscription_id não esteja no banco ainda.
-    if (subscriptionId) {
-      await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
-        method: 'POST',
-        headers: asaasHeaders,
-        body: JSON.stringify({ externalReference: createdSchoolId }),
-      }).catch(e => console.warn('[process-subscription] Falha ao atualizar externalReference:', e))
-    }
-
     return jsonResponse({
       success: true,
       schoolId: createdSchoolId,
       userId: createdAuthUserId,
-      message: 'Conta criada com sucesso!',
-      invoiceUrl,
-      pixQrCode,
-      pixCopyPaste,
-      bankSlipUrl,
-      billingType: asaasBillingType
+      message: 'Conta criada com sucesso!'
     })
 
   } catch (err: unknown) {

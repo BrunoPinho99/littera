@@ -294,6 +294,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           ccNumber: data.ccNumber.replace(/\s/g, ''),
           ccExpiry: data.ccExpiry,
           ccCvv: data.ccCvv,
+          billingCycle: data.billingCycle,
+          studentCount: parseInt(data.studentCount),
         },
         headers: {
           Authorization: `Bearer ${signInData.session?.access_token}`,

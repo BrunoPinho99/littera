@@ -14,6 +14,7 @@ interface AsaasWebhookPayload {
     id: string
     customer: string
     subscription?: string
+    installment?: string
     externalReference?: string
     invoiceUrl?: string
     value?: number
@@ -175,9 +176,9 @@ Deno.serve(async (req: Request) => {
 
     let schoolId: string | null = entity.externalReference || null
 
-    const subIdToSearch = payment?.subscription || subscription?.id
+    const subIdToSearch = payment?.subscription || payment?.installment || subscription?.id
 
-    // Fallback 1: buscar por subscription_id
+    // Fallback 1: buscar por subscription_id ou installment_id
     if (!schoolId && subIdToSearch) {
       const { data } = await supabase
         .from('schools')
@@ -219,9 +220,10 @@ Deno.serve(async (req: Request) => {
       subscription_status: newStatus,
     }
 
-    // Salvar subscription_id se disponível e ativando
-    if (payment?.subscription && (newStatus === 'active')) {
-      updates.subscription_id = payment.subscription
+    // Salvar subscription_id ou installment_id se disponível e ativando
+    const activeSubId = payment?.subscription || payment?.installment
+    if (activeSubId && (newStatus === 'active')) {
+      updates.subscription_id = activeSubId
     }
 
     // Registrar timestamp de ativação
@@ -247,7 +249,7 @@ Deno.serve(async (req: Request) => {
 
     // ── 7. Atualizar tabela payments (se evento de pagamento) ─────────────────
     if (payment?.id && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED')) {
-      await supabase.from('payments')
+      const { error: paymentUpdateError } = await supabase.from('payments')
         .update({ 
           status: 'paid', 
           paid_at: new Date().toISOString(),
@@ -255,8 +257,12 @@ Deno.serve(async (req: Request) => {
         })
         .eq('school_id', schoolId)
         .eq('status', 'pending')
-        .then(() => console.log(`[webhook-asaas] Payments atualizado para escola ${schoolId}`))
-        .catch(e => console.warn('[webhook-asaas] Falha ao atualizar payments:', e))
+      
+      if (paymentUpdateError) {
+        console.warn('[webhook-asaas] Falha ao atualizar payments:', paymentUpdateError)
+      } else {
+        console.log(`[webhook-asaas] Payments atualizado para escola ${schoolId}`)
+      }
     }
 
     return new Response('ok', { status: 200, headers: corsHeaders })
