@@ -502,7 +502,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
                                         ))}
                                     </ul>
                                     
-                                    <button onClick={() => navigate(`/cadastro?students=${simStudents}&cycle=${simBillingCycle}`)} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
+                                    <button onClick={() => window.open(`/cadastro?students=${simStudents}&cycle=${simBillingCycle}`, '_blank')} style={{ width: '100%', marginTop: 40, padding: '16px', borderRadius: 12, background: '#3b82f6', color: '#fff', fontWeight: 700, fontSize: 15, border: 'none', cursor: 'pointer', transition: 'background 0.2s' }}
                                         onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
                                         onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
                                     >
