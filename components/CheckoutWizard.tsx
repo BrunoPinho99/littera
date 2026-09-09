@@ -249,6 +249,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     setGlobalError(null);
 
     try {
+      // 1. Criar conta + assinatura
       const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
         body: {
           directorName: data.directorName.trim(),
@@ -263,11 +264,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           studentCount: parseInt(data.studentCount),
           billingCycle: data.billingCycle,
           paymentMethod: 'CREDIT_CARD',
-          // Card data for transparent checkout
-          ccHolderName: data.ccHolderName,
-          ccNumber: data.ccNumber.replace(/\s/g, ''),
-          ccExpiry: data.ccExpiry,
-          ccCvv: data.ccCvv,
         },
       });
 
@@ -277,8 +273,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Auto-login
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      // 2. Auto-login
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email.toLowerCase().trim(),
         password: data.password,
       });
@@ -289,10 +285,41 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
+      // 3. Processar pagamento com cartão imediatamente
+      const { data: payData, error: payError } = await supabase.functions.invoke('pay-subscription', {
+        body: {
+          paymentMethod: 'CREDIT_CARD',
+          ccHolderName: data.ccHolderName,
+          ccCpfCnpj: data.cpf.replace(/\D/g, ''),
+          ccNumber: data.ccNumber.replace(/\s/g, ''),
+          ccExpiry: data.ccExpiry,
+          ccCvv: data.ccCvv,
+        },
+        headers: {
+          Authorization: `Bearer ${signInData.session?.access_token}`,
+        },
+      });
+
+      if (payError || payData?.error) {
+        // Conta criada mas pagamento falhou — redireciona pro dashboard onde pode tentar de novo
+        console.warn('[CheckoutWizard] Pagamento falhou, redirecionando:', payError?.message || payData?.error);
+        localStorage.setItem('checkout_billingCycle', data.billingCycle);
+        window.location.href = '/app/inst-overview';
+        return;
+      }
+
+      // 4. Pagamento processado! Redirecionar direto pro dashboard
       localStorage.setItem('checkout_billingCycle', data.billingCycle);
       if (fnData?.schoolId) localStorage.setItem('checkout_schoolId', fnData.schoolId);
-
-      window.location.href = '/app/inst-overview';
+      
+      // Se aprovado imediatamente
+      if (payData?.status === 'PAID') {
+        await supabase.auth.refreshSession();
+        window.location.href = '/app/inst-overview';
+      } else {
+        // Cartão em análise antifraude — redireciona e o polling cuida
+        window.location.href = '/app/inst-overview';
+      }
 
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
