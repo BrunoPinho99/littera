@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -63,124 +63,128 @@ function formatCNPJ(value: string): string {
   return `${digits.slice(0, 2)}.${digits.slice(2, 5)}.${digits.slice(5, 8)}/${digits.slice(8, 12)}-${digits.slice(12)}`;
 }
 
-function _formatCardNumber(value: string): string {
+function formatWhatsApp(value: string): string {
+  const val = value.replace(/\D/g, '').slice(0, 11);
+  if (val.length <= 2) return val;
+  if (val.length <= 6) return `(${val.slice(0, 2)}) ${val.slice(2)}`;
+  if (val.length <= 10) return `(${val.slice(0, 2)}) ${val.slice(2, 6)}-${val.slice(6)}`;
+  return `(${val.slice(0, 2)}) ${val.slice(2, 7)}-${val.slice(7, 11)}`;
+}
+
+function formatCEP(value: string): string {
+  const val = value.replace(/\D/g, '').slice(0, 8);
+  return val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 8)}` : val;
+}
+
+function formatCardNumber(value: string): string {
   return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
 }
 
-function _formatExpiry(value: string): string {
+function formatExpiry(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 4);
-  if (digits.length >= 3) {
-    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  }
+  if (digits.length >= 3) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   return digits;
 }
 
-// ── Zod Schemas ─────────────────────────────────────────────────────────────────
+function validateLuhn(cardNumber: string): boolean {
+  const digits = cardNumber.replace(/\D/g, '');
+  if (digits.length < 13) return false;
+  let sum = 0;
+  let isEven = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits.charAt(i), 10);
+    if (isEven) { digit *= 2; if (digit > 9) digit -= 9; }
+    sum += digit;
+    isEven = !isEven;
+  }
+  return sum % 10 === 0;
+}
 
-const step1Schema = z.object({
+function formatBRL(val: number): string {
+  return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ── Zod Schema ──────────────────────────────────────────────────────────────────
+
+const checkoutSchema = z.object({
+  // Section 1 — Dados Pessoais + Conta
   directorName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  schoolName: z.string().min(2, "Nome da escola é obrigatório"),
-  email: z.string().email("E-mail inválido"),
+  cpf: z.string().refine(validateCPF, "CPF inválido"),
   whatsapp: z.string().min(10, "WhatsApp inválido"),
+  email: z.string().email("E-mail inválido"),
   password: z.string()
     .min(8, "A senha deve ter pelo menos 8 caracteres")
-    .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
-    .regex(/[a-z]/, "A senha deve conter pelo menos uma letra minúscula")
-    .regex(/\d/, "A senha deve conter pelo menos um número")
-    .regex(/[^a-zA-Z0-9]/, "A senha deve conter pelo menos um caractere especial"),
-  confirmPassword: z.string().min(1, "A confirmação da senha é obrigatória"),
+    .regex(/[A-Z]/, "Deve conter letra maiúscula")
+    .regex(/[a-z]/, "Deve conter letra minúscula")
+    .regex(/\d/, "Deve conter um número")
+    .regex(/[^a-zA-Z0-9]/, "Deve conter caractere especial"),
+  confirmPassword: z.string().min(1, "Confirmação obrigatória"),
+  // Section 1 — Escola
+  schoolName: z.string().min(2, "Nome da escola é obrigatório"),
   cnpj: z.string().refine(validateCNPJ, "CNPJ inválido"),
-  cpf: z.string().refine(validateCPF, "CPF inválido"),
+  // Section 2 — Endereço
   postalCode: z.string().min(8, "CEP inválido"),
+  endereco: z.string().optional(),
   addressNumber: z.string().min(1, "Número obrigatório"),
+  complemento: z.string().optional(),
   bairro: z.string().optional(),
   cidade: z.string().optional(),
   estado: z.string().optional(),
-  endereco: z.string().optional(),
-});
-
-const step2Schema = z.object({
+  // Plano
   studentCount: z.string().refine(val => {
     const num = parseInt(val, 10);
     return !isNaN(num) && num > 0 && num <= 50000;
   }, "Quantidade deve estar entre 1 e 50.000"),
   billingCycle: z.enum(['MONTHLY', 'YEARLY']),
-});
-
-const checkoutSchema = step1Schema.and(step2Schema)
-  .refine(
-    (data) => data.password === data.confirmPassword,
-    {
-      message: "As senhas não coincidem",
-      path: ["confirmPassword"],
-    }
-  );
+  // Section 3 — Cartão
+  ccHolderName: z.string().min(3, "Nome no cartão obrigatório"),
+  ccNumber: z.string().refine(v => validateLuhn(v), "Número de cartão inválido"),
+  ccExpiry: z.string().min(5, "Validade inválida (MM/AA)"),
+  ccCvv: z.string().min(3, "CVV inválido"),
+}).refine(
+  (data) => data.password === data.confirmPassword,
+  { message: "As senhas não coincidem", path: ["confirmPassword"] }
+);
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
-
-// ── Steps Info ──────────────────────────────────────────────────────────────────
-
-const STEPS = [
-  { id: 1, label: 'Dados Escolares', icon: 'school' },
-  { id: 2, label: 'Plano', icon: 'payments' },
-  { id: 3, label: 'Pagamento', icon: 'lock' },
-] as const;
 
 // ── Componente ──────────────────────────────────────────────────────────────────
 
 const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({ onBack, onLogin }) => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [globalError, setGlobalError] = useState<string | null>(null);
-  const [_passwordStrength, _setPasswordStrength] = useState<{ score: number; label: string; color: string } | null>(null);
-  const [_createdSchoolId, _setCreatedSchoolId] = useState<string | null>(null);
+  const [cepLoading, setCepLoading] = useState(false);
 
-  // Polling removido porque agora redirecionamos na mesma aba para o Asaas
-
-  const { control, handleSubmit, trigger, watch, setValue, formState: { errors } } = useForm<any>({
+  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(checkoutSchema),
     mode: 'onChange',
     defaultValues: {
-      directorName: '',
-      email: '',
-      whatsapp: '',
-      password: '',
-      confirmPassword: '',
-      schoolName: '',
-      cnpj: '',
-      cpf: '',
-      postalCode: '',
-      addressNumber: '',
-      bairro: '',
-      cidade: '',
-      estado: '',
-      endereco: '',
-      studentCount: '',
-      billingCycle: 'MONTHLY',
-      paymentMethod: 'CREDIT_CARD',
-      ccHolderName: '',
-      ccNumber: '',
-      ccExpiry: '',
-      ccCvv: '',
+      directorName: '', cpf: '', whatsapp: '', email: '',
+      password: '', confirmPassword: '',
+      schoolName: '', cnpj: '',
+      postalCode: '', endereco: '', addressNumber: '', complemento: '', bairro: '', cidade: '', estado: '',
+      studentCount: '', billingCycle: 'MONTHLY',
+      ccHolderName: '', ccNumber: '', ccExpiry: '', ccCvv: '',
     }
   });
 
   const formValues = watch();
 
+  // URL params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const studentsParam = params.get('students');
-    const cycleParam = params.get('cycle');
-    
-    if (studentsParam) setValue('studentCount', studentsParam);
-    if (cycleParam === 'YEARLY' || cycleParam === 'MONTHLY') setValue('billingCycle', cycleParam);
+    const s = params.get('students');
+    const c = params.get('cycle');
+    if (s) setValue('studentCount', s);
+    if (c === 'YEARLY' || c === 'MONTHLY') setValue('billingCycle', c);
   }, [setValue]);
 
   // ViaCEP Auto-complete
   useEffect(() => {
     const cep = formValues.postalCode?.replace(/\D/g, '');
     if (cep?.length === 8) {
+      setCepLoading(true);
       fetch(`https://viacep.com.br/ws/${cep}/json/`)
         .then(res => res.json())
         .then(data => {
@@ -189,71 +193,62 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
             setValue('bairro', data.bairro || '');
             setValue('cidade', data.localidade || '');
             setValue('estado', data.uf || '');
-            trigger(['endereco', 'bairro', 'cidade', 'estado']);
           }
         })
-        .catch(err => console.warn('Erro ViaCEP', err));
+        .catch(err => console.warn('Erro ViaCEP', err))
+        .finally(() => setCepLoading(false));
     }
-  }, [formValues.postalCode, setValue, trigger]);
+  }, [formValues.postalCode, setValue]);
 
-  const getDynamicPrice = () => {
+  // Dynamic pricing
+  const priceInfo = useMemo(() => {
     const students = parseInt(formValues.studentCount) || 0;
     const isYearly = formValues.billingCycle === 'YEARLY';
     const discount = isYearly ? 0.6 : 1;
-    
-    let pricePerStudent = 0;
-    if (students <= 200) {
-      pricePerStudent = 8.90;
-    } else if (students <= 500) {
-      pricePerStudent = 7.90;
-    } else if (students <= 1000) {
-      pricePerStudent = 6.90;
-    } else {
-      pricePerStudent = 5.90;
-    }
-    
-    pricePerStudent = pricePerStudent * discount;
+
+    let basePrice = 0;
+    if (students <= 200) basePrice = 8.90;
+    else if (students <= 500) basePrice = 7.90;
+    else if (students <= 1000) basePrice = 6.90;
+    else basePrice = 5.90;
+
+    const pricePerStudent = basePrice * discount;
     const monthlyTotal = students * pricePerStudent;
     const finalTotal = isYearly ? monthlyTotal * 12 : monthlyTotal;
-    
+    const originalTotal = isYearly ? students * basePrice / discount * 12 : 0;
+
     return {
+      students,
+      basePrice,
+      pricePerStudent,
+      monthlyTotal,
       finalTotal,
-      planName: 'School',
-      isYearly
+      originalTotal,
+      isYearly,
+      tierLabel: students <= 200 ? '1-200' : students <= 500 ? '201-500' : students <= 1000 ? '501-1000' : '1000+',
     };
-  };
+  }, [formValues.studentCount, formValues.billingCycle]);
 
-  const handleNextStep = async () => {
-    setGlobalError(null);
-    if (step === 1) {
-      const isValid = await trigger(['directorName', 'schoolName', 'email', 'whatsapp', 'cpf', 'password', 'confirmPassword', 'cnpj', 'postalCode', 'addressNumber']);
-      if (isValid) setStep(2);
-    } else if (step === 2) {
-      const isValid = await trigger(['studentCount', 'billingCycle']);
-      if (isValid) {
-        // Envia o form diretamente do passo 2
-        handleSubmit(onSubmit)();
-      }
-    }
-  };
-
-  const handleBack = () => {
-    if (step > 1) {
-      setStep(step - 1);
-      setGlobalError(null);
-    } else {
-      onBack();
-    }
-  };
-
-  const [_paymentResult, _setPaymentResult] = useState<any>(null);
+  // Password strength
+  const passwordStrength = useMemo(() => {
+    const p = formValues.password || '';
+    if (!p) return { score: 0, label: '', color: '' };
+    let s = 0;
+    if (p.length >= 8) s++;
+    if (/[A-Z]/.test(p)) s++;
+    if (/[a-z]/.test(p)) s++;
+    if (/\d/.test(p)) s++;
+    if (/[^a-zA-Z0-9]/.test(p)) s++;
+    const labels = ['', 'Fraca', 'Razoável', 'Boa', 'Forte', 'Excelente'];
+    const colors = ['', 'bg-rose-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-400', 'bg-emerald-500'];
+    return { score: s, label: labels[s], color: colors[s] };
+  }, [formValues.password]);
 
   const onSubmit = useCallback(async (data: CheckoutFormData) => {
     setIsLoading(true);
     setGlobalError(null);
 
     try {
-
       const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
         body: {
           directorName: data.directorName.trim(),
@@ -267,7 +262,12 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           addressNumber: data.addressNumber.trim(),
           studentCount: parseInt(data.studentCount),
           billingCycle: data.billingCycle,
-          paymentMethod: 'BOLETO', // Default inicial. O usuário escolhe na próxima tela.
+          paymentMethod: 'CREDIT_CARD',
+          // Card data for transparent checkout
+          ccHolderName: data.ccHolderName,
+          ccNumber: data.ccNumber.replace(/\s/g, ''),
+          ccExpiry: data.ccExpiry,
+          ccCvv: data.ccCvv,
         },
       });
 
@@ -277,7 +277,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Auto-login com o usuário recém criado
+      // Auto-login
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email.toLowerCase().trim(),
         password: data.password,
@@ -289,17 +289,11 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // Salva dados no localStorage como fallback para PendingCheckoutPage
       localStorage.setItem('checkout_billingCycle', data.billingCycle);
       if (fnData?.schoolId) localStorage.setItem('checkout_schoolId', fnData.schoolId);
-      if (fnData?.billingType) localStorage.setItem('checkout_billingType', fnData.billingType);
-      if (fnData?.pixQrCode) localStorage.setItem('checkout_pixQrCode', fnData.pixQrCode);
-      if (fnData?.pixCopyPaste) localStorage.setItem('checkout_pixCopyPaste', fnData.pixCopyPaste);
-      if (fnData?.bankSlipUrl) localStorage.setItem('checkout_bankSlipUrl', fnData.bankSlipUrl);
 
-      // Redireciona para o checkout pendente (PendingCheckoutPage)
       window.location.href = '/app/inst-overview';
-      
+
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
       setGlobalError(err.message || 'Falha ao processar o pagamento. Tente novamente.');
@@ -307,42 +301,47 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     }
   }, [navigate]);
 
+  // ── renderField ──
   const renderField = (
     label: string,
-    name: keyof CheckoutFormData,
+    name: string,
     type: string = 'text',
     placeholder: string = '',
     formatter?: (val: string) => string,
-    extraContent?: React.ReactNode
+    extraContent?: React.ReactNode,
+    disabled?: boolean,
   ) => {
-    const errorMsg = errors[name]?.message;
+    const errorMsg = (errors as any)[name]?.message;
     return (
-      <div className="space-y-1.5 group">
-        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">
+      <div className="space-y-1.5">
+        <label className="text-[11px] font-semibold text-slate-400 tracking-wide block">
           {label}
         </label>
         <Controller
-          name={name}
+          name={name as any}
           control={control}
           render={({ field }) => (
             <input
               {...field}
               type={type}
               placeholder={placeholder}
+              disabled={disabled}
               onChange={(e) => {
                 const val = formatter ? formatter(e.target.value) : e.target.value;
                 field.onChange(val);
               }}
-              className={`w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border font-bold text-sm transition-all outline-none ${
+              className={`w-full px-4 py-3 rounded-xl bg-slate-800/60 border text-sm text-white placeholder:text-slate-500 font-medium transition-all outline-none focus:ring-2 focus:ring-primary/40 ${
+                disabled ? 'opacity-60 cursor-not-allowed' : ''
+              } ${
                 errorMsg
-                  ? 'border-rose-300 focus:border-rose-400 bg-rose-50/50 dark:bg-rose-900/10'
-                  : 'border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10'
+                  ? 'border-rose-500/50 bg-rose-950/20'
+                  : 'border-slate-700/50 hover:border-slate-600 focus:border-primary/60'
               }`}
             />
           )}
         />
         {errorMsg && (
-          <p className="text-rose-500 text-[11px] font-bold ml-1 flex items-center gap-1">
+          <p className="text-rose-400 text-[11px] font-medium flex items-center gap-1">
             <span className="material-icons-outlined text-xs">error_outline</span>
             {errorMsg as string}
           </p>
@@ -352,322 +351,328 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     );
   };
 
-  const getPasswordStrength = (password: string) => {
-    if (!password) return 0;
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/\d/.test(password)) score++;
-    if (/[^a-zA-Z0-9]/.test(password)) score++;
-    return score;
-  };
+  // ── Section Header ──
+  const SectionHeader = ({ number, title }: { number: number; title: string }) => (
+    <div className="flex items-center gap-3 mb-5">
+      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-lg shadow-primary/30">
+        {number}
+      </div>
+      <h3 className="text-lg font-bold text-white tracking-tight">{title}</h3>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen lg:h-screen w-full flex flex-col lg:flex-row bg-background-light dark:bg-background-dark font-sans overflow-hidden relative animate-slide-up-full z-[100]">
-      
-      {/* ── Botão Fechar (X) ────────────────────────────────────────────── */}
-      <button 
-        onClick={onBack}
-        className="absolute top-4 right-4 lg:top-8 lg:right-8 z-50 w-12 h-12 bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-white/10 text-gray-500 dark:text-gray-300 rounded-full flex items-center justify-center transition-all hover:scale-105 shadow-sm backdrop-blur-md border border-gray-200 dark:border-white/10"
-        title="Voltar"
-      >
-        <span className="material-icons-outlined">close</span>
-      </button>
-
-      {/* ── Lado Esquerdo — Branding ──────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[35%] xl:w-[30%] relative bg-primary overflow-hidden">
-        <div className="min-h-full w-full flex items-center justify-center p-6 lg:p-8 xl:p-10">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2 pointer-events-none" />
-
-          <div className="relative z-10 text-white w-full max-w-sm text-left py-8">
-            <div className="flex items-center gap-3 mb-10 animate-fade-in">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl shrink-0">
-                <div className="flex flex-col items-center translate-y-[1px]">
-                  <span className="text-primary font-black text-2xl leading-none tracking-tighter">L</span>
-                  <div className="w-5 h-[4px] bg-primary mt-[1px] rounded-full" />
-                </div>
-              </div>
-              <span className="font-black text-3xl lg:text-4xl tracking-tighter text-white">
-                Littera<span className="text-white/40">.</span>
-              </span>
-            </div>
-
-            <div className="space-y-5 animate-fade-in-up">
-              <h1 className="text-2xl lg:text-3xl font-black leading-[1.1] tracking-tight">
-                Cadastre sua escola em minutos
-              </h1>
-              <p className="text-sm lg:text-base opacity-80 leading-relaxed font-medium">
-                Correção de redações por I.A., gestão de turmas e relatórios completos. Tudo pronto para uso imediato.
-              </p>
-
-              <div className="space-y-3 mt-6">
-                {[
-                  { icon: 'bolt', text: 'Correção instantânea com Google Gemini' },
-                  { icon: 'shield', text: 'Dados seguros — LGPD compliant' },
-                  { icon: 'trending_up', text: 'Relatórios de evolução por turma' },
-                ].map(({ icon, text }) => (
-                  <div key={icon} className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-white/15 rounded-lg flex items-center justify-center backdrop-blur-sm shrink-0">
-                      <span className="material-icons-outlined text-white text-base">{icon}</span>
-                    </div>
-                    <span className="font-semibold text-white/90 text-xs lg:text-sm leading-tight">{text}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="min-h-screen w-full bg-slate-950 font-sans overflow-x-hidden relative">
+      {/* Background effects */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[120px]" />
       </div>
 
-      <div className="w-full lg:w-[65%] xl:w-[70%] h-full bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar">
-        <div className="min-h-full flex items-center justify-center p-4 sm:p-8 lg:p-12">
-          <div className="w-full max-w-lg animate-fade-in-up py-6">
-            <div className="bg-white dark:bg-surface-dark rounded-3xl p-6 sm:p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
+      {/* Header */}
+      <header className="relative z-10 border-b border-slate-800/50 backdrop-blur-md bg-slate-950/80">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
+              <span className="text-white font-black text-lg leading-none">L</span>
+            </div>
+            <span className="font-black text-xl tracking-tight text-white">
+              Littera<span className="text-primary">.</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+              <span className="material-icons-outlined text-emerald-400 text-sm">lock</span>
+              Ambiente 100% Seguro
+            </span>
+            <button
+              onClick={onBack}
+              className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 text-sm font-medium"
+            >
+              <span className="material-icons-outlined text-lg">close</span>
+            </button>
+          </div>
+        </div>
+      </header>
 
-              <div className="flex items-center justify-between mb-6">
-                {STEPS.slice(0, 2).map((s, i) => (
-                  <React.Fragment key={s.id}>
-                    <div className="flex flex-col items-center gap-1.5 z-10">
-                      <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                          step >= s.id
-                            ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
-                            : 'bg-gray-100 dark:bg-white/5 text-gray-300'
-                        }`}
-                      >
-                        <span className="material-icons-outlined text-lg">
-                          {step > s.id ? 'check' : s.icon}
-                        </span>
-                      </div>
-                      <span className={`text-[9px] font-black uppercase tracking-widest transition-colors ${
-                        step >= s.id ? 'text-primary' : 'text-gray-300'
-                      }`}>
-                        {s.label}
-                      </span>
-                    </div>
-                    {i < 1 && (
-                      <div className={`flex-1 h-0.5 mx-[-10px] rounded-full transition-colors duration-500 z-0 ${
-                        step > s.id ? 'bg-primary' : 'bg-gray-100 dark:bg-white/10'
-                      }`} />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
+      {/* Main Content */}
+      <main className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+            {/* ── Left: Form Sections ──────────────────────────────────── */}
+            <div className="flex-1 w-full lg:max-w-2xl space-y-6">
 
               {globalError && (
-                <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-bold text-center animate-shake">
-                  <span className="material-icons-outlined text-sm mr-1 align-middle">error_outline</span>
+                <div className="p-4 bg-rose-950/40 border border-rose-500/30 rounded-2xl text-rose-300 text-sm font-medium flex items-center gap-2">
+                  <span className="material-icons-outlined text-base">error_outline</span>
                   {globalError}
                 </div>
               )}
 
-              <form onSubmit={handleSubmit(onSubmit)}>
-                {step === 1 && (() => {
-                  const passwordValue = formValues.password;
-                  const strengthScore = getPasswordStrength(passwordValue);
-                  const strengthLabels = ['Muito Fraca', 'Fraca', 'Razoável', 'Forte', 'Muito Forte', 'Excelente'];
-                  const strengthColors = ['bg-rose-500', 'bg-orange-500', 'bg-yellow-500', 'bg-emerald-400', 'bg-emerald-500', 'bg-emerald-600'];
-                  
-                  const passwordStrengthIndicator = passwordValue ? (
-                    <div className="mt-2 space-y-1.5 px-1">
-                      <div className="flex h-1.5 w-full gap-1">
-                        {[1, 2, 3, 4, 5].map((level) => (
-                          <div
-                            key={level}
-                            className={`flex-1 rounded-full transition-all duration-500 ${
-                              strengthScore >= level ? strengthColors[strengthScore] : 'bg-gray-200 dark:bg-gray-700'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <p className={`text-[10px] font-black uppercase tracking-widest text-right transition-colors ${
-                         strengthScore <= 2 ? 'text-orange-500' : 'text-emerald-500'
-                      }`}>
-                        {strengthLabels[strengthScore]}
-                      </p>
-                    </div>
-                  ) : null;
+              {/* ─ Section 1: Dados Pessoais ─ */}
+              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
+                <SectionHeader number={1} title="Dados Pessoais & Conta" />
 
-                  return (
-                    <div className="space-y-4 animate-fade-in">
-                      <div className="mb-4">
-                        <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                          Sobre sua Instituição
-                        </h2>
-                      </div>
+                <div className="space-y-4">
+                  {renderField('Nome Completo (para faturamento)', 'directorName', 'text', 'João Silva')}
 
-                      {renderField('Nome do Diretor/Gestor', 'directorName', 'text', 'Nome Completo')}
-                      <div className="flex gap-4">
-                        <div className="flex-1">
-                          {renderField('CPF', 'cpf', 'text', '000.000.000-00', formatCPF)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {renderField('CPF', 'cpf', 'text', '000.000.000-00', formatCPF)}
+                    {renderField('WhatsApp', 'whatsapp', 'text', '(48) 99999-9999', formatWhatsApp)}
+                  </div>
+
+                  {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres',
+                      undefined,
+                      formValues.password ? (
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="flex h-1.5 flex-1 gap-0.5">
+                            {[1, 2, 3, 4, 5].map(level => (
+                              <div key={level} className={`flex-1 rounded-full transition-all duration-300 ${
+                                passwordStrength.score >= level ? passwordStrength.color : 'bg-slate-700'
+                              }`} />
+                            ))}
+                          </div>
+                          <span className={`text-[10px] font-bold ${passwordStrength.score <= 2 ? 'text-orange-400' : 'text-emerald-400'}`}>
+                            {passwordStrength.label}
+                          </span>
                         </div>
-                        <div className="flex-1">
-                          {renderField('Celular/WhatsApp', 'whatsapp', 'text', '(11) 99999-9999', (v) => {
-                            const val = v.replace(/\D/g, '');
-                            if (val.length <= 2) return val;
-                            if (val.length <= 6) return `(${val.slice(0,2)}) ${val.slice(2)}`;
-                            if (val.length <= 10) return `(${val.slice(0,2)}) ${val.slice(2,6)}-${val.slice(6)}`;
-                            return `(${val.slice(0,2)}) ${val.slice(2,7)}-${val.slice(7,11)}`;
-                          })}
-                        </div>
-                      </div>
-                      {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
-                      {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres, letras e números', undefined, passwordStrengthIndicator)}
-                      {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
-                      
-                      <div className="mt-8 mb-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Dados da Escola</h3>
-                      </div>
-                      
+                      ) : undefined
+                    )}
+                    {renderField('Confirmar Senha', 'confirmPassword', 'password', 'Repita a senha')}
+                  </div>
+
+                  <div className="border-t border-slate-800/50 pt-4 mt-4">
+                    <p className="text-xs text-slate-500 font-medium mb-3 flex items-center gap-1.5">
+                      <span className="material-icons-outlined text-sm text-primary">school</span>
+                      Dados da Instituição
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
                       {renderField('CNPJ', 'cnpj', 'text', '00.000.000/0000-00', formatCNPJ)}
-                      
-                      <div className="flex gap-4 mt-4">
-                        <div className="flex-[2]">
-                          {renderField('CEP', 'postalCode', 'text', '00000-000', (v) => {
-                            const val = v.replace(/\D/g, '');
-                            return val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 8)}` : val;
-                          })}
-                        </div>
-                        <div className="flex-1">
-                          {renderField('Número', 'addressNumber', 'text', '123')}
-                        </div>
-                      </div>
-                      
-                      {formValues.endereco && (
-                        <div className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
-                          <p><strong>Logradouro:</strong> {formValues.endereco}</p>
-                          <p><strong>Bairro:</strong> {formValues.bairro}</p>
-                          <p><strong>Cidade/UF:</strong> {formValues.cidade} - {formValues.estado}</p>
-                        </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─ Section 2: Endereço de Cobrança ─ */}
+              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
+                <SectionHeader number={2} title="Endereço de Cobrança" />
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="relative">
+                      {renderField('CEP', 'postalCode', 'text', '00000-000', formatCEP)}
+                      {cepLoading && (
+                        <div className="absolute right-3 top-[34px] w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
                       )}
                     </div>
-                  );
-                })()}
-
-                {step === 2 && (
-                  <div className="space-y-4 animate-fade-in">
-                    <div className="mb-4">
-                      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                        Personalize seu Plano
-                      </h2>
-                    </div>
-
-                    {renderField('Quantidade de Alunos', 'studentCount', 'number', 'Ex: 350')}
-
-                    <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl my-6">
-                      <button 
-                        type="button"
-                        onClick={() => setValue('billingCycle', 'MONTHLY')}
-                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${formValues.billingCycle === 'MONTHLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
-                      >
-                        Mensal
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setValue('billingCycle', 'YEARLY')}
-                        className={`flex-1 py-3 text-sm font-bold rounded-xl transition-all ${formValues.billingCycle === 'YEARLY' ? 'bg-white dark:bg-surface-dark shadow text-primary' : 'text-gray-500'}`}
-                      >
-                        Anual <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-1">-40%</span>
-                      </button>
-                    </div>
-
-                    {(() => {
-                      const priceInfo = getDynamicPrice();
-                      const formatBRL = (val: number) => val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                      return (
-                        <div className="bg-primary/5 dark:bg-primary/10 rounded-2xl p-5 flex items-center justify-between mb-4">
-                          <div>
-                            <p className="text-[10px] font-black text-primary uppercase tracking-widest">Plano {priceInfo.planName}</p>
-                            <p className="text-sm text-gray-500 font-medium mt-0.5">Cobrança {priceInfo.isYearly ? 'anual (à vista)' : 'mensal'}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-3xl font-black text-gray-900 dark:text-white">R$ {formatBRL(priceInfo.finalTotal)}</p>
-                            <p className="text-xs text-gray-400">/{priceInfo.isYearly ? 'ano' : 'mês'}</p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    <div className="mt-8 flex items-center justify-between">
-                      <button type="button" onClick={handleBack} className="text-gray-400 hover:text-gray-600 font-bold text-sm transition-colors">Voltar</button>
-                      <button type="button" onClick={handleNextStep} disabled={isLoading} className="bg-primary hover:bg-primary-dark text-white font-black py-4 px-8 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center gap-2">
-                        {isLoading ? <span className="material-icons-outlined animate-spin">refresh</span> : <>Criar Conta <span className="material-icons-outlined">arrow_forward</span></>}
-                      </button>
-                    </div>
+                    {renderField('Endereço', 'endereco', 'text', 'Rua, Avenida...', undefined, undefined, !!formValues.endereco)}
                   </div>
-                )}
 
-                {/* ── Actions ──────────────────────────────────────────────────── */}
-                {step === 1 && (
-                  <div className="mt-8 flex gap-3">
-                    <button
-                      type="button"
-                      onClick={handleBack}
-                      className="px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-white/5 transition-all"
-                    >
-                      Voltar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleNextStep}
-                      className="flex-1 py-4 rounded-2xl font-black text-sm text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all active:scale-[0.97]"
-                    >
-                      Continuar
-                    </button>
+                  <div className="grid grid-cols-3 gap-4">
+                    {renderField('Número', 'addressNumber', 'text', '123')}
+                    {renderField('Complemento', 'complemento', 'text', 'Apto, Sala...')}
+                    {renderField('Bairro', 'bairro', 'text', 'Bairro', undefined, undefined, !!formValues.bairro)}
                   </div>
-                )}
-              </form>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {renderField('Cidade', 'cidade', 'text', 'Cidade', undefined, undefined, !!formValues.cidade)}
+                    {renderField('Estado', 'estado', 'text', 'UF', undefined, undefined, !!formValues.estado)}
+                  </div>
+                </div>
+              </div>
+
+              {/* ─ Section 3: Dados do Cartão ─ */}
+              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
+                <SectionHeader number={3} title="Dados do Cartão" />
+
+                <div className="space-y-4">
+                  {renderField('Nome no Cartão', 'ccHolderName', 'text', 'Nome como está no cartão')}
+                  {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
+                    {renderField('CVV', 'ccCvv', 'text', '123', (v) => v.replace(/\D/g, '').slice(0, 4))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ─ Submit (mobile only) ─ */}
+              <div className="lg:hidden">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-xl shadow-xl shadow-primary/30 transition-all flex items-center justify-center gap-2 active:scale-[0.97] text-sm"
+                >
+                  {isLoading ? (
+                    <span className="material-icons-outlined animate-spin">refresh</span>
+                  ) : (
+                    <>
+                      <span className="material-icons-outlined text-lg">lock</span>
+                      Finalizar Pagamento
+                    </>
+                  )}
+                </button>
+                <div className="flex items-center justify-center gap-2 mt-3 opacity-50">
+                  <span className="material-icons-outlined text-xs text-slate-400">shield</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Processado com segurança pelo Asaas</span>
+                </div>
+              </div>
+
+            </div>
+
+            {/* ── Right: Resumo do Pedido (Sidebar) ────────────────── */}
+            <div className="w-full lg:w-[380px] lg:sticky lg:top-8 shrink-0">
+              <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 sm:p-7">
+                <h3 className="text-lg font-bold text-white mb-6 tracking-tight">Resumo do Pedido</h3>
+
+                {/* Plan Icon + Title */}
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-14 h-14 bg-gradient-to-br from-primary to-primary-dark rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 shrink-0">
+                    <span className="material-icons-outlined text-white text-2xl">school</span>
+                  </div>
+                  <div>
+                    <p className="text-white font-bold text-base">
+                      Plano {priceInfo.isYearly ? 'Anual' : 'Mensal'}
+                    </p>
+                    <p className="text-sm text-slate-400">
+                      {priceInfo.isYearly ? '12x sem juros' : 'Cobrança mensal'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quantidade de Alunos */}
+                <div className="mb-5 space-y-2">
+                  <label className="text-[11px] font-semibold text-slate-400 tracking-wide block">
+                    Quantidade de Alunos
+                  </label>
+                  <Controller
+                    name="studentCount"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="number"
+                        placeholder="Ex: 350"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-800/60 border border-slate-700/50 text-sm text-white placeholder:text-slate-500 font-medium transition-all outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 hover:border-slate-600"
+                      />
+                    )}
+                  />
+                  {(errors as any).studentCount?.message && (
+                    <p className="text-rose-400 text-[11px] font-medium">{(errors as any).studentCount.message as string}</p>
+                  )}
+                  {priceInfo.students > 0 && (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Faixa {priceInfo.tierLabel} — R$ {formatBRL(priceInfo.basePrice)}/aluno
+                      {priceInfo.isYearly && <span className="text-emerald-400"> (c/ 40% off)</span>}
+                    </p>
+                  )}
+                </div>
+
+                {/* Billing Cycle Toggle */}
+                <div className="flex bg-slate-800/80 p-1 rounded-xl mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setValue('billingCycle', 'MONTHLY')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${
+                      formValues.billingCycle === 'MONTHLY'
+                        ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    Mensal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValue('billingCycle', 'YEARLY')}
+                    className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                      formValues.billingCycle === 'YEARLY'
+                        ? 'bg-primary text-white shadow-lg shadow-primary/30'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    Anual
+                    <span className="text-[9px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">-40%</span>
+                  </button>
+                </div>
+
+                {/* Price breakdown */}
+                <div className="border-t border-slate-800/60 pt-5 space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-400">Valor total</span>
+                    <span className="text-white font-semibold">R$ {formatBRL(priceInfo.finalTotal)}</span>
+                  </div>
+
+                  {priceInfo.isYearly && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-400">Parcelamento</span>
+                      <span className="text-white font-semibold">12x sem juros</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-between items-end pt-3 border-t border-slate-800/60">
+                    <span className="text-sm font-bold text-white">Valor da parcela</span>
+                    <span className="text-2xl font-black text-primary">
+                      R$ {formatBRL(priceInfo.isYearly ? priceInfo.finalTotal / 12 : priceInfo.finalTotal)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Benefits */}
+                <div className="mt-6 space-y-2.5">
+                  {[
+                    'Garantia de 7 dias',
+                    'Acesso imediato',
+                    'Suporte prioritário',
+                    'Atualizações gratuitas',
+                  ].map(benefit => (
+                    <div key={benefit} className="flex items-center gap-2 text-sm text-slate-300">
+                      <span className="material-icons-outlined text-emerald-400 text-base">check_circle</span>
+                      {benefit}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Submit button (desktop) */}
+                <div className="mt-6 hidden lg:block">
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-xl shadow-xl shadow-primary/30 transition-all flex items-center justify-center gap-2 active:scale-[0.97] text-sm"
+                  >
+                    {isLoading ? (
+                      <span className="material-icons-outlined animate-spin">refresh</span>
+                    ) : (
+                      <>
+                        <span className="material-icons-outlined text-lg">lock</span>
+                        Finalizar Pagamento
+                      </>
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-center gap-2 mt-3 opacity-50">
+                    <span className="material-icons-outlined text-xs text-slate-400">shield</span>
+                    <span className="text-[10px] text-slate-400 font-medium">Processado com segurança pelo Asaas</span>
+                  </div>
+                </div>
+              </div>
 
               {/* Login link */}
-              {step < 4 && (
-                <p className="text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-6">
-                  Já possui cadastro?{' '}
-                  <button type="button" onClick={onLogin} className="text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4">
-                    Fazer Login
-                  </button>
-                </p>
-              )}
+              <p className="text-center text-xs text-slate-500 mt-4">
+                Já possui cadastro?{' '}
+                <button type="button" onClick={onLogin} className="text-primary hover:text-primary-light font-semibold underline underline-offset-2 transition-colors">
+                  Fazer Login
+                </button>
+              </p>
             </div>
-          </div>
-        </div>
-      </div>
 
-      <style>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          75% { transform: translateX(4px); }
-        }
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-        
-        @keyframes slideUpFull {
-          from { transform: translateY(100%); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-        .animate-slide-up-full {
-          animation: slideUpFull 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        
-        /* Custom scrollbar to prevent layout shift */
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: rgba(156, 163, 175, 0.3);
-          border-radius: 20px;
-        }
-        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-          background-color: rgba(255, 255, 255, 0.1);
-        }
-      `}</style>
+          </div>
+        </form>
+      </main>
     </div>
   );
 };
