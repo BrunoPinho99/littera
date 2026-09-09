@@ -35,6 +35,23 @@ function formatExpiry(value: string): string {
   return digits;
 }
 
+function validateLuhn(cardNumber: string): boolean {
+  const digits = cardNumber.replace(/\D/g, '');
+  if (digits.length < 13) return false;
+  let sum = 0;
+  let isEven = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits.charAt(i), 10);
+    if (isEven) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    isEven = !isEven;
+  }
+  return sum % 10 === 0;
+}
+
 const paymentSchema = z.object({
   paymentMethod: z.enum(['CREDIT_CARD', 'PIX', 'BOLETO']).default('CREDIT_CARD'),
   ccHolderName: z.string().optional(),
@@ -50,7 +67,7 @@ const paymentSchema = z.object({
     if (!data.ccCpfCnpj || data.ccCpfCnpj.replace(/\D/g, '').length < 11) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'CPF ou CNPJ inválido', path: ['ccCpfCnpj'] });
     }
-    if (!data.ccNumber || data.ccNumber.replace(/\D/g, '').length < 14) {
+    if (!data.ccNumber || data.ccNumber.replace(/\D/g, '').length < 14 || !validateLuhn(data.ccNumber)) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Número do cartão inválido', path: ['ccNumber'] });
     }
     if (!data.ccExpiry || data.ccExpiry.length < 5) {

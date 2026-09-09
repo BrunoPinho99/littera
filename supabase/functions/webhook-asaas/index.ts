@@ -245,6 +245,20 @@ Deno.serve(async (req: Request) => {
 
     console.log(`[webhook-asaas] Escola ${schoolId} atualizada: status → ${newStatus}`)
 
+    // ── 7. Atualizar tabela payments (se evento de pagamento) ─────────────────
+    if (payment?.id && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED')) {
+      await supabase.from('payments')
+        .update({ 
+          status: 'paid', 
+          paid_at: new Date().toISOString(),
+          asaas_payment_id: payment.id 
+        })
+        .eq('school_id', schoolId)
+        .eq('status', 'pending')
+        .then(() => console.log(`[webhook-asaas] Payments atualizado para escola ${schoolId}`))
+        .catch(e => console.warn('[webhook-asaas] Falha ao atualizar payments:', e))
+    }
+
     return new Response('ok', { status: 200, headers: corsHeaders })
 
   } catch (error: unknown) {

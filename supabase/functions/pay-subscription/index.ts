@@ -232,6 +232,11 @@ Deno.serve(async (req: Request) => {
       
       if (paymentStatus === 'CONFIRMED' || paymentStatus === 'RECEIVED') {
         await supabase.from('schools').update({ subscription_status: 'active' }).eq('id', profile.school_id);
+        // Atualizar tabela payments
+        await supabase.from('payments')
+          .update({ status: 'paid', paid_at: new Date().toISOString(), asaas_payment_id: firstPayment?.id })
+          .eq('asaas_subscription_id', subscriptionId)
+          .eq('status', 'pending');
       }
 
       if (paymentStatus === 'PENDING') {

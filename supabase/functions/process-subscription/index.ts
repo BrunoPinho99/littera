@@ -47,7 +47,27 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json()
-    const { directorName, email, password, schoolName, cnpj, studentCount, billingCycle, phone, postalCode, addressNumber, paymentMethod } = body
+    const { directorName, email, password, schoolName, cnpj, cpf, studentCount, billingCycle, whatsapp, postalCode, addressNumber, paymentMethod } = body
+
+    // Auto-complete endereço via ViaCEP
+    let endereco = '', bairro = '', cidade = '', estado = ''
+    if (postalCode) {
+      try {
+        const cepClean = postalCode.replace(/\D/g, '')
+        const viacepRes = await fetch(`https://viacep.com.br/ws/${cepClean}/json/`)
+        if (viacepRes.ok) {
+          const viacepData = await viacepRes.json()
+          if (!viacepData.erro) {
+            endereco = viacepData.logradouro || ''
+            bairro = viacepData.bairro || ''
+            cidade = viacepData.localidade || ''
+            estado = viacepData.uf || ''
+          }
+        }
+      } catch (e) {
+        console.warn('[process-subscription] ViaCEP lookup failed:', e)
+      }
+    }
 
     // 1. Cálculo de preço
     const isYearly = billingCycle === 'YEARLY'
@@ -72,18 +92,27 @@ Deno.serve(async (req: Request) => {
       if (searchData.data?.length > 0) asaasCustomerId = searchData.data[0].id
     }
 
+    const customerPayload = {
+      name: schoolName,
+      cpfCnpj: cpf || cnpj,
+      email: email,
+      phone: whatsapp,
+      mobilePhone: whatsapp,
+      postalCode: postalCode?.replace(/\D/g, ''),
+      address: endereco,
+      addressNumber: addressNumber || "0",
+      province: bairro,
+      city: cidade,
+      state: estado,
+      externalReference: email,
+      notificationDisabled: true
+    }
+
     if (!asaasCustomerId) {
       const createCustomerRes = await fetch(`${ASAAS_BASE}/customers`, {
         method: 'POST',
         headers: asaasHeaders,
-        body: JSON.stringify({
-          name: schoolName,
-          cpfCnpj: cnpj,
-          email: email,
-          phone: phone,
-          postalCode: postalCode,
-          addressNumber: addressNumber || "0"
-        }),
+        body: JSON.stringify(customerPayload),
       })
       const customerData = await createCustomerRes.json()
       if (!createCustomerRes.ok) {
@@ -91,18 +120,10 @@ Deno.serve(async (req: Request) => {
       }
       asaasCustomerId = customerData.id
     } else {
-      // Garante que o cliente existente tenha os dados atualizados e CPF/CNPJ válido no Asaas
       await fetch(`${ASAAS_BASE}/customers/${asaasCustomerId}`, {
         method: 'POST',
         headers: asaasHeaders,
-        body: JSON.stringify({
-          name: schoolName,
-          cpfCnpj: cnpj,
-          email: email,
-          phone: phone,
-          postalCode: postalCode,
-          addressNumber: addressNumber || "0"
-        }),
+        body: JSON.stringify(customerPayload),
       }).catch(e => console.warn('[process-subscription] Falha ao atualizar cliente existente:', e))
     }
 
@@ -244,12 +265,23 @@ Deno.serve(async (req: Request) => {
             student_count: studentCount,
             asaas_customer_id: asaasCustomerId,
             subscription_id: subscriptionId,
-            subscription_status: 'inactive'
+            subscription_status: 'inactive',
+            cep: postalCode?.replace(/\D/g, ''),
+            numero: addressNumber,
+            endereco: endereco,
+            bairro: bairro,
+            cidade: cidade,
+            estado: estado,
           })
           .select()
           .single()
 
         if (schoolError || !schoolData) {
+          // ROLLBACK: deletar assinatura no Asaas se não conseguiu criar escola
+          await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
+            method: 'DELETE',
+            headers: asaasHeaders,
+          }).catch(e => console.error('[process-subscription] Rollback failed:', e))
           return jsonResponse({ error: `Usuário autenticado, mas erro ao salvar escola: ${schoolError?.message || 'Desconhecido'}` })
         }
         createdSchoolId = schoolData.id
@@ -270,12 +302,24 @@ Deno.serve(async (req: Request) => {
         school_id: createdSchoolId,
         email: email.toLowerCase().trim(),
         full_name: directorName.trim(),
-        role: 'owner'
+        role: 'owner',
+        cpf: cpf?.replace(/\D/g, ''),
+        whatsapp: whatsapp?.replace(/\D/g, ''),
       })
       
     if (profileError) {
       return jsonResponse({ error: `Usuário criado, escola salva, mas erro no perfil: ${profileError.message}` })
     }
+
+    // Inserir registro na tabela payments
+    await supabase.from('payments').insert({
+      school_id: createdSchoolId,
+      user_id: createdAuthUserId,
+      plan: `school_${studentCount}_${billingCycle.toLowerCase()}`,
+      amount: planPrice,
+      status: 'pending',
+      asaas_subscription_id: subscriptionId,
+    }).catch(e => console.warn('[process-subscription] Falha ao inserir payment:', e))
 
     // IMPORTANTE: incluir user_type para não sobrescrever o valor existente
     await supabase.auth.admin.updateUserById(createdAuthUserId, {

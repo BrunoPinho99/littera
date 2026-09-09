@@ -26,6 +26,34 @@ function validateCNPJ(value: string): boolean {
   return cleaned.endsWith(`${d1}${d2}`);
 }
 
+function validateCPF(value: string): boolean {
+  const cleaned = value.replace(/\D/g, '');
+  if (cleaned.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cleaned)) return false;
+
+  let sum = 0;
+  for (let i = 1; i <= 9; i++) sum = sum + parseInt(cleaned.substring(i - 1, i)) * (11 - i);
+  let remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleaned.substring(9, 10))) return false;
+
+  sum = 0;
+  for (let i = 1; i <= 10; i++) sum = sum + parseInt(cleaned.substring(i - 1, i)) * (12 - i);
+  remainder = (sum * 10) % 11;
+  if (remainder === 10 || remainder === 11) remainder = 0;
+  if (remainder !== parseInt(cleaned.substring(10, 11))) return false;
+
+  return true;
+}
+
+function formatCPF(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+}
+
 function formatCNPJ(value: string): string {
   const digits = value.replace(/\D/g, '').slice(0, 14);
   if (digits.length <= 2) return digits;
@@ -53,7 +81,7 @@ const step1Schema = z.object({
   directorName: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   schoolName: z.string().min(2, "Nome da escola é obrigatório"),
   email: z.string().email("E-mail inválido"),
-  phone: z.string().min(10, "Telefone inválido"),
+  whatsapp: z.string().min(10, "WhatsApp inválido"),
   password: z.string()
     .min(8, "A senha deve ter pelo menos 8 caracteres")
     .regex(/[A-Z]/, "A senha deve conter pelo menos uma letra maiúscula")
@@ -62,8 +90,13 @@ const step1Schema = z.object({
     .regex(/[^a-zA-Z0-9]/, "A senha deve conter pelo menos um caractere especial"),
   confirmPassword: z.string().min(1, "A confirmação da senha é obrigatória"),
   cnpj: z.string().refine(validateCNPJ, "CNPJ inválido"),
+  cpf: z.string().refine(validateCPF, "CPF inválido"),
   postalCode: z.string().min(8, "CEP inválido"),
   addressNumber: z.string().min(1, "Número obrigatório"),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
+  endereco: z.string().optional(),
 });
 
 const step2Schema = z.object({
@@ -111,13 +144,18 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     defaultValues: {
       directorName: '',
       email: '',
-      phone: '',
+      whatsapp: '',
       password: '',
       confirmPassword: '',
       schoolName: '',
       cnpj: '',
+      cpf: '',
       postalCode: '',
       addressNumber: '',
+      bairro: '',
+      cidade: '',
+      estado: '',
+      endereco: '',
       studentCount: '',
       billingCycle: 'MONTHLY',
       paymentMethod: 'CREDIT_CARD',
@@ -138,6 +176,25 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     if (studentsParam) setValue('studentCount', studentsParam);
     if (cycleParam === 'YEARLY' || cycleParam === 'MONTHLY') setValue('billingCycle', cycleParam);
   }, [setValue]);
+
+  // ViaCEP Auto-complete
+  useEffect(() => {
+    const cep = formValues.postalCode?.replace(/\D/g, '');
+    if (cep?.length === 8) {
+      fetch(`https://viacep.com.br/ws/${cep}/json/`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.erro) {
+            setValue('endereco', data.logradouro || '');
+            setValue('bairro', data.bairro || '');
+            setValue('cidade', data.localidade || '');
+            setValue('estado', data.uf || '');
+            trigger(['endereco', 'bairro', 'cidade', 'estado']);
+          }
+        })
+        .catch(err => console.warn('Erro ViaCEP', err));
+    }
+  }, [formValues.postalCode, setValue, trigger]);
 
   const getDynamicPrice = () => {
     const students = parseInt(formValues.studentCount) || 0;
@@ -169,7 +226,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const handleNextStep = async () => {
     setGlobalError(null);
     if (step === 1) {
-      const isValid = await trigger(['directorName', 'schoolName', 'email', 'phone', 'password', 'confirmPassword', 'cnpj', 'postalCode', 'addressNumber']);
+      const isValid = await trigger(['directorName', 'schoolName', 'email', 'whatsapp', 'cpf', 'password', 'confirmPassword', 'cnpj', 'postalCode', 'addressNumber']);
       if (isValid) setStep(2);
     } else if (step === 2) {
       const isValid = await trigger(['studentCount', 'billingCycle']);
@@ -201,7 +258,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         body: {
           directorName: data.directorName.trim(),
           email: data.email.toLowerCase().trim(),
-          phone: data.phone.replace(/\D/g, ''),
+          whatsapp: data.whatsapp.replace(/\D/g, ''),
+          cpf: data.cpf.replace(/\D/g, ''),
           password: data.password,
           schoolName: data.schoolName.trim(),
           cnpj: data.cnpj.replace(/\D/g, ''),
@@ -440,20 +498,33 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                         </h2>
                       </div>
 
-                      {renderField('Nome do Responsável', 'directorName', 'text', 'Nome Completo')}
+                      {renderField('Nome do Diretor/Gestor', 'directorName', 'text', 'Nome Completo')}
                       <div className="flex gap-4">
-                        <div className="flex-[2]">
-                          {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
+                        <div className="flex-1">
+                          {renderField('CPF', 'cpf', 'text', '000.000.000-00', formatCPF)}
                         </div>
                         <div className="flex-1">
-                          {renderField('Celular', 'phone', 'text', '(11) 99999-9999')}
+                          {renderField('Celular/WhatsApp', 'whatsapp', 'text', '(11) 99999-9999', (v) => {
+                            const val = v.replace(/\D/g, '');
+                            if (val.length <= 2) return val;
+                            if (val.length <= 6) return `(${val.slice(0,2)}) ${val.slice(2)}`;
+                            if (val.length <= 10) return `(${val.slice(0,2)}) ${val.slice(2,6)}-${val.slice(6)}`;
+                            return `(${val.slice(0,2)}) ${val.slice(2,7)}-${val.slice(7,11)}`;
+                          })}
                         </div>
                       </div>
+                      {renderField('E-mail Institucional', 'email', 'email', 'diretoria@escola.com.br')}
                       {renderField('Senha de Acesso', 'password', 'password', 'Mín. 8 caracteres, letras e números', undefined, passwordStrengthIndicator)}
                       {renderField('Repita a Senha', 'confirmPassword', 'password', 'Confirme a senha digitada')}
+                      
+                      <div className="mt-8 mb-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Dados da Escola</h3>
+                      </div>
+                      
                       {renderField('Nome da Escola', 'schoolName', 'text', 'Colégio Estadual...')}
                       {renderField('CNPJ', 'cnpj', 'text', '00.000.000/0000-00', formatCNPJ)}
-                      <div className="flex gap-4">
+                      
+                      <div className="flex gap-4 mt-4">
                         <div className="flex-[2]">
                           {renderField('CEP', 'postalCode', 'text', '00000-000', (v) => {
                             const val = v.replace(/\D/g, '');
@@ -464,6 +535,14 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                           {renderField('Número', 'addressNumber', 'text', '123')}
                         </div>
                       </div>
+                      
+                      {formValues.endereco && (
+                        <div className="flex flex-col gap-2 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm text-gray-600 dark:text-gray-400">
+                          <p><strong>Logradouro:</strong> {formValues.endereco}</p>
+                          <p><strong>Bairro:</strong> {formValues.bairro}</p>
+                          <p><strong>Cidade/UF:</strong> {formValues.cidade} - {formValues.estado}</p>
+                        </div>
+                      )}
                     </div>
                   );
                 })()}
