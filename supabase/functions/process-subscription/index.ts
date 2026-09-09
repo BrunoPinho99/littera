@@ -312,14 +312,18 @@ Deno.serve(async (req: Request) => {
     }
 
     // Inserir registro na tabela payments
-    await supabase.from('payments').insert({
+    const { error: paymentError } = await supabase.from('payments').insert({
       school_id: createdSchoolId,
       user_id: createdAuthUserId,
       plan: `school_${studentCount}_${billingCycle.toLowerCase()}`,
       amount: planPrice,
       status: 'pending',
       asaas_subscription_id: subscriptionId,
-    }).catch(e => console.warn('[process-subscription] Falha ao inserir payment:', e))
+    })
+    
+    if (paymentError) {
+      console.warn('[process-subscription] Falha ao inserir payment:', paymentError)
+    }
 
     // IMPORTANTE: incluir user_type para não sobrescrever o valor existente
     await supabase.auth.admin.updateUserById(createdAuthUserId, {
