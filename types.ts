@@ -12,10 +12,26 @@ export interface Topic {
   supportTexts: SupportText[];
 }
 
+export interface CompetencyError {
+  excerpt: string;
+  correction: string;
+  type: string;
+}
+
 export interface CompetencyScore {
   name: string;
   score: number;
   feedback: string;
+  level?: string;
+  tips?: string[];
+  errors?: CompetencyError[];
+}
+
+export interface TextAnnotation {
+  start: number;
+  end: number;
+  type: 'grammar' | 'cohesion' | 'argument' | 'vocabulary' | 'punctuation';
+  message: string;
 }
 
 export interface CorrectionResult {
@@ -26,7 +42,13 @@ export interface CorrectionResult {
   topicTitle?: string;
   aiDetected: boolean;
   aiJustification?: string;
+  // New professional fields
+  zeroReason?: string | null;
+  strengths?: string[];
+  priorityImprovements?: string[];
+  annotations?: TextAnnotation[];
 }
+
 
 export type EssayInput =
   | { type: 'text'; content: string }

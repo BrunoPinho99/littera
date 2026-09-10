@@ -253,12 +253,17 @@ const App: React.FC = () => {
           const updatedRecord = payload.new;
           
           if (updatedRecord.status === 'corrigida') {
+            const competencies = JSON.parse(updatedRecord.competencias_json || '[]');
             const result: CorrectionResult = {
               totalScore: updatedRecord.total_score,
-              competencies: JSON.parse(updatedRecord.competencias_json || '[]'),
+              competencies,
               generalComment: updatedRecord.comentario_geral,
               aiDetected: false,
-              aiJustification: ""
+              aiJustification: "",
+              zeroReason: updatedRecord.zero_reason || null,
+              strengths: updatedRecord.strengths_json ? (typeof updatedRecord.strengths_json === 'string' ? JSON.parse(updatedRecord.strengths_json) : updatedRecord.strengths_json) : [],
+              priorityImprovements: updatedRecord.improvements_json ? (typeof updatedRecord.improvements_json === 'string' ? JSON.parse(updatedRecord.improvements_json) : updatedRecord.improvements_json) : [],
+              annotations: updatedRecord.annotations_json ? (typeof updatedRecord.annotations_json === 'string' ? JSON.parse(updatedRecord.annotations_json) : updatedRecord.annotations_json) : [],
             };
             setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
             

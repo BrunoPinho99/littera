@@ -547,7 +547,11 @@ export const getAllInstitutionalEssays = async (schoolId: string, classId?: stri
         totalScore: item.total_score,
         competencies: item.competencias_json ? (typeof item.competencias_json === 'string' ? JSON.parse(item.competencias_json) : item.competencias_json) : [],
         generalComment: item.comentario_geral || "",
-        aiDetected: false
+        aiDetected: false,
+        zeroReason: item.zero_reason || null,
+        strengths: item.strengths_json ? (typeof item.strengths_json === 'string' ? JSON.parse(item.strengths_json) : item.strengths_json) : [],
+        priorityImprovements: item.improvements_json ? (typeof item.improvements_json === 'string' ? JSON.parse(item.improvements_json) : item.improvements_json) : [],
+        annotations: item.annotations_json ? (typeof item.annotations_json === 'string' ? JSON.parse(item.annotations_json) : item.annotations_json) : [],
       }
     };
   }) as SavedEssay[];
@@ -584,7 +588,11 @@ export const getUserStats = async (userId: string) => {
       totalScore: item.total_score,
       competencies: typeof item.competencias_json === 'string' ? JSON.parse(item.competencias_json) : item.competencias_json,
       generalComment: item.comentario_geral || "",
-      aiDetected: false
+      aiDetected: false,
+      zeroReason: item.zero_reason || null,
+      strengths: item.strengths_json ? (typeof item.strengths_json === 'string' ? JSON.parse(item.strengths_json) : item.strengths_json) : [],
+      priorityImprovements: item.improvements_json ? (typeof item.improvements_json === 'string' ? JSON.parse(item.improvements_json) : item.improvements_json) : [],
+      annotations: item.annotations_json ? (typeof item.annotations_json === 'string' ? JSON.parse(item.annotations_json) : item.annotations_json) : [],
     } : undefined
   }));
 
