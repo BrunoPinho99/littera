@@ -214,7 +214,7 @@ Deno.serve(async (req: Request) => {
             'api-key': brevoApiKey,
           },
           body: JSON.stringify({
-            sender: { name: 'Littera - Inteligência em Redação', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br' },
+            sender: { name: 'Littera', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br' },
             to: [{ email: email, name: name }],
             subject: 'Seu Teste Gratuito de 15 Dias Começou! | Littera',
             htmlContent: studentHtml
