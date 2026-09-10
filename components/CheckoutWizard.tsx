@@ -156,6 +156,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [cepLoading, setCepLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isPending, setIsPending] = useState(false);
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(checkoutSchema),
@@ -311,15 +312,18 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // 4. Pagamento processado! Exibir tela de sucesso
+      // 4. Pagamento processado! Exibir tela de sucesso ou pendente
       localStorage.setItem('checkout_billingCycle', data.billingCycle);
       if (fnData?.schoolId) localStorage.setItem('checkout_schoolId', fnData.schoolId);
       
       // Atualiza a sessão para pegar o novo status
       await supabase.auth.refreshSession();
       
-      // Mostra a tela de sucesso
-      setIsSuccess(true);
+      if (payData?.status === 'PENDING_CARD') {
+        setIsPending(true);
+      } else {
+        setIsSuccess(true);
+      }
 
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
@@ -415,6 +419,39 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
             >
               <span className="material-icons-outlined text-lg">login</span>
               Acessar Plataforma
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0a0f1c] flex flex-col items-center justify-center font-sans p-4 relative overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30vw] h-[30vw] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="bg-white dark:bg-surface-dark p-10 rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
+          <div className="relative z-10">
+            <div className="relative w-24 h-24 mx-auto mb-8 bg-amber-50 dark:bg-amber-500/10 rounded-full flex items-center justify-center">
+              <span className="material-icons-outlined text-amber-500 text-5xl">pending_actions</span>
+            </div>
+
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight font-display">
+              Pagamento em Análise
+            </h2>
+            
+            <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium leading-relaxed">
+              O seu pagamento está passando por uma rápida análise de segurança da operadora do cartão (anti-fraude). Isso é normal e deve ser concluído em breve.
+            </p>
+
+            <button
+              onClick={() => window.location.href = '/app/inst-overview'}
+              className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-sm uppercase tracking-widest"
+            >
+              <span className="material-icons-outlined text-lg">login</span>
+              Acessar Painel
             </button>
           </div>
         </div>
