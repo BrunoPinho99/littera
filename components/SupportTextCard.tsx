@@ -52,10 +52,10 @@ const SupportTextCard: React.FC<SupportTextCardProps> = ({ data, compact = false
             onClick={() => setIsModalOpen(false)}
           ></div>
           
-          <div className="relative bg-surface-container-lowest w-full max-w-2xl rounded-card shadow-2xl overflow-hidden animate-scale-up">
-            <div className="bg-primary/5 p-8 border-b border-gray-50 dark:border-slate-800 flex justify-between items-center">
+          <div className="relative bg-surface-container-lowest w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-scale-up flex flex-col max-h-[85vh]">
+            <div className="bg-primary/5 p-5 sm:p-8 border-b border-gray-50 dark:border-slate-800 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
                   <span className="material-icons-outlined text-2xl">{data.icon === 'article' ? 'description' : data.icon}</span>
                 </div>
                 <div>
@@ -71,7 +71,7 @@ const SupportTextCard: React.FC<SupportTextCardProps> = ({ data, compact = false
               </button>
             </div>
             
-            <div className="p-10 max-h-[70vh] overflow-y-auto scrollbar-hide">
+            <div className="p-5 sm:p-10 overflow-y-auto scrollbar-hide">
               <div className="prose prose-slate dark:prose-invert max-w-none">
                 <p className="text-gray-600 dark:text-on-surface-variant text-lg leading-relaxed font-medium whitespace-pre-wrap">
                   {data.content}
@@ -79,7 +79,7 @@ const SupportTextCard: React.FC<SupportTextCardProps> = ({ data, compact = false
               </div>
             </div>
 
-            <div className="p-8 bg-surface-container-low/50 flex justify-center border-t border-gray-100 dark:border-slate-800">
+            <div className="p-5 sm:p-8 bg-surface-container-low/50 flex justify-center border-t border-gray-100 dark:border-slate-800 shrink-0">
               <button 
                 onClick={() => setIsModalOpen(false)}
                 className="px-10 py-3 bg-primary text-white rounded-2xl font-black text-sm shadow-xl shadow-primary/20 hover:bg-primary-dark transition-all active:scale-95"

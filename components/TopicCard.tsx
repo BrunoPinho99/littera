@@ -259,10 +259,10 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
             onClick={() => setSelectedText(null)}
           ></div>
 
-          <div className="relative bg-surface-container-lowest w-full max-w-2xl rounded-[2.5rem] shadow-ambient overflow-hidden animate-scale-up">
-            <div className="bg-primary/5 p-8 border-b border-outline-variant/30 flex justify-between items-center">
+          <div className="relative bg-surface-container-lowest w-full max-w-2xl rounded-3xl shadow-ambient overflow-hidden animate-scale-up flex flex-col max-h-[85vh]">
+            <div className="bg-primary/5 p-5 sm:p-8 border-b border-outline-variant/30 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-primary text-on-primary flex items-center justify-center shadow-glow-sm">
+                <div className="w-10 sm:w-12 h-10 sm:h-12 rounded-2xl bg-primary text-on-primary flex items-center justify-center shadow-glow-sm shrink-0">
                   <span className="material-icons-outlined text-2xl">{selectedText.icon === 'article' ? 'description' : selectedText.icon}</span>
                 </div>
                 <div>
@@ -278,7 +278,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
               </button>
             </div>
 
-            <div className="p-10 max-h-[60vh] overflow-y-auto scrollbar-hide">
+            <div className="p-5 sm:p-10 overflow-y-auto scrollbar-hide">
               <div className="prose prose-slate dark:prose-invert max-w-none">
                 <p className="text-on-surface-variant text-[15px] md:text-base leading-relaxed font-medium whitespace-pre-wrap">
                   {selectedText.content}
@@ -286,7 +286,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
               </div>
             </div>
 
-            <div className="p-8 bg-surface-container-low flex justify-center border-t border-outline-variant/30">
+            <div className="p-5 sm:p-8 bg-surface-container-low flex justify-center border-t border-outline-variant/30 shrink-0">
               <button
                 onClick={() => setSelectedText(null)}
                 className="px-10 py-3 btn-gradient text-on-primary rounded-pill font-black text-sm shadow-glow-sm hover:shadow-glow transition-all active:scale-95"

@@ -1412,13 +1412,13 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         isClassModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
-            <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-              <div className="p-8 border-b border-gray-100 dark:border-white/5">
+            <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[85vh] animate-scale-in border border-gray-100 dark:border-white/10">
+              <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Turma</h3>
                 <p className="text-gray-500 text-sm mt-1">Defina os detalhes da classe para organizar seus alunos.</p>
               </div>
 
-              <form onSubmit={handleCreateClass} className="p-8 space-y-6">
+              <form onSubmit={handleCreateClass} className="p-5 sm:p-8 space-y-5">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome da Turma</label>
                   <input
@@ -1489,13 +1489,13 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         isProfessorModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
-            <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-              <div className="p-8 border-b border-gray-100 dark:border-white/5">
+            <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[85vh] animate-scale-in border border-gray-100 dark:border-white/10">
+              <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Novo Docente</h3>
                 <p className="text-gray-500 text-sm mt-1">Cadastre um professor e vincule-o a uma turma para iniciar.</p>
               </div>
 
-              <form onSubmit={handleCreateProfessor} className="p-8 space-y-6">
+              <form onSubmit={handleCreateProfessor} className="p-5 sm:p-8 space-y-5">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome Completo</label>
                   <input
@@ -1569,13 +1569,13 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         isStudentModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
-            <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden overflow-y-auto max-h-[90vh] animate-scale-in border border-gray-100 dark:border-white/10">
-              <div className="p-6 border-b border-gray-100 dark:border-white/5">
+            <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[85vh] animate-scale-in border border-gray-100 dark:border-white/10">
+              <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Matrícula</h3>
                 <p className="text-gray-500 text-sm mt-1">Cadastre um aluno e vincule-o a uma turma ativa.</p>
               </div>
 
-              <form onSubmit={handleCreateStudent} className="p-6 space-y-4">
+              <form onSubmit={handleCreateStudent} className="p-5 sm:p-8 space-y-5">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome Completo</label>
                   <input
@@ -1660,8 +1660,8 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         isAssignmentModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
-            <div className="relative bg-white dark:bg-surface-dark w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10 max-h-[90vh] overflow-y-auto">
-              <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+            <div className="relative bg-white dark:bg-surface-dark w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[85vh] animate-scale-in border border-gray-100 dark:border-white/10">
+              <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Atividade</h3>
                   <p className="text-gray-500 text-sm mt-1">Crie uma redação para seus alunos ou use a IA para gerar temas.</p>
@@ -1680,7 +1680,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 </button>
               </div>
 
-              <form onSubmit={handleCreateAssignment} className="p-8 space-y-6">
+              <form onSubmit={handleCreateAssignment} className="p-5 sm:p-8 space-y-5">
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Título do Tema</label>
                   <input
@@ -1760,8 +1760,8 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       {isCardModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
-          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-scale-in border border-gray-100 dark:border-white/10">
-            <div className="p-8 border-b border-gray-100 dark:border-white/5">
+          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[85vh] animate-scale-in border border-gray-100 dark:border-white/10">
+            <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/5">
               <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                 {editingCard ? 'Editar Cartão' : 'Novo Cartão'}
               </h3>
@@ -1770,7 +1770,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               </p>
             </div>
 
-            <form onSubmit={handleSaveCard} className="p-8 space-y-6">
+            <form onSubmit={handleSaveCard} className="p-5 sm:p-8 space-y-5">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Número do Cartão</label>
                 <div className="relative">
