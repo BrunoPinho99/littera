@@ -48,8 +48,38 @@ Deno.serve(async (req: Request) => {
       })
     }
 
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    
+    // Auth Validation - Pegar o JWT do header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Cliente temporário apenas para validar o usuário logado
+    const supabaseClient = createClient(
+      supabaseUrl,
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: authHeader } },
+        auth: { autoRefreshToken: false, persistSession: false },
+      }
+    )
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
+    
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
+      supabaseUrl,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         auth: {
@@ -58,6 +88,50 @@ Deno.serve(async (req: Request) => {
         },
       }
     )
+
+    // Validação do School ID
+    const { data: callerProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('school_id, role')
+      .eq('id', user.id)
+      .single()
+
+    if (!callerProfile) {
+      return new Response(JSON.stringify({ error: 'Perfil não encontrado' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (callerProfile.role !== 'owner') {
+      return new Response(JSON.stringify({ error: 'Apenas administradores podem fazer convites em massa' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (callerProfile.school_id !== school_id) {
+      return new Response(JSON.stringify({ error: 'Operação bloqueada: O ID da escola diverge da escola do usuário' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Validação da Turma
+    if (class_id) {
+      const { data: classData } = await supabaseAdmin
+        .from('classes')
+        .select('school_id')
+        .eq('id', class_id)
+        .single()
+        
+      if (!classData || classData.school_id !== school_id) {
+        return new Response(JSON.stringify({ error: 'Operação bloqueada: Esta turma não pertence à sua escola' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
 
     // Pegar nome da escola
     const { data: schoolData } = await supabaseAdmin

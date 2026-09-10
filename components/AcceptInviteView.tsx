@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { getClassesBySchool } from '../services/databaseService';
+import { ClassGroup } from '../types';
 
 // Extracts hash/query params from the current URL (Supabase sends tokens in the hash)
 const extractTokenFromURL = (): { token: string | null; type: string | null; accessToken: string | null } => {
@@ -47,7 +49,12 @@ const AcceptInviteView: React.FC = () => {
     email: string;
     schoolName: string;
     role: string;
+    schoolId?: string;
+    classId?: string;
   } | null>(null);
+
+  const [schoolClasses, setSchoolClasses] = useState<ClassGroup[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState('');
 
   useEffect(() => {
     const initInvite = async () => {
@@ -70,12 +77,20 @@ const AcceptInviteView: React.FC = () => {
 
           const user = data.session.user;
           const meta = user.user_metadata;
+          const roleStr = meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)';
 
           setInviteMeta({
             email: user.email ?? '',
             schoolName: meta?.invited_by_school || meta?.school_name || 'sua escola',
-            role: meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)',
+            role: roleStr,
+            schoolId: meta?.school_id,
+            classId: meta?.class_id,
           });
+          
+          if (roleStr === 'Aluno(a)' && !meta?.class_id && meta?.school_id) {
+            getClassesBySchool(meta.school_id).then(setSchoolClasses).catch(console.error);
+          }
+          
           if (user.email) setLoginEmail(user.email);
 
           // Pre-fill name if already set in metadata
@@ -105,12 +120,20 @@ const AcceptInviteView: React.FC = () => {
 
           const user = data.session.user;
           const meta = user.user_metadata;
+          const roleStr = meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)';
 
           setInviteMeta({
             email: user.email ?? '',
             schoolName: meta?.invited_by_school || meta?.school_name || 'sua escola',
-            role: meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)',
+            role: roleStr,
+            schoolId: meta?.school_id,
+            classId: meta?.class_id,
           });
+
+          if (roleStr === 'Aluno(a)' && !meta?.class_id && meta?.school_id) {
+            getClassesBySchool(meta.school_id).then(setSchoolClasses).catch(console.error);
+          }
+
           if (user.email) setLoginEmail(user.email);
 
           if (meta?.full_name) setFullName(meta.full_name);
@@ -151,6 +174,19 @@ const AcceptInviteView: React.FC = () => {
       return;
     }
 
+    if (inviteMeta?.role === 'Aluno(a)' && !inviteMeta.classId && !selectedClassId) {
+      setErrorMsg('Por favor, selecione sua turma.');
+      return;
+    }
+
+    if (inviteMeta?.role === 'Aluno(a)' && !inviteMeta.classId && selectedClassId) {
+      const isValidClass = schoolClasses.some(c => c.id === selectedClassId);
+      if (!isValidClass) {
+        setErrorMsg('Turma inválida. Por favor, selecione uma turma da sua instituição.');
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setErrorMsg('');
 
@@ -163,6 +199,9 @@ const AcceptInviteView: React.FC = () => {
       if (loginEmail.trim() && loginEmail.trim() !== inviteMeta?.email) {
         updatePayload.email = loginEmail.trim();
       }
+      if (selectedClassId) {
+        updatePayload.data.class_id = selectedClassId;
+      }
 
       const { error: updateError } = await supabase.auth.updateUser(updatePayload);
 
@@ -172,11 +211,15 @@ const AcceptInviteView: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       const currentUser = user || (await supabase.auth.getSession()).data.session?.user;
       if (currentUser) {
+        const profileUpdates: any = {
+          full_name: fullName.trim(),
+          status: 'active',
+        };
+        if (selectedClassId) {
+          profileUpdates.class_id = selectedClassId;
+        }
         const { error: profileError } = await supabase.from('profiles')
-          .update({
-            full_name: fullName.trim(),
-            status: 'active',
-          })
+          .update(profileUpdates)
           .eq('id', currentUser.id);
         if (profileError) {
           console.error("Erro ao atualizar status e perfil no Supabase:", profileError);
@@ -451,6 +494,28 @@ const AcceptInviteView: React.FC = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Class Selection for Students without class */}
+                {inviteMeta?.role === 'Aluno(a)' && !inviteMeta.classId && schoolClasses.length > 0 && (
+                  <div className="space-y-1.5 group">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 group-focus-within:text-primary transition-colors">
+                      SUA TURMA
+                    </label>
+                    <select
+                      required
+                      value={selectedClassId}
+                      onChange={(e) => setSelectedClassId(e.target.value)}
+                      className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                    >
+                      <option value="">Selecione a sua turma...</option>
+                      {schoolClasses.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name} ({cls.shift})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Submit */}
                 <button

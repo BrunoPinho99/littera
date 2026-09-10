@@ -76,6 +76,11 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [newStudent, setNewStudent] = useState({ name: '', email: '', class_id: '', registration_number: '' });
   const [isSavingStudent, setIsSavingStudent] = useState(false);
   
+  // States for Edit Student Modal
+  const [isEditStudentModalOpen, setIsEditStudentModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<StudentDetail | null>(null);
+  const [isSavingEditStudent, setIsSavingEditStudent] = useState(false);
+  
   // States for Bulk Registration
   const [studentModalTab, setStudentModalTab] = useState<'single' | 'bulk'>('single');
   const [bulkEmails, setBulkEmails] = useState('');
@@ -357,8 +362,8 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (userType !== 'school_admin') return;
-    if (!newStudent.name || !newStudent.email || !newStudent.class_id) {
-      showToast('error', 'Campos incompletos', 'Por favor, preencha os campos obrigatórios e selecione uma turma.');
+    if (!newStudent.name || !newStudent.email) {
+      showToast('error', 'Campos incompletos', 'Por favor, preencha os campos obrigatórios.');
       return;
     }
 
@@ -370,7 +375,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       const createdStudent = await createStudent({
         name: newStudent.name,
         email: newStudent.email,
-        class_id: newStudent.class_id,
+        class_id: undefined,
         school_id: schoolId,
         registration_number: newStudent.registration_number
       });
@@ -389,6 +394,34 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       showToast('error', 'Erro ao cadastrar aluno', msg || 'Verifique se o e-mail já existe.');
     } finally {
       setIsSavingStudent(false);
+    }
+  };
+
+  const handleUpdateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (userType !== 'school_admin' || !editingStudent) return;
+    
+    setIsSavingEditStudent(true);
+    try {
+      // Import updateStudentProfile dynamically if not imported, or since we exported it in databaseService, we need to make sure we import it.
+      // Wait, we can import it above. Let's assume it's imported (will add it to imports later).
+      const updates = {
+        full_name: editingStudent.name,
+        class_id: editingStudent.class_id,
+        registration_number: editingStudent.registration_number
+      };
+      
+      const { updateStudentProfile } = await import('../services/databaseService');
+      await updateStudentProfile(editingStudent.id, updates);
+      
+      setStudents(prev => prev.map(s => s.id === editingStudent.id ? { ...s, ...updates } : s));
+      setIsEditStudentModalOpen(false);
+      setEditingStudent(null);
+      showToast('success', '✅ Aluno atualizado!', `Os dados de ${editingStudent.name} foram atualizados com sucesso.`);
+    } catch (error: any) {
+      showToast('error', 'Erro ao atualizar aluno', error?.message || 'Tente novamente.');
+    } finally {
+      setIsSavingEditStudent(false);
     }
   };
 
@@ -426,10 +459,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
 
   const handleBulkRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newStudent.class_id) {
-      showToast('error', 'Selecione uma turma', 'É obrigatório selecionar uma turma para cadastro em lote.');
-      return;
-    }
     setIsProcessingBulk(true);
     
     let usersToRegister: { name: string, email: string, role: 'student' }[] = [];
@@ -472,7 +501,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         body: {
           users: usersToRegister,
           school_id: schoolId,
-          class_id: newStudent.class_id
+          class_id: undefined
         }
       });
 
@@ -1071,41 +1100,52 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                         <td className="px-6 py-6 font-black text-primary">{s.averageScore}</td>
                         <td className="px-6 py-6 text-sm font-bold text-gray-400">{s.essaysSubmitted}</td>
                         <td className="px-6 py-6 text-right">
-                          {s.status === 'invited' ? (
-                            <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-2">
+                            {s.status === 'invited' ? (
                               <span className="px-3 py-1 rounded-full text-[9px] font-black uppercase bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300">
                                 Convite Pendente
                               </span>
-                              {userType === 'school_admin' && (
-                                <>
-                                  <button
-                                    onClick={() => handleResendInvite({ name: s.name, email: s.email, class_id: s.class_id }, 'student')}
-                                    disabled={resendingEmail === s.email}
-                                    title="Reenviar convite por e-mail"
-                                    className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
-                                  >
-                                    <span className="material-icons-outlined text-sm">{resendingEmail === s.email ? 'sync' : 'forward_to_inbox'}</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleRevokeInvite(s.email, 'student')}
-                                    disabled={revokingEmail === s.email}
-                                    title="Revogar e remover convite"
-                                    className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
-                                  >
-                                    <span className="material-icons-outlined text-sm">{revokingEmail === s.email ? 'sync' : 'person_remove'}</span>
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          ) : s.essaysSubmitted === 0 ? (
-                            <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
-                              Novo Aluno
-                            </span>
-                          ) : (
-                            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${s.averageScore > 700 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                              {s.averageScore > 700 ? 'Alta Prod.' : 'Atenção'}
-                            </span>
-                          )}
+                            ) : s.essaysSubmitted === 0 ? (
+                              <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-300">
+                                Novo Aluno
+                              </span>
+                            ) : (
+                              <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase ${s.averageScore > 700 ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                                {s.averageScore > 700 ? 'Alta Prod.' : 'Atenção'}
+                              </span>
+                            )}
+                            
+                            {userType === 'school_admin' && s.status === 'invited' && (
+                              <>
+                                <button
+                                  onClick={() => handleResendInvite({ name: s.name, email: s.email, class_id: s.class_id }, 'student')}
+                                  disabled={resendingEmail === s.email}
+                                  title="Reenviar convite por e-mail"
+                                  className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-all flex items-center justify-center disabled:opacity-50"
+                                >
+                                  <span className="material-icons-outlined text-sm">{resendingEmail === s.email ? 'sync' : 'forward_to_inbox'}</span>
+                                </button>
+                                <button
+                                  onClick={() => handleRevokeInvite(s.email, 'student')}
+                                  disabled={revokingEmail === s.email}
+                                  title="Revogar e remover convite"
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 transition-all flex items-center justify-center disabled:opacity-50"
+                                >
+                                  <span className="material-icons-outlined text-sm">{revokingEmail === s.email ? 'sync' : 'person_remove'}</span>
+                                </button>
+                              </>
+                            )}
+
+                            {userType === 'school_admin' && (
+                              <button
+                                onClick={() => { setEditingStudent(s); setIsEditStudentModalOpen(true); }}
+                                title="Editar Perfil do Aluno"
+                                className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 dark:bg-white/10 dark:hover:bg-white/20 transition-all flex items-center justify-center"
+                              >
+                                <span className="material-icons-outlined text-sm">edit</span>
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -1172,9 +1212,12 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                               const text = `Olá! Você foi convidado para a turma ${cls.name} no Littera. Clique no link para criar sua conta de aluno: ${link}`;
                               window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
                             }}
-                            className="flex items-center gap-1 text-emerald-700 hover:text-emerald-800 font-bold text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+                            className="flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 font-bold text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
                             title="Compartilhar no WhatsApp"
                           >
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+                            </svg>
                             WhatsApp
                           </button>
                           <button
@@ -1531,7 +1574,85 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         </div>
       </div>
 
-      {/* Modal Criar Turma */}
+      {/* MODAL EDITAR ALUNO */}
+      {isEditStudentModalOpen && editingStudent && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsEditStudentModalOpen(false)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-surface-dark rounded-[2rem] shadow-2xl overflow-hidden animate-scale-up">
+            <div className="p-5 sm:p-8 space-y-5">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <span className="material-icons-outlined text-primary text-2xl">edit</span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Editar Aluno</h3>
+                  <p className="text-xs font-bold text-gray-500">Atualize os dados de perfil do aluno.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUpdateStudent} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome Completo</label>
+                  <input
+                    type="text"
+                    value={editingStudent.name}
+                    onChange={e => setEditingStudent({ ...editingStudent, name: e.target.value })}
+                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Matrícula (Opcional)</label>
+                  <input
+                    type="text"
+                    value={editingStudent.registration_number || ''}
+                    onChange={e => setEditingStudent({ ...editingStudent, registration_number: e.target.value })}
+                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
+                  <select
+                    value={editingStudent.class_id || ''}
+                    onChange={e => setEditingStudent({ ...editingStudent, class_id: e.target.value })}
+                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                  >
+                    <option value="">Nenhuma turma</option>
+                    {classes.map(cls => (
+                      <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex gap-3 mt-8">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditStudentModalOpen(false)}
+                    className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEditStudent}
+                    className="flex-1 py-3 rounded-xl font-bold text-white bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+                  >
+                    {isSavingEditStudent ? (
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    ) : (
+                      "Salvar"
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CADASTRAR TURMA */}
       {
         isClassModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
@@ -1740,23 +1861,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
-                    <select
-                      value={newStudent.class_id}
-                      onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
-                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
-                      required
-                    >
-                      <option value="">Selecione uma turma...</option>
-                      {classes.map(cls => (
-                        <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
-                      ))}
-                    </select>
-                    {classes.length === 0 && (
-                      <p className="text-xs text-rose-500 font-bold mt-1">Necessário criar turma antes de matricular alunos.</p>
-                    )}
-                  </div>
+
 
                   <div className="flex gap-3 mt-8">
                     <button
@@ -1781,20 +1886,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 </form>
               ) : (
                 <form onSubmit={handleBulkRegister} className="p-5 sm:p-8 space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
-                    <select
-                      value={newStudent.class_id}
-                      onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
-                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
-                      required
-                    >
-                      <option value="">Selecione a turma destino...</option>
-                      {classes.map(cls => (
-                        <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
-                      ))}
-                    </select>
-                  </div>
+
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Opção 1: Colar Múltiplos E-mails</label>
@@ -1828,29 +1920,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     </label>
                   </div>
 
-                  {newStudent.class_id && classes.find(c => c.id === newStudent.class_id)?.invite_code && (
-                    <>
-                      <div className="text-center font-bold text-gray-400 text-xs">OU</div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">Opção 3: Link Rápido</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const cls = classes.find(c => c.id === newStudent.class_id);
-                            if (cls && cls.invite_code) {
-                              const link = `${window.location.origin}/invite/${cls.invite_code}`;
-                              const text = `Olá! Você foi convidado para a turma ${cls.name} no Littera. Clique no link para criar sua conta de aluno: ${link}`;
-                              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-                            }
-                          }}
-                          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200"
-                        >
-                          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-5 h-5" />
-                          Compartilhar Link da Turma no WhatsApp
-                        </button>
-                      </div>
-                    </>
-                  )}
+
 
                   <div className="flex gap-3 mt-8">
                     <button

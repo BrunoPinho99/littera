@@ -47,6 +47,39 @@ export const revokeInvite = async (email: string): Promise<{ success: boolean; m
   }
 };
 
+export const isSubscriptionActive = async (schoolId: string): Promise<boolean> => {
+  if (schoolId === 'demo-school') return true;
+
+  try {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('subscription_status')
+      .eq('id', schoolId)
+      .single();
+
+    if (error) {
+      console.warn("Failed to check subscription status:", error);
+      return true; // fail open to not block users unnecessarily if check fails
+    }
+
+    return data?.subscription_status === 'ACTIVE' || data?.subscription_status === 'TRIAL';
+  } catch (err) {
+    console.warn("Exception checking subscription status:", err);
+    return true;
+  }
+};
+
+export const updateStudentProfile = async (id: string, updates: { full_name?: string, class_id?: string, registration_number?: string }) => {
+  if (!id || id === 'demo-school') return { success: true };
+  const { error } = await supabase
+    .from('profiles')
+    .update(updates)
+    .eq('id', id);
+
+  if (error) throw error;
+  return { success: true };
+};
+
 export const JOURNEY_TIERS = [
   { min: 0, max: 2, label: 'Aspirante', icon: 'local_library', color: 'text-gray-400', bg: 'bg-gray-100', next: 3 },
   { min: 3, max: 5, label: 'Escritor Bronze', icon: 'workspace_premium', color: 'text-amber-700', bg: 'bg-amber-100', next: 6 },
@@ -256,7 +289,7 @@ export const createProfessor = async (profData: { name: string; email: string; s
 };
 
 export const createStudent = async (
-  studentData: { name: string; email: string; school_id: string; class_id: string; registration_number?: string },
+  studentData: { name: string; email: string; school_id: string; class_id?: string; registration_number?: string },
   _schoolName?: string // opcional: nome da escola para personalizar o email
 ): Promise<StudentDetail | null> => {
   // MODO DEMO
@@ -322,7 +355,7 @@ export const createStudent = async (
   } as any;
 };
 
-export const createStudentsBulk = async (students: { name: string; email: string; class_id: string; registration_number?: string }[], schoolId: string) => {
+export const createStudentsBulk = async (students: { name: string; email: string; class_id?: string; registration_number?: string }[], schoolId: string) => {
   const results = {
     success: [] as StudentDetail[],
     errors: [] as { email: string, reason: string }[]
