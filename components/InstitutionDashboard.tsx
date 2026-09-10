@@ -648,12 +648,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
             {userType === 'school_admin' 
               ? `Seja bem-vindo(a), ${school?.name || "Escola"}` 
               : (school?.name || "Minha Instituição")}
-          </h1>
-          <div className="mt-2 flex items-center gap-2">
-            <span className={`px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest ${school?.id === 'demo' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
-              {school?.id === 'demo' ? 'Modo Local (Demo)' : 'Conectado (Cloud)'}
-            </span>
-          </div>
         </div>
 
         {userType === 'teacher' && (
