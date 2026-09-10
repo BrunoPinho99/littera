@@ -75,6 +75,12 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [newStudent, setNewStudent] = useState({ name: '', email: '', class_id: '', registration_number: '' });
   const [isSavingStudent, setIsSavingStudent] = useState(false);
+  
+  // States for Bulk Registration
+  const [studentModalTab, setStudentModalTab] = useState<'single' | 'bulk'>('single');
+  const [bulkEmails, setBulkEmails] = useState('');
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false);
 
   // States for Filters
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'invited'>('all');
@@ -385,6 +391,110 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       setIsSavingStudent(false);
     }
   };
+
+  const parseCSV = (csvText: string) => {
+    const lines = csvText.split('\n');
+    const result: { name: string, email: string, role: 'student' }[] = [];
+    // Pula cabeçalho
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      const parts = line.split(',');
+      if (parts.length >= 2) {
+        result.push({ name: parts[0].trim(), email: parts[1].trim(), role: 'student' });
+      } else if (parts.length === 1 && parts[0].includes('@')) {
+        result.push({ name: '', email: parts[0].trim(), role: 'student' });
+      }
+    }
+    return result;
+  };
+
+  const parseXML = (xmlText: string) => {
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const alunos = xmlDoc.getElementsByTagName('aluno');
+    const result: { name: string, email: string, role: 'student' }[] = [];
+    for (let i = 0; i < alunos.length; i++) {
+      const name = alunos[i].getElementsByTagName('nome')[0]?.textContent || '';
+      const email = alunos[i].getElementsByTagName('email')[0]?.textContent || '';
+      if (email) {
+        result.push({ name: name.trim(), email: email.trim(), role: 'student' });
+      }
+    }
+    return result;
+  };
+
+  const handleBulkRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStudent.class_id) {
+      showToast('error', 'Selecione uma turma', 'É obrigatório selecionar uma turma para cadastro em lote.');
+      return;
+    }
+    setIsProcessingBulk(true);
+    
+    let usersToRegister: { name: string, email: string, role: 'student' }[] = [];
+
+    // Tenta ler os e-mails colados
+    if (bulkEmails.trim()) {
+      const emails = bulkEmails.split(/[,;\n]+/).map(e => e.trim()).filter(e => e.includes('@'));
+      emails.forEach(email => {
+        usersToRegister.push({ name: '', email, role: 'student' });
+      });
+    }
+
+    // Tenta ler o arquivo
+    if (bulkFile) {
+      try {
+        const text = await bulkFile.text();
+        if (bulkFile.name.endsWith('.xml')) {
+          usersToRegister = usersToRegister.concat(parseXML(text));
+        } else if (bulkFile.name.endsWith('.csv')) {
+          usersToRegister = usersToRegister.concat(parseCSV(text));
+        }
+      } catch (err) {
+        showToast('error', 'Erro ao ler arquivo', 'Verifique a formatação do arquivo XML/CSV.');
+        setIsProcessingBulk(false);
+        return;
+      }
+    }
+
+    if (usersToRegister.length === 0) {
+      showToast('error', 'Nenhum aluno encontrado', 'Adicione e-mails na caixa de texto ou envie um arquivo válido.');
+      setIsProcessingBulk(false);
+      return;
+    }
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const schoolId = await getResolvedSchoolId(session);
+      
+      const { data, error } = await supabase.functions.invoke('bulk-register', {
+        body: {
+          users: usersToRegister,
+          school_id: schoolId,
+          class_id: newStudent.class_id
+        }
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      showToast('success', '✅ Lote Processado!', `${data.success} alunos convidados com sucesso. ${data.failed} falhas.`);
+      
+      setIsStudentModalOpen(false);
+      setBulkEmails('');
+      setBulkFile(null);
+      setNewStudent({ name: '', email: '', class_id: '', registration_number: '' });
+      if (activeTab !== 'students') setActiveTab('students');
+      
+    } catch (error: any) {
+      const msg = error?.message || 'Falha ao processar o lote no servidor.';
+      showToast('error', 'Erro no cadastro em lote', msg);
+    } finally {
+      setIsProcessingBulk(false);
+    }
+  };
+
 
   const [resendingEmail, setResendingEmail] = useState<string | null>(null);
   const [revokingEmail, setRevokingEmail] = useState<string | null>(null);
@@ -1052,20 +1162,33 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Alunos</p>
                       <p className="font-bold text-gray-900 dark:text-white">{cls.studentCount}</p>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-center gap-2">
                       {cls.invite_code ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigator.clipboard.writeText(`${window.location.origin}/invite/${cls.invite_code}`);
-                            showToast('success', 'Link copiado!', 'Envie este link para os alunos se cadastrarem.');
-                          }}
-                          className="flex items-center gap-1 text-primary hover:text-blue-700 font-bold text-xs bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
-                          title="Copiar link de convite"
-                        >
-                          <span className="material-icons-outlined text-[14px]">link</span>
-                          Copiar Link
-                        </button>
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const link = `${window.location.origin}/invite/${cls.invite_code}`;
+                              const text = `Olá! Você foi convidado para a turma ${cls.name} no Littera. Clique no link para criar sua conta de aluno: ${link}`;
+                              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                            }}
+                            className="flex items-center gap-1 text-emerald-700 hover:text-emerald-800 font-bold text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors"
+                            title="Compartilhar no WhatsApp"
+                          >
+                            WhatsApp
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(`${window.location.origin}/invite/${cls.invite_code}`);
+                              showToast('success', 'Link copiado!', 'Envie este link para os alunos se cadastrarem.');
+                            }}
+                            className="flex items-center gap-1 text-primary hover:text-blue-700 font-bold text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                            title="Copiar link de convite"
+                          >
+                            <span className="material-icons-outlined text-[14px]">link</span>
+                          </button>
+                        </>
                       ) : (
                         <div className="text-right">
                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Média</p>
@@ -1574,83 +1697,159 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
               <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/5">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Nova Matrícula</h3>
                 <p className="text-gray-500 text-sm mt-1">Cadastre um aluno e vincule-o a uma turma ativa.</p>
+
+                <div className="flex gap-4 mt-6">
+                  <button
+                    onClick={() => setStudentModalTab('single')}
+                    className={`flex-1 py-2 font-bold text-xs uppercase tracking-widest border-b-2 transition-colors ${studentModalTab === 'single' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                  >
+                    Cadastro Único
+                  </button>
+                  <button
+                    onClick={() => setStudentModalTab('bulk')}
+                    className={`flex-1 py-2 font-bold text-xs uppercase tracking-widest border-b-2 transition-colors ${studentModalTab === 'bulk' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                  >
+                    Em Lote (Vários)
+                  </button>
+                </div>
               </div>
 
-              <form onSubmit={handleCreateStudent} className="p-5 sm:p-8 space-y-5">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome Completo</label>
-                  <input
-                    type="text"
-                    value={newStudent.name}
-                    onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
-                    placeholder="Ex: Maria Oliveira"
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
-                    required
-                  />
-                </div>
+              {studentModalTab === 'single' ? (
+                <form onSubmit={handleCreateStudent} className="p-5 sm:p-8 space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome Completo</label>
+                    <input
+                      type="text"
+                      value={newStudent.name}
+                      onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
+                      placeholder="Ex: Maria Oliveira"
+                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">E-mail do Aluno</label>
-                  <input
-                    type="email"
-                    value={newStudent.email}
-                    onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
-                    placeholder="Ex: aluno@escola.com"
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
-                    required
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">E-mail do Aluno</label>
+                    <input
+                      type="email"
+                      value={newStudent.email}
+                      onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
+                      placeholder="Ex: aluno@escola.com"
+                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nº Matrícula (Opcional)</label>
-                  <input
-                    type="text"
-                    value={newStudent.registration_number}
-                    onChange={e => setNewStudent({ ...newStudent, registration_number: e.target.value })}
-                    placeholder="Ex: 20240015"
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
-                  <select
-                    value={newStudent.class_id}
-                    onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
-                    className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
-                    required
-                  >
-                    <option value="">Selecione uma turma...</option>
-                    {classes.map(cls => (
-                      <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
-                    ))}
-                  </select>
-                  {classes.length === 0 && (
-                    <p className="text-xs text-rose-500 font-bold mt-1">Necessário criar turma antes de matricular alunos.</p>
-                  )}
-                </div>
-
-                <div className="flex gap-3 mt-8">
-                  <button
-                    type="button"
-                    onClick={() => setIsStudentModalOpen(false)}
-                    className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSavingStudent || classes.length === 0}
-                    className="flex-1 py-3 rounded-xl font-bold text-white bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
-                  >
-                    {isSavingStudent ? (
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    ) : (
-                      "Matricular"
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
+                    <select
+                      value={newStudent.class_id}
+                      onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
+                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                      required
+                    >
+                      <option value="">Selecione uma turma...</option>
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
+                      ))}
+                    </select>
+                    {classes.length === 0 && (
+                      <p className="text-xs text-rose-500 font-bold mt-1">Necessário criar turma antes de matricular alunos.</p>
                     )}
-                  </button>
-                </div>
-              </form>
+                  </div>
+
+                  <div className="flex gap-3 mt-8">
+                    <button
+                      type="button"
+                      onClick={() => setIsStudentModalOpen(false)}
+                      className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSavingStudent || classes.length === 0}
+                      className="flex-1 py-3 rounded-xl font-bold text-white bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+                    >
+                      {isSavingStudent ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        "Matricular"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleBulkRegister} className="p-5 sm:p-8 space-y-5">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
+                    <select
+                      value={newStudent.class_id}
+                      onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
+                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                      required
+                    >
+                      <option value="">Selecione a turma destino...</option>
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Opção 1: Colar Múltiplos E-mails</label>
+                    <textarea
+                      value={bulkEmails}
+                      onChange={e => setBulkEmails(e.target.value)}
+                      placeholder="aluno1@escola.com, aluno2@escola.com..."
+                      rows={3}
+                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all resize-none"
+                    />
+                  </div>
+
+                  <div className="text-center font-bold text-gray-400 text-xs">OU</div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Opção 2: Enviar Arquivo (.CSV ou .XML)</label>
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 dark:border-white/20 rounded-2xl cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <span className="material-icons-outlined text-3xl text-gray-400 mb-2">cloud_upload</span>
+                        <p className="mb-2 text-sm text-gray-500 font-bold">
+                          <span className="text-primary">Clique para enviar</span> ou arraste o arquivo
+                        </p>
+                        <p className="text-xs text-gray-400">{bulkFile ? bulkFile.name : 'Apenas planilhas CSV ou arquivos XML'}</p>
+                      </div>
+                      <input 
+                        type="file" 
+                        className="hidden" 
+                        accept=".csv,.xml" 
+                        onChange={(e) => setBulkFile(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="flex gap-3 mt-8">
+                    <button
+                      type="button"
+                      onClick={() => setIsStudentModalOpen(false)}
+                      className="flex-1 py-3 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isProcessingBulk || (!bulkFile && !bulkEmails) || !newStudent.class_id}
+                      className="flex-1 py-3 rounded-xl font-bold text-white bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
+                    >
+                      {isProcessingBulk ? (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      ) : (
+                        "Convidar Alunos"
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
           </div>
         )
