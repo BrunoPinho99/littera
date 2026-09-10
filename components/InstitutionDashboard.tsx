@@ -1828,6 +1828,30 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     </label>
                   </div>
 
+                  {newStudent.class_id && classes.find(c => c.id === newStudent.class_id)?.invite_code && (
+                    <>
+                      <div className="text-center font-bold text-gray-400 text-xs">OU</div>
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1">Opção 3: Link Rápido</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const cls = classes.find(c => c.id === newStudent.class_id);
+                            if (cls && cls.invite_code) {
+                              const link = `${window.location.origin}/invite/${cls.invite_code}`;
+                              const text = `Olá! Você foi convidado para a turma ${cls.name} no Littera. Clique no link para criar sua conta de aluno: ${link}`;
+                              window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                            }
+                          }}
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200"
+                        >
+                          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" alt="WhatsApp" className="w-5 h-5" />
+                          Compartilhar Link da Turma no WhatsApp
+                        </button>
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex gap-3 mt-8">
                     <button
                       type="button"
