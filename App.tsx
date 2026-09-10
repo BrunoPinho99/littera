@@ -573,11 +573,7 @@ const App: React.FC = () => {
         )
       } />
       <Route path="/cadastro" element={
-        session && !isSuspended ? (
-          <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-        ) : (
-          <CheckoutWizard onBack={() => window.location.href = '/'} onLogin={() => window.location.href = '/login'} />
-        )
+        <CheckoutWizard onBack={() => window.location.href = '/'} onLogin={() => window.location.href = '/login'} />
       } />
       <Route path="/cadastro/finalizar" element={
         session
