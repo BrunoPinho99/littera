@@ -26,7 +26,7 @@ import ClassRegistration from './components/ClassRegistration';
 import SchoolRegistration from './components/SchoolRegistration';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
-import { correctEssay, correctHandwrittenEssay } from './services/geminiService';
+import { correctEssay, correctHandwrittenEssay, correctEssayDemo, correctHandwrittenEssayDemo } from './services/geminiService';
 import { saveEssayToDatabase, getNotifications, markNotificationAsRead, markAllNotificationsRead, getSchoolData, getStudentAssignments } from './services/databaseService';
 import { supabase } from './supabaseClient';
 import { exploreTopics } from './data/exploreTopics';
@@ -57,6 +57,7 @@ const App: React.FC = () => {
   const location = useLocation();
   const currentView = location.pathname.startsWith('/app/') ? location.pathname.replace('/app/', '') : 'practice';
   const [isInitializing, setIsInitializing] = useState(true);
+  const [isDemoMode, setIsDemoMode] = useState(() => localStorage.getItem('littera_demo_mode') === 'true');
 
   // Writing flow
   const [topic, setTopic] = useState<Topic>(INITIAL_TOPIC);
@@ -145,6 +146,11 @@ const App: React.FC = () => {
         setUserType(prev => prev === nextUserType ? prev : nextUserType);
 
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+          // Desativa demo mode quando um login real acontece
+          if (isDemoMode) {
+            localStorage.removeItem('littera_demo_mode');
+            setIsDemoMode(false);
+          }
           loadNotifications(session.user.id);
 
           const schoolId = session.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
@@ -164,7 +170,7 @@ const App: React.FC = () => {
           }
         }
       } else {
-        if (!localStorage.getItem('littera_demo_mode')) {
+        if (!isDemoMode) {
           localStorage.removeItem('littera_user_type');
           setSession(null);
           setUserType('student');
@@ -220,10 +226,31 @@ const App: React.FC = () => {
     Object.keys(localStorage).forEach(key => {
       if (LITTERA_KEYS.some(p => key.startsWith(p))) localStorage.removeItem(key);
     });
+    localStorage.removeItem('littera_demo_mode');
+    setIsDemoMode(false);
     setSession(null);
-
     setUserType('student');
     navigate('/login');
+  };
+
+  // --- MODO DEMO: Entrar sem cadastro ---
+  const handleEnterDemo = () => {
+    localStorage.setItem('littera_demo_mode', 'true');
+    setIsDemoMode(true);
+    setUserType('student');
+    // Cria sessão fake local para o demo funcionar
+    setSession({
+      user: {
+        id: 'demo-anonymous',
+        email: 'demo@littera.com',
+        user_metadata: {
+          full_name: 'Estudante Demo',
+          user_type: 'student',
+          avatar_url: 'https://ui-avatars.com/api/?name=Demo&background=f59e0b&color=fff',
+        }
+      }
+    });
+    navigate('/app/practice');
   };
 
   const handleStartChallengeWriting = (assignment: Assignment) => {
@@ -241,7 +268,10 @@ const App: React.FC = () => {
     try {
       const userId = session?.user?.id;
 
-      const { essayId } = await correctEssay(writingTopicTitle, input);
+      // Usa a função demo ou normal conforme o modo
+      const { essayId } = isDemoMode
+        ? await correctEssayDemo(writingTopicTitle, input)
+        : await correctEssay(writingTopicTitle, input);
       
       const channel = supabase.channel(`essay-${essayId}`)
         .on('postgres_changes', {
@@ -267,7 +297,8 @@ const App: React.FC = () => {
             };
             setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
             
-            if (userId) {
+            // Não salva no banco para usuários demo
+            if (userId && !isDemoMode) {
               await saveEssayToDatabase(writingTopicTitle, input, userId, result, session?.user?.user_metadata);
             }
             navigate('/app/result');
@@ -291,7 +322,9 @@ const App: React.FC = () => {
   const handleHandwrittenSubmit = async (base64: string, mimeType: string) => {
     setIsCorrecting(true);
     try {
-      const { essayId } = await correctHandwrittenEssay(writingTopicTitle, base64, mimeType);
+      const { essayId } = isDemoMode
+        ? await correctHandwrittenEssayDemo(writingTopicTitle, base64, mimeType)
+        : await correctHandwrittenEssay(writingTopicTitle, base64, mimeType);
       
       const channel = supabase.channel(`handwritten-essay-${essayId}`)
         .on('postgres_changes', {
@@ -343,7 +376,7 @@ const App: React.FC = () => {
   }
 
   // --- TRAVA DE ASSINATURA (PAYWALL B2B) ---
-  const isSuspended = session && schoolStatus !== 'active' && schoolStatus !== null && userType !== 'school_admin';
+  const isSuspended = session && !isDemoMode && schoolStatus !== 'active' && schoolStatus !== null && userType !== 'school_admin';
 
   const renderSuspended = () => {
     if (userType === 'school_admin') {
@@ -574,7 +607,7 @@ const App: React.FC = () => {
         ) : (
           <LoginView
             onLoginSuccess={() => navigate(`/app/${getDefaultView('student')}`)}
-            onEnterDemo={() => {}}
+            onEnterDemo={handleEnterDemo}
           />
         )
       } />

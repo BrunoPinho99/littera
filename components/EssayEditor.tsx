@@ -206,21 +206,32 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
           </div>
         ) : (
           /* ===== NO PHOTO STATE ===== */
-          <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-8 w-full">
             <div 
               onClick={() => !isSubmitting && fileInputRef.current?.click()}
-              className={`w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/30 dark:border-slate-600 rounded-2xl bg-surface-container-lowest dark:bg-surface-dark transition-all hover:border-primary/50 hover:bg-primary/[0.02] cursor-pointer group ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
+              className={`w-full max-w-3xl flex-1 max-h-[500px] min-h-[300px] flex flex-col items-center justify-center border-2 border-dashed border-primary/30 dark:border-primary/20 rounded-3xl bg-primary/[0.02] dark:bg-primary/[0.01] transition-all duration-300 hover:border-primary hover:bg-primary/[0.04] hover:scale-[1.01] hover:shadow-ambient cursor-pointer group relative overflow-hidden ${isSubmitting ? 'pointer-events-none opacity-50' : ''}`}
             >
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors flex items-center justify-center mb-4">
-                <span className="material-icons-outlined text-3xl sm:text-4xl text-primary">add_a_photo</span>
-              </div>
-              <p className="text-gray-700 dark:text-gray-300 font-bold text-base sm:text-lg text-center mb-1">Clique para tirar uma foto da sua redação</p>
-              <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 text-center mb-5 max-w-xs">
-                Certifique-se de que o texto esteja legível e bem iluminado
-              </p>
-              <div className="px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-xs sm:text-sm flex items-center gap-2 group-hover:bg-primary/90 transition-colors pointer-events-none">
-                <span className="material-icons-outlined text-base">photo_camera</span>
-                Abrir Câmera / Galeria
+              {/* Decorative background blobs */}
+              <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/10 rounded-full blur-3xl group-hover:bg-primary/20 transition-all duration-500"></div>
+              <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-secondary/10 rounded-full blur-3xl group-hover:bg-secondary/20 transition-all duration-500"></div>
+
+              <div className="relative z-10 flex flex-col items-center text-center p-6">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white dark:bg-surface-dark shadow-sm border border-surface-container-high flex items-center justify-center mb-6 group-hover:-translate-y-2 transition-transform duration-300">
+                  <span className="material-icons-outlined text-4xl sm:text-5xl text-primary">add_a_photo</span>
+                </div>
+                
+                <h3 className="text-on-surface font-black text-xl sm:text-2xl mb-2 tracking-tight">
+                  Envie a foto da sua redação
+                </h3>
+                
+                <p className="text-body-md text-on-surface-variant max-w-md mx-auto mb-8 leading-relaxed">
+                  Para uma correção precisa, certifique-se de que o texto esteja <strong className="text-primary font-bold">legível</strong>, <strong className="text-primary font-bold">bem iluminado</strong> e <strong className="text-primary font-bold">sem cortes</strong>.
+                </p>
+                
+                <div className="px-8 py-3.5 btn-gradient text-on-primary rounded-pill font-black text-label-lg flex items-center gap-2 group-hover:shadow-glow transition-all pointer-events-none">
+                  <span className="material-icons-outlined text-lg">photo_camera</span>
+                  Abrir Câmera / Galeria
+                </div>
               </div>
             </div>
           </div>

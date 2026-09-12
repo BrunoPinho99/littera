@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.21.0'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -91,7 +91,8 @@ Deno.serve(async (req: Request) => {
     }
 
     return jsonResponse({ error: 'Ação inválida.' }, 400)
-  } catch (error: any) {
-    return jsonResponse({ error: error.message }, 500)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Erro interno."
+    return jsonResponse({ error: message }, 500)
   }
 })

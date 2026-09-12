@@ -209,3 +209,42 @@ export const correctHandwrittenEssay = async (
   const input: EssayInput = { type: 'image', base64: base64Image, mimeType };
   return await correctEssay(topicTitle, input);
 };
+
+// --- CORREÇÃO DEMO (sem autenticação) ---
+export const correctEssayDemo = async (
+  topicTitle: string,
+  input: EssayInput,
+): Promise<{ success: boolean; essayId: string }> => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  const res = await fetch(`${supabaseUrl}/functions/v1/correct-essay`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': supabaseAnonKey,
+    },
+    body: JSON.stringify({
+      topicTitle,
+      input,
+      demo_mode: true,
+    }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || data?.error) {
+    throw new Error(data?.message || data?.error || 'Erro ao corrigir no modo demo.');
+  }
+
+  return data as { success: boolean; essayId: string };
+};
+
+export const correctHandwrittenEssayDemo = async (
+  topicTitle: string,
+  base64Image: string,
+  mimeType: string
+): Promise<{ success: boolean; essayId: string }> => {
+  const input: EssayInput = { type: 'image', base64: base64Image, mimeType };
+  return await correctEssayDemo(topicTitle, input);
+};

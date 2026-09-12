@@ -20,6 +20,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
   const [scrolled, setScrolled] = useState(false);
   const [userRank, setUserRank] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isDemoMode = localStorage.getItem('littera_demo_mode') === 'true';
 
   const firstName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Usuário";
   const photoUrl = user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${firstName}&background=004ac6&color=fff`;
@@ -94,6 +95,11 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
               <span className="font-black text-xl sm:text-2xl tracking-tighter text-on-surface transition-opacity" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
                 Littera<span className="text-primary/30">.</span>
               </span>
+              {isDemoMode && (
+                <span className="ml-2 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800 animate-pulse">
+                  MODO TESTE
+                </span>
+              )}
             </div>
 
             {/* Center Navigation — Surface Pill (desktop only) */}
@@ -118,86 +124,111 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
             {/* Right Section */}
             <div className="flex items-center gap-2 sm:gap-4">
 
-
-
-              {/* Notification bell */}
-              <button
-                onClick={() => onViewChange('notifications')}
-                className={`w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl transition-all relative group ${currentView === 'notifications'
-                  ? 'bg-primary text-on-primary shadow-glow-sm'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-primary-fixed/30'}`}
-              >
-                <span className="material-icons-outlined text-xl sm:text-2xl">notifications</span>
-                {notifications.some(n => !n.read) && (
-                  <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-rose-500 rounded-full border-2 border-surface group-hover:scale-125 transition-transform"></span>
-                )}
-              </button>
-
-              {/* Separator — uses tonal layering, not a border */}
-              <div className="h-8 w-px bg-surface-container-high hidden sm:block"></div>
-
-              {/* User menu */}
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setIsMenuOpen(!isMenuOpen)}
-                  className="flex items-center gap-2 lg:gap-3 p-1 lg:p-1.5 rounded-xl transition-all hover:bg-surface-container-low group"
-                >
-                  <div className="text-right hidden lg:block pr-1">
-                    <p className="text-label-md text-on-surface leading-none mb-1 group-hover:text-primary transition-colors">{firstName}</p>
-                    <div className="flex items-center justify-end gap-1.5">
-                      {userRank && userType === 'student' && (
-                        <span className={`material-icons-outlined text-[12px] ${userRank.color}`}>{userRank.icon}</span>
-                      )}
-                      <p className="text-label-sm text-on-surface-variant uppercase tracking-widest">
-                        {userType === 'teacher' ? 'Docente' : userType === 'school_admin' ? 'Admin' : (userRank ? userRank.label : userType)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <img src={photoUrl} className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl p-0.5 object-cover shadow-card ghost-border group-hover:shadow-glow-sm transition-all" alt="User" />
-                    <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-primary text-on-primary rounded-full flex items-center justify-center border-2 border-surface">
-                      <span className="material-icons-outlined text-[8px] sm:text-10px font-bold">expand_more</span>
-                    </div>
-                  </div>
-                </button>
-
-                {/* Dropdown — Ambient shadow, surface-container-lowest, no borders */}
-                {isMenuOpen && (
-                  <div className="absolute right-0 mt-4 w-64 bg-surface-container-lowest rounded-card shadow-ambient-lg py-3 animate-fade-in-up">
-                    <div className="px-6 py-4 mb-2">
-                      <p className="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1">Logado como</p>
-                      <p className="text-body-sm font-bold text-on-surface truncate">{user?.email}</p>
-                    </div>
-
-                    <div className="h-px bg-surface-container-high mx-4 mb-1"></div>
-
-                    <button onClick={() => { onViewChange('profile'); setIsMenuOpen(false); }} className="w-full px-6 py-3 text-left text-body-sm font-bold text-on-surface-variant hover:bg-surface-container-low hover:text-primary flex items-center gap-4 transition-colors group">
-                      <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center group-hover:bg-primary-fixed/40 transition-colors">
-                        <span className="material-icons-outlined text-xl">person_outline</span>
-                      </div>
-                      Meu Perfil
-                    </button>
-
-                    {userType === 'student' && (
-                      <button onClick={() => { onViewChange('performance'); setIsMenuOpen(false); }} className="w-full px-6 py-3 text-left text-body-sm font-bold text-on-surface-variant hover:bg-surface-container-low hover:text-primary flex items-center gap-4 transition-colors group">
-                        <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center group-hover:bg-primary-fixed/40 transition-colors">
-                          <span className="material-icons-outlined text-xl">emoji_events</span>
-                        </div>
-                        Minha Jornada
-                      </button>
+              {isDemoMode ? (
+                /* ── DEMO MODE: CTA Criar Conta ── */
+                <>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem('littera_demo_mode');
+                      window.location.href = '/login';
+                    }}
+                    className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-pill bg-primary text-on-primary font-black text-xs sm:text-sm uppercase tracking-widest shadow-glow-sm hover:bg-primary-dark transition-all active:scale-95"
+                  >
+                    <span className="material-icons-outlined text-lg">person_add</span>
+                    <span className="hidden sm:inline">Criar Conta</span>
+                    <span className="sm:hidden">Entrar</span>
+                  </button>
+                  <button
+                    onClick={onLogout}
+                    className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl text-on-surface-variant hover:text-rose-500 hover:bg-rose-50 transition-all"
+                    title="Sair do modo teste"
+                  >
+                    <span className="material-icons-outlined text-xl sm:text-2xl">logout</span>
+                  </button>
+                </>
+              ) : (
+                /* ── MODO NORMAL ── */
+                <>
+                  {/* Notification bell */}
+                  <button
+                    onClick={() => onViewChange('notifications')}
+                    className={`w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl transition-all relative group ${currentView === 'notifications'
+                      ? 'bg-primary text-on-primary shadow-glow-sm'
+                      : 'text-on-surface-variant hover:text-primary hover:bg-primary-fixed/30'}`}
+                  >
+                    <span className="material-icons-outlined text-xl sm:text-2xl">notifications</span>
+                    {notifications.some(n => !n.read) && (
+                      <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-rose-500 rounded-full border-2 border-surface group-hover:scale-125 transition-transform"></span>
                     )}
+                  </button>
 
-                    <div className="h-px bg-surface-container-high my-1 mx-4"></div>
+                  {/* Separator — uses tonal layering, not a border */}
+                  <div className="h-8 w-px bg-surface-container-high hidden sm:block"></div>
 
-                    <button onClick={onLogout} className="w-full px-6 py-3 text-left text-body-sm font-black text-rose-500 hover:bg-rose-50 flex items-center gap-4 transition-colors group">
-                      <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
-                        <span className="material-icons-outlined text-xl">logout</span>
+                  {/* User menu */}
+                  <div className="relative" ref={menuRef}>
+                    <button
+                      onClick={() => setIsMenuOpen(!isMenuOpen)}
+                      className="flex items-center gap-2 lg:gap-3 p-1 lg:p-1.5 rounded-xl transition-all hover:bg-surface-container-low group"
+                    >
+                      <div className="text-right hidden lg:block pr-1">
+                        <p className="text-label-md text-on-surface leading-none mb-1 group-hover:text-primary transition-colors">{firstName}</p>
+                        <div className="flex items-center justify-end gap-1.5">
+                          {userRank && userType === 'student' && (
+                            <span className={`material-icons-outlined text-[12px] ${userRank.color}`}>{userRank.icon}</span>
+                          )}
+                          <p className="text-label-sm text-on-surface-variant uppercase tracking-widest">
+                            {userType === 'teacher' ? 'Docente' : userType === 'school_admin' ? 'Admin' : (userRank ? userRank.label : userType)}
+                          </p>
+                        </div>
                       </div>
-                      Encerrar Sessão
+                      <div className="relative">
+                        <img src={photoUrl} className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl p-0.5 object-cover shadow-card ghost-border group-hover:shadow-glow-sm transition-all" alt="User" />
+                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-primary text-on-primary rounded-full flex items-center justify-center border-2 border-surface">
+                          <span className="material-icons-outlined text-[8px] sm:text-10px font-bold">expand_more</span>
+                        </div>
+                      </div>
                     </button>
+
+                    {/* Dropdown — Ambient shadow, surface-container-lowest, no borders */}
+                    {isMenuOpen && (
+                      <div className="absolute right-0 mt-4 w-64 bg-surface-container-lowest rounded-card shadow-ambient-lg py-3 animate-fade-in-up">
+                        <div className="px-6 py-4 mb-2">
+                          <p className="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1">Logado como</p>
+                          <p className="text-body-sm font-bold text-on-surface truncate">{user?.email}</p>
+                        </div>
+
+                        <div className="h-px bg-surface-container-high mx-4 mb-1"></div>
+
+                        <button onClick={() => { onViewChange('profile'); setIsMenuOpen(false); }} className="w-full px-6 py-3 text-left text-body-sm font-bold text-on-surface-variant hover:bg-surface-container-low hover:text-primary flex items-center gap-4 transition-colors group">
+                          <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center group-hover:bg-primary-fixed/40 transition-colors">
+                            <span className="material-icons-outlined text-xl">person_outline</span>
+                          </div>
+                          Meu Perfil
+                        </button>
+
+                        {userType === 'student' && (
+                          <button onClick={() => { onViewChange('performance'); setIsMenuOpen(false); }} className="w-full px-6 py-3 text-left text-body-sm font-bold text-on-surface-variant hover:bg-surface-container-low hover:text-primary flex items-center gap-4 transition-colors group">
+                            <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center group-hover:bg-primary-fixed/40 transition-colors">
+                              <span className="material-icons-outlined text-xl">emoji_events</span>
+                            </div>
+                            Minha Jornada
+                          </button>
+                        )}
+
+                        <div className="h-px bg-surface-container-high my-1 mx-4"></div>
+
+                        <button onClick={onLogout} className="w-full px-6 py-3 text-left text-body-sm font-black text-rose-500 hover:bg-rose-50 flex items-center gap-4 transition-colors group">
+                          <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+                            <span className="material-icons-outlined text-xl">logout</span>
+                          </div>
+                          Encerrar Sessão
+                        </button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </>
+              )}
             </div>
           </nav>
         </div>

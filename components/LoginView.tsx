@@ -311,6 +311,18 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 Debug Conexão
               </button>
 
+              {/* Botão Testar como Aluno — só aparece no modo login + perfil aluno */}
+              {isLogin && userType === 'student' && (
+                <button
+                  type="button"
+                  onClick={() => onEnterDemo('student')}
+                  className="w-full py-3.5 rounded-[1.8rem] font-black text-primary bg-primary/5 hover:bg-primary/10 border-2 border-primary/20 hover:border-primary/40 transition-all flex items-center justify-center gap-2.5 active:scale-95 group"
+                >
+                  <span className="material-icons-outlined text-lg group-hover:rotate-12 transition-transform">science</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em]">Experimentar sem cadastro</span>
+                </button>
+              )}
+
               <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
                 {isLogin
                   ? (userType === 'school_admin' ? 'Ainda não tem conta?' : 'Foi convidado pela escola?')
