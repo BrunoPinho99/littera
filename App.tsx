@@ -14,7 +14,7 @@ import NotificationsView from './components/NotificationsView';
 import ProfileView from './components/ProfileView';
 import LoginView from './components/LoginView';
 import InstitutionDashboard from './components/InstitutionDashboard';
-import LandingPage from './components/LandingPage';
+import { TillmornMarketingPage } from './src/app/(marketing)/page';
 import AcceptInviteView from './components/AcceptInviteView';
 import CheckoutWizard from './components/CheckoutWizard';
 import { PendingCheckoutPage } from './components/PendingCheckoutPage';
@@ -594,11 +594,7 @@ const App: React.FC = () => {
         session && !isSuspended ? (
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
-          <LandingPage
-            onLoginClick={() => navigate('/login')}
-            onDemoClick={() => {}}
-            onCheckout={() => {}}
-          />
+          <TillmornMarketingPage />
         )
       } />
       <Route path="/login" element={
