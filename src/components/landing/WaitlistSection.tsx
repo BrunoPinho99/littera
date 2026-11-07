@@ -25,7 +25,7 @@ const WAITLIST_AVATARS = [
 
 const PERKS = [
   'Correção ao vivo',
-  'Simulação da sua escola',
+  'Simulação da sua instituição',
   'Proposta em até 24 h',
 ];
 
@@ -83,7 +83,7 @@ export const WaitlistSection: React.FC = () => {
 
           <p className="tm-sans text-[16px] sm:text-[17.5px] leading-[1.45] text-[#6B6F76] max-w-[500px]">
             Em 30 minutos, corrigimos ao vivo redações reais dos seus alunos, refazemos a conta da
-            calculadora com os seus números e apresentamos a proposta para a sua escola.
+            calculadora com os seus números e apresentamos a proposta para sua escola ou cursinho.
           </p>
 
           {/* Pill Email Form */}
@@ -110,7 +110,7 @@ export const WaitlistSection: React.FC = () => {
                   setEmail(e.target.value);
                   if (scheduled) setScheduled(false);
                 }}
-                placeholder="E-mail institucional da escola"
+                placeholder="E-mail institucional da escola ou cursinho"
                 aria-label="E-mail institucional"
                 className="w-full border-0 bg-transparent p-0 focus:ring-0 focus:outline-none tm-sans text-[14.5px] text-[#0A0A0B] placeholder:text-[#8E929B]"
               />
@@ -155,7 +155,7 @@ export const WaitlistSection: React.FC = () => {
             </div>
             <div className="flex flex-col">
               <span className="tm-sans text-[14px] font-medium leading-[1.25] text-[#0A0A0B]">
-                Escolas de todo o Brasil
+                Escolas e cursinhos de todo o Brasil
               </span>
               <span className="tm-sans text-[13px] leading-[1.25] text-[#6B6F76]">
                 já fizeram a simulação

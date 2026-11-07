@@ -26,7 +26,7 @@ export const LogoMarquee: React.FC = () => {
     <div className="w-full pt-[48px] pb-[40px] flex flex-col items-center">
       {/* Rótulo opcional institucional */}
       <span className="tm-sans text-[13px] font-medium tracking-[0.02em] uppercase text-[#8E929B] mb-[20px] select-none text-center">
-        Escolas que zeraram a fila de correção
+        Escolas e cursinhos que zeraram a fila de correção
       </span>
 
       <motion.div

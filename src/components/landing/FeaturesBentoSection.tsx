@@ -347,11 +347,11 @@ export const FeaturesBentoSection: React.FC = () => {
             >
               <div className="w-full sm:w-[211px] shrink-0 flex flex-col gap-[8px]">
                 <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
-                  Vive na rotina da escola
+                  Vive na rotina da instituição
                 </h3>
                 <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
                   <span className="hidden sm:inline">
-                    Turmas, notas e relatórios conectados ao que a escola já usa.
+                    Turmas, notas e relatórios conectados ao que sua escola ou cursinho já usa.
                   </span>
                   <span className="sm:hidden">Conecta turmas, notas e relatórios.</span>
                 </p>

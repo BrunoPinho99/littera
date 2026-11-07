@@ -9,7 +9,7 @@ import { LogoMarquee } from './LogoMarquee';
 
 const HERO_TITLE_LINES: string[][] = [
   ['Seus', 'alunos', 'escrevem', 'mais.'],
-  ['Sua', 'escola', 'gasta', 'menos.'],
+  ['Sua', 'instituição', 'gasta', 'menos.'],
 ];
 
 export const HeroSection: React.FC = () => {
@@ -116,7 +116,7 @@ export const HeroSection: React.FC = () => {
           className="mt-[24px] tm-sans text-[17px] sm:text-[19.5px] leading-[1.45] font-normal text-[#6B6F76] max-w-[760px]"
         >
           O Littera corrige redações no padrão ENEM, nas 5 competências, em segundos — com envios
-          ilimitados e sem custo por folha.
+          ilimitados e sem custo por folha para escolas e cursinhos pré-vestibular.
         </motion.p>
 
         <motion.div
@@ -139,7 +139,7 @@ export const HeroSection: React.FC = () => {
           transition={{ duration: 0.7, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
           className="mt-[14px] tm-sans text-[13.5px] text-[#8E929B]"
         >
-          Reunião de 30 minutos, com a simulação da sua escola.
+          Reunião de 30 minutos, com a simulação da sua escola ou cursinho.
         </motion.p>
       </div>
 

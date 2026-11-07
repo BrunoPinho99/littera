@@ -26,7 +26,7 @@ const NIGHT_EVENTS: NightEventItem[] = [
     id: 'tema',
     time: '18:00',
     title: 'Tema da semana liberado',
-    subtitle: '3º A, B e C · 312 alunos',
+    subtitle: '3º ano e Extensivo · 420 alunos',
     threshold: 0,
     offsetPct: '16%',
     Icon: SequencesIcon,
@@ -146,7 +146,7 @@ export const WhileYouSleepSection: React.FC = () => {
       className="w-full bg-white pt-[140px] lg:pt-[160px] pb-[40px] px-3 sm:px-[20px]"
     >
       <div className="max-w-[1200px] mx-auto mb-[52px] lg:mb-[64px] px-2">
-        <SectionHeading lines={['A escola fecha.', 'A correção não.']} />
+        <SectionHeading lines={['Sua instituição fecha.', 'A correção não.']} />
       </div>
 
       {/* Desktop Sticky Scroll-Driven Night-to-Dawn Panel */}

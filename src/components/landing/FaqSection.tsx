@@ -24,7 +24,7 @@ const FAQ_ITEMS: FaqEntry[] = [
   {
     question: 'Quanto custa?',
     answer:
-      'Um valor fixo por aluno, em contrato anual, com correções ilimitadas. Apresentamos a proposta na reunião, já com a simulação da calculadora para a sua escola.',
+      'Um valor fixo por aluno, em contrato anual, com correções ilimitadas. Apresentamos a proposta na reunião, já com a simulação da calculadora para a sua escola ou cursinho.',
   },
   {
     question: 'Dá para testar antes de contratar?',
@@ -32,12 +32,12 @@ const FAQ_ITEMS: FaqEntry[] = [
       'Não trabalhamos com período de teste. Na reunião, corrigimos ao vivo redações reais dos seus alunos, para a equipe ver a qualidade antes de decidir.',
   },
   {
-    question: 'Funciona com as plataformas que a escola já usa?',
+    question: 'Funciona com as plataformas que a instituição já usa?',
     answer:
-      'Sim. Google Classroom, Microsoft Teams e planilhas estão conectados. As turmas são importadas em minutos e as notas voltam para onde a escola já lança.',
+      'Sim. Google Classroom, Microsoft Teams e planilhas estão conectados. As turmas são importadas em minutos e as notas voltam para onde a escola ou cursinho já lança.',
   },
   {
-    question: 'Em quanto tempo a escola começa a usar?',
+    question: 'Em quanto tempo a escola ou cursinho começa a usar?',
     answer:
       'Em até 48 horas depois do aceite. Importamos as turmas, publicamos o primeiro tema e treinamos os professores em uma sessão de 1 hora.',
   },
@@ -49,7 +49,7 @@ const FAQ_ITEMS: FaqEntry[] = [
   {
     question: 'E quando o professor discordar da nota?',
     answer:
-      'Ele ajusta a nota em um clique e deixa o próprio comentário; o aluno vê a versão final. Cada ajuste ajuda a calibrar o Littera para a sua escola.',
+      'Ele ajusta a nota em um clique e deixa o próprio comentário; o aluno vê a versão final. Cada ajuste ajuda a calibrar o Littera para a sua instituição.',
   },
   {
     question: 'O Littera substitui o professor de redação?',
@@ -63,7 +63,7 @@ const CYCLING_PROMPTS: { text: string; targetFaqIdx: number }[] = [
   { text: 'Quanto custa?', targetFaqIdx: 2 },
   { text: 'Dá para testar antes de contratar?', targetFaqIdx: 3 },
   { text: 'A nota é confiável como a de um corretor humano?', targetFaqIdx: 1 },
-  { text: 'Em quanto tempo a escola começa a usar?', targetFaqIdx: 5 },
+  { text: 'Em quanto tempo começamos a usar?', targetFaqIdx: 5 },
 ];
 
 export const FaqSection: React.FC = () => {
@@ -155,7 +155,7 @@ export const FaqSection: React.FC = () => {
                 <span className="tm-sans text-[13px] font-medium text-[#0A0A0B]">Littera</span>
               </div>
               <span className="tm-sans text-[13.5px] text-[#6B6F76]">
-                Oi! Pergunte como eu corrigiria as redações da sua escola.
+                Oi! Pergunte como eu corrigiria as redações dos seus alunos.
               </span>
             </div>
 

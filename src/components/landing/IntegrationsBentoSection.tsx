@@ -244,7 +244,7 @@ export const IntegrationsBentoSection: React.FC = () => {
       className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[40px] px-5 sm:px-[40px]"
     >
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[52px] lg:gap-[64px]">
-        <SectionHeading lines={['Encaixa na rotina', 'da escola.']} />
+        <SectionHeading lines={['Encaixa na rotina', 'da sua instituição.']} />
 
         <div className="w-full flex flex-col gap-[24px]">
           {/* Top Row: Card A (Physics) + Card B (Implantação 48 horas) */}
@@ -260,10 +260,10 @@ export const IntegrationsBentoSection: React.FC = () => {
             >
               <div className="relative z-20 flex flex-col gap-[6px] pointer-events-none">
                 <h3 className="tm-display text-[26px] sm:text-[28px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
-                  Funciona com o que a escola já usa
+                  Funciona com o que você já usa
                 </h3>
                 <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
-                  13+ integrações. Turmas importadas. Zero retrabalho.
+                  13+ integrações para escolas e cursinhos. Turmas importadas. Zero retrabalho.
                 </p>
               </div>
 

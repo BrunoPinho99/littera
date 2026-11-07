@@ -17,31 +17,31 @@ interface CustomerStory {
 
 const SCHOOL_STORIES: CustomerStory[] = [
   {
-    company: 'Colégio Parceiro · Ensino Médio',
+    company: 'Colégio e Ensino Médio',
     metric: '−58%',
     metricLabel: 'custo com correção',
-    quote: 'Cortamos a banca terceirizada sem reduzir uma única redação.',
+    quote: 'Cortamos a banca terceirizada sem reduzir uma única redação dos alunos.',
     person: 'Mariana Duarte',
     role: 'Diretora administrativa',
     photo: 'https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1600&q=85',
   },
   {
-    company: 'Rede Educacional · Ensino Médio',
-    metric: '+96 pts',
-    metricLabel: 'na média de redação',
-    quote: 'Os alunos passaram a reescrever por conta própria.',
-    person: 'Prof. Marcelo Ribeiro',
-    role: 'Coordenador pedagógico',
-    photo: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1600&q=85',
+    company: 'Cursinho Pré-Vestibular · Intensivo',
+    metric: '5×',
+    metricLabel: 'redações por vestibulando',
+    quote: 'Liberamos envios ilimitados na reta final do ENEM com custo 100% previsível.',
+    person: 'Renato Guimarães',
+    role: 'Diretor de Ensino & Vestibulares',
+    photo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=85',
   },
   {
-    company: 'Curso & Colégio · Pré-vestibular',
-    metric: '5×',
-    metricLabel: 'redações por aluno no semestre',
-    quote: 'Tiramos o limite de envios e o orçamento não mudou.',
-    person: 'Renato Guimarães',
-    role: 'Mantenedor',
-    photo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=85',
+    company: 'Rede Educacional · Terceirão e Pré-Enem',
+    metric: '+96 pts',
+    metricLabel: 'na média de redação',
+    quote: 'Com o feedback no mesmo dia, os alunos passaram a reescrever sem o professor precisar cobrar.',
+    person: 'Prof. Marcelo Ribeiro',
+    role: 'Coordenador pedagógico de Redação',
+    photo: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1600&q=85',
   },
 ];
 
@@ -123,7 +123,7 @@ export const CustomerStoriesSection: React.FC = () => {
       className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[40px] px-5 sm:px-[40px]"
     >
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[52px] lg:gap-[64px]">
-        <SectionHeading lines={['Escolas que pararam', 'de contar folhas.']} />
+        <SectionHeading lines={['Escolas e cursinhos', 'que pararam de contar folhas.']} />
 
         {/* Desktop Interactive Expandable Accordion */}
         <motion.div

@@ -144,7 +144,7 @@ export const RoiCalculatorSection: React.FC = () => {
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[44px] lg:gap-[56px]">
         <div className="flex flex-col items-center gap-[16px] text-center max-w-[840px]">
           <SectionHeading
-            lines={['Quanto custa corrigir redação', 'na sua escola?']}
+            lines={['Quanto custa corrigir redação', 'na sua escola ou cursinho?']}
             mobileLines={['Quanto custa sua correção?']}
           />
           <p className="tm-sans text-[16.5px] sm:text-[18.5px] leading-[1.45] text-[#6B6F76] max-w-[680px]">
@@ -315,7 +315,7 @@ export const RoiCalculatorSection: React.FC = () => {
             />
 
             <div className="relative z-10 flex flex-col gap-[8px]">
-              <span className="tm-sans text-[16px] text-white/80">Hoje, sua escola gasta</span>
+              <span className="tm-sans text-[16px] text-white/80">Hoje, sua instituição gasta</span>
 
               <div className="flex flex-col">
                 <div className="flex items-baseline gap-[12px] flex-wrap">
@@ -406,10 +406,10 @@ export const RoiCalculatorSection: React.FC = () => {
                 onClick={handleGoToBooking}
                 className="w-full py-[15px] px-[22px] rounded-full bg-white hover:bg-[#F4F5F7] text-[#0A0A0B] tm-sans text-[15.5px] font-medium shadow-[0_4px_16px_rgba(10,15,31,0.14)] transition-colors cursor-pointer text-center"
               >
-                Ver quanto o Littera custa para essa escola
+                Ver quanto o Littera custa para sua instituição
               </button>
               <p className="tm-sans text-[12.5px] text-white/75 text-center leading-snug">
-                Levamos esta simulação para a reunião, com a proposta para o tamanho da sua escola.
+                Levamos esta simulação para a reunião, com a proposta personalizada para seu colégio ou cursinho.
               </p>
             </div>
           </div>

@@ -7,9 +7,9 @@ import { TillmornButton } from './TillmornButton';
 import { CheckTimelineIcon } from './TillmornIcons';
 
 const REUNIAO_ITEMS = [
-  'Diagnóstico da rotina de correção',
-  'Simulação da economia da sua escola',
-  'Correção ao vivo de redações da escola',
+  'Diagnóstico da rotina de correção da sua escola ou cursinho',
+  'Simulação da economia da sua instituição',
+  'Correção ao vivo de redações dos seus alunos',
   'Proposta em até 24 h',
   'Sem compromisso',
 ];
@@ -40,12 +40,12 @@ export const PricingSection: React.FC = () => {
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] lg:gap-[44px]">
         <div className="flex flex-col items-center gap-[16px] text-center max-w-[840px]">
           <SectionHeading
-            lines={['Um valor fixo.', 'Do tamanho da sua escola.']}
+            lines={['Um valor fixo.', 'Do tamanho da sua instituição.']}
             mobileLines={['Um valor fixo.']}
           />
           <p className="tm-sans text-[16px] sm:text-[18px] leading-[1.45] text-[#6B6F76] max-w-[700px]">
-            Sem tabela pública e sem custo por folha: a proposta é calculada pelo número de alunos e
-            apresentada na reunião.
+            Sem tabela pública e sem custo por folha: para escolas e cursinhos, a proposta é calculada
+            pelo número de alunos ativos e apresentada na reunião.
           </p>
         </div>
 
@@ -66,7 +66,7 @@ export const PricingSection: React.FC = () => {
                   Reunião
                 </h3>
                 <p className="tm-sans text-[15px] leading-[1.35] text-[#6B6F76]">
-                  Entendemos a rotina da escola e refazemos a conta com os seus números.
+                  Entendemos a rotina da sua escola ou cursinho e refazemos a conta com os seus números.
                 </p>
               </div>
 

@@ -9,9 +9,9 @@ import { motion, useInView } from 'framer-motion';
  */
 export const FEATURED_SCHOOL_QUOTE = {
   quote:
-    'A devolutiva levava duas semanas e o aluno já tinha esquecido o que escreveu. Hoje ele reescreve no mesmo dia — e nós cortamos a banca terceirizada.',
-  authorName: 'Coordenação Pedagógica',
-  authorRole: 'Diretora pedagógica · Colégio Parceiro',
+    'A devolutiva da banca levava duas semanas e o vestibulando já tinha perdido o ritmo. Hoje ele reescreve no mesmo dia — e o cursinho cortou custos sem limitar envios.',
+  authorName: 'Coordenação Pedagógica & Redação',
+  authorRole: 'Colégio e Pré-Vestibular Parceiro',
   avatarUrl:
     'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=400&q=85',
 } as const;
