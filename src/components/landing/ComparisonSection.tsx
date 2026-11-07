@@ -159,7 +159,9 @@ export const ComparisonSection: React.FC = () => {
           >
             {/* Background Liquid Cobalt Art */}
             <motion.img
-              src="https://framerusercontent.com/images/FbUouOgrumvGhKZWChps7V6wofg.jpg?width=2400&height=1345"
+              src="/assets/landing/card-cobalt-bg.jpg"
+              srcSet="https://framerusercontent.com/images/FbUouOgrumvGhKZWChps7V6wofg.jpg?scale-down-to=1024&width=2400&height=1345 1024w, /assets/landing/card-cobalt-bg.jpg 2048w"
+              sizes="(max-width: 1024px) 100vw, 600px"
               alt=""
               aria-hidden="true"
               decoding="async"
