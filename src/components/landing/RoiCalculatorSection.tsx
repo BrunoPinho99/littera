@@ -182,11 +182,11 @@ export const RoiCalculatorSection: React.FC = () => {
                 aria-label="Redações por aluno, por mês"
                 className="relative flex gap-[4px] p-[4px] rounded-full bg-white shadow-sm"
               >
-                {([1, 2, 4] as RedacoesMesOption[]).map((qty) => {
+                {([1, 2, 4, '4+'] as RedacoesMesOption[]).map((qty) => {
                   const active = redacoesPorAluno === qty;
                   return (
                     <button
-                      key={qty}
+                      key={String(qty)}
                       type="button"
                       role="radio"
                       aria-checked={active}
@@ -261,10 +261,10 @@ export const RoiCalculatorSection: React.FC = () => {
                 transition={{ duration: 0.3 }}
               >
                 <RoiSlider
-                  label="Quanto a escola paga por redação"
+                  label="Quanto a instituição paga por redação"
                   value={valorPorRedacao}
-                  min={2}
-                  max={20}
+                  min={1}
+                  max={25}
                   step={0.5}
                   format={formatCurrencyUnitPtBr}
                   onChange={setValorPorRedacao}
@@ -373,13 +373,13 @@ export const RoiCalculatorSection: React.FC = () => {
               <div className="flex flex-col gap-[4px]">
                 <div className="flex items-center justify-between tm-sans text-[12.5px]">
                   <span className="text-white/85">Hoje</span>
-                  <span className="font-medium tabular-nums">{redacoesPorAluno}</span>
+                  <span className="font-medium tabular-nums">{redacoesPorAluno} {redacoesPorAluno === 1 ? 'redação' : 'redações'}</span>
                 </div>
                 <div className="w-full h-[8px] rounded-full bg-white/20 overflow-hidden">
                   <motion.div
                     initial={false}
                     animate={{
-                      width: `${Math.max(12, (redacoesPorAluno / 6) * 100)}%`,
+                      width: `${Math.max(12, ((redacoesPorAluno === '4+' ? 5 : redacoesPorAluno) / 6) * 100)}%`,
                     }}
                     transition={{ type: 'spring', stiffness: 180, damping: 22 }}
                     className="h-full rounded-full bg-white/50"
@@ -391,7 +391,7 @@ export const RoiCalculatorSection: React.FC = () => {
               <div className="flex flex-col gap-[4px]">
                 <div className="flex items-center justify-between tm-sans text-[12.5px]">
                   <span className="text-white font-medium">Com o Littera</span>
-                  <span className="font-medium text-white">Sem limite</span>
+                  <span className="font-medium text-white">Até 80% de economia</span>
                 </div>
                 <div className="w-full h-[8px] rounded-full bg-white/20 overflow-hidden">
                   <div className="h-full w-full rounded-full bg-white" />

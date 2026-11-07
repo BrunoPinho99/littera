@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 
 export type QuemCorrigeOption = 'banca' | 'professores' | 'ambos';
-export type RedacoesMesOption = 1 | 2 | 4;
+export type RedacoesMesOption = 1 | 2 | 4 | '4+';
 
 export interface SimulationState {
   alunos: number;
@@ -59,7 +59,7 @@ export const formatCurrencyAnnualPtBr = (val: number): string => {
 
 export const QUEM_CORRIGE_LABELS: Record<QuemCorrigeOption, string> = {
   banca: 'Banca terceirizada',
-  professores: 'Professores da escola',
+  professores: 'Professores da instituição',
   ambos: 'Os dois',
 };
 
@@ -74,7 +74,8 @@ export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [simulationAttached, setSimulationAttached] = useState<boolean>(false);
 
   const value = useMemo<SimulationState>(() => {
-    const redacoesMes = alunos * redacoesPorAluno;
+    const numericRedacoesPorAluno = redacoesPorAluno === '4+' ? 5 : redacoesPorAluno;
+    const redacoesMes = alunos * numericRedacoesPorAluno;
     const custoBanca = valorPorRedacao;
     const custoProfessorUnitario = (horaProfessor * 10) / 60;
 
