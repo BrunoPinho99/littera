@@ -125,7 +125,7 @@ export const HeroSection: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.54, ease: [0.22, 1, 0.36, 1] }}
           className="mt-[32px] flex flex-wrap items-center justify-center gap-[10px]"
         >
-          <TillmornButton label="Agendar reunião" variant="primary" href="#reuniao" />
+          <TillmornButton label="Agendar demonstração" variant="primary" href="#waitlist" />
           <TillmornButton
             label="Calcular minha economia"
             variant="secondary"

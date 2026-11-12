@@ -86,15 +86,11 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
               className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 group"
               onClick={handleLogoClick}
             >
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-surface-container-lowest rounded-xl flex items-center justify-center shadow-ambient group-hover:scale-105 transition-all duration-300">
-                <div className="flex flex-col items-center translate-y-[1.5px]">
-                  <span className="text-primary font-black text-xl sm:text-2xl leading-none tracking-tighter" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>L</span>
-                  <div className="w-3 sm:w-4 h-[3px] sm:h-[3.5px] bg-primary mt-[1px] rounded-full"></div>
-                </div>
-              </div>
-              <span className="font-black text-xl sm:text-2xl tracking-tighter text-on-surface transition-opacity" style={{ fontFamily: 'Plus Jakarta Sans, Inter, sans-serif' }}>
-                Littera<span className="text-primary/30">.</span>
-              </span>
+              <img
+                src="/assets/littera-logo.png"
+                alt="Littera"
+                className="block h-7 sm:h-8 w-auto object-contain group-hover:scale-[1.02] transition-transform duration-300"
+              />
               {isDemoMode && (
                 <span className="ml-2 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800 animate-pulse">
                   MODO TESTE

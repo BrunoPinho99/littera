@@ -2,12 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 interface LandingPageProps {
-    onLoginClick: () => void;
     onDemoClick: (type: 'student' | 'teacher') => void;
     onCheckout?: (plan: any) => void;
 }
 
-const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _onDemoClick, onCheckout }) => {
+const LandingPage: React.FC<LandingPageProps> = ({ onDemoClick: _onDemoClick, onCheckout: _onCheckout }) => {
     const [scrolled, setScrolled] = useState(false);
     const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
     const [isSubmittingLead, setIsSubmittingLead] = useState(false);
@@ -66,12 +65,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
                 transition: 'all 0.4s ease',
             }}>
                 <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span className="sl-headline" style={{ fontSize: 22, fontWeight: 900, color: '#131b2e', cursor: 'pointer' }}>
-                        Littera<span style={{ color: 'rgba(0,74,198,0.3)' }}>.</span>
-                    </span>
+                    <img src="/assets/littera-logo.png" alt="Littera" style={{ display: 'block', height: 32, width: 'auto' }} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button className="sl-btn-secondary" onClick={onLoginClick}>Entrar</button>
+                        <button className="sl-btn-secondary" onClick={() => navigate('/login')}>Entrar</button>
                         <button className="sl-btn-primary" onClick={() => setIsLeadModalOpen(true)} style={{ padding: '8px 18px', fontSize: 13 }}>
                             Agendar demo
                         </button>
@@ -164,7 +161,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
                             <button className="sl-btn-primary" onClick={() => setIsLeadModalOpen(true)} style={{ padding: '14px 28px', fontSize: 15 }}>
                                 Conheça o Padrão Littera
                             </button>
-                            <button className="sl-btn-secondary" onClick={onLoginClick}>
+                            <button className="sl-btn-secondary" onClick={() => navigate('/login')}>
                                 Já tenho conta →
                             </button>
                         </div>
@@ -548,7 +545,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
                         >
                             Garantir minha demonstração →
                         </button>
-                        <button className="sl-btn-secondary" onClick={onLoginClick} style={{ color: 'rgba(255,255,255,0.7)' }}>
+                        <button className="sl-btn-secondary" onClick={() => navigate('/login')} style={{ color: 'rgba(255,255,255,0.7)' }}>
                             Já tenho conta
                         </button>
                     </div>
@@ -561,9 +558,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLoginClick, onDemoClick: _o
             ═══════════════════════════════════════════════════════════════════ */}
             <footer style={{ background: '#131b2e', padding: '32px 16px', textAlign: 'center' }}>
                 <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-                    <span className="sl-headline" style={{ fontSize: 20, fontWeight: 900, color: '#ffffff' }}>
-                        Littera<span style={{ color: 'rgba(255,255,255,0.2)' }}>.</span>
-                    </span>
+                    <img
+                        src="/assets/littera-logo.png"
+                        alt="Littera"
+                        style={{ display: 'block', height: 32, width: 'auto', margin: '0 auto', filter: 'brightness(0) invert(1)' }}
+                    />
                     <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 12, lineHeight: 1.6 }}>
                         Correção inteligente de redações do ENEM para escolas de excelência.
                     </p>

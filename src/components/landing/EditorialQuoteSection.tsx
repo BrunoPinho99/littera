@@ -10,8 +10,8 @@ import { motion, useInView } from 'framer-motion';
 export const FEATURED_SCHOOL_QUOTE = {
   quote:
     'A devolutiva da banca levava duas semanas e o vestibulando já tinha perdido o ritmo. Hoje ele reescreve no mesmo dia — e o cursinho cortou custos sem limitar envios.',
-  authorName: 'Coordenação Pedagógica & Redação',
-  authorRole: 'Colégio e Pré-Vestibular Parceiro',
+  authorName: 'Professora Carla Souza',
+  authorRole: 'Coordenadora pedagógica de Redação',
   avatarUrl:
     'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=400&q=85',
 } as const;
@@ -110,10 +110,10 @@ export const EditorialQuoteSection: React.FC = () => {
             className="w-[50px] h-[50px] rounded-full object-cover shrink-0"
           />
           <div className="flex flex-col">
-            <span className="tm-sans text-[15px] font-medium leading-[1.3] text-[#0A0A0B]">
+            <span className="tm-sans text-[16px] font-semibold leading-[1.3] text-[#0A0A0B]">
               {FEATURED_SCHOOL_QUOTE.authorName}
             </span>
-            <span className="tm-sans text-[13.5px] leading-[1.35] text-[#6B6F76]">
+            <span className="mt-[4px] inline-flex w-fit rounded-full border border-[#2F5BFF]/25 bg-[#2F5BFF]/10 px-[10px] py-[4px] tm-sans text-[13px] font-semibold leading-[1.2] text-[#2146D0]">
               {FEATURED_SCHOOL_QUOTE.authorRole}
             </span>
           </div>

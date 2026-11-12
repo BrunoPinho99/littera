@@ -268,17 +268,11 @@ const OnboardingView: React.FC<OnboardingViewProps> = ({ onBack, onLogin }) => {
 
           <div className="relative z-10 text-white w-full max-w-sm text-left py-8">
             {/* Logo */}
-            <div className="flex items-center gap-3 mb-10 animate-fade-in">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-2xl shrink-0">
-                <div className="flex flex-col items-center translate-y-[1px]">
-                  <span className="text-primary font-black text-2xl leading-none tracking-tighter">L</span>
-                  <div className="w-5 h-[4px] bg-primary mt-[1px] rounded-full" />
-                </div>
-              </div>
-              <span className="font-black text-3xl lg:text-4xl tracking-tighter text-white">
-                Littera<span className="text-white/40">.</span>
-              </span>
-            </div>
+            <img
+              src="/assets/littera-logo.png"
+              alt="Littera"
+              className="mb-10 block h-8 lg:h-9 w-auto brightness-0 invert animate-fade-in"
+            />
 
             <div className="space-y-5 animate-fade-in-up">
               <h1 className="text-2xl lg:text-3xl font-black leading-[1.1] tracking-tight">

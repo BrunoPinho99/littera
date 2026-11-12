@@ -146,17 +146,13 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
 
         <div className="relative z-10 text-white max-w-xl text-left">
-          <div className="flex items-center gap-4 mb-16 animate-fade-in">
-            <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center shadow-2xl">
-              <div className="flex flex-col items-center translate-y-[2px]">
-                <span className="text-primary font-black text-4xl leading-none tracking-tighter">L</span>
-                <div className="w-7 h-[6px] bg-primary mt-[1px] rounded-full"></div>
-              </div>
-            </div>
-            <span className="font-black text-6xl tracking-tighter text-white">
-              Littera<span className="text-white/40">.</span>
-            </span>
-          </div>
+          <a href="/" className="inline-flex items-center mb-16 animate-fade-in" aria-label="Littera Início">
+            <img
+              src="/assets/littera-logo.png"
+              alt="Littera"
+              className="block h-7 lg:h-8 w-auto brightness-0 invert"
+            />
+          </a>
 
           <div className="space-y-8 animate-fade-in-up">
             <h1 className="text-6xl font-black leading-[1.1] tracking-tight">
