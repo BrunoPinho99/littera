@@ -98,9 +98,7 @@ const ClassRegistration: React.FC = () => {
     return (
         <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
             <div style={{ padding: '20px', background: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span className="font-black text-2xl tracking-tighter text-primary">
-                    Littera<span className="text-primary/40">.</span>
-                </span>
+                <img src="/assets/littera-logo.png" alt="Littera" className="block h-8 w-auto" />
             </div>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px' }}>
                 <div style={{ background: '#fff', borderRadius: 24, padding: 40, width: '100%', maxWidth: 500, boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01)' }}>

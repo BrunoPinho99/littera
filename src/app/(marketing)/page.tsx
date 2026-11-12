@@ -53,7 +53,7 @@ export const MarketingPageContent: React.FC = () => {
         {/* Dobra 11: Como contratar (#como-contratar - Um valor fixo.) */}
         <PricingSection />
 
-        {/* Dobra 12: Agende sua reunião (#reuniao - Traga 3 redações. Veja a correção na hora.) */}
+        {/* Dobra 12: Agende sua demonstração (#waitlist - Traga 3 redações. Veja a correção na hora.) */}
         <WaitlistSection />
 
         {/* Dobra 13: Dúvidas respondidas (#duvidas) */}

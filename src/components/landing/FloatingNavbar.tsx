@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { TillmornDiamondGlyph } from './TillmornIcons';
 import { TillmornButton } from './TillmornButton';
 
 interface NavLinkItem {
@@ -95,15 +94,11 @@ export const FloatingNavbar: React.FC = () => {
       <div className="max-w-[1440px] mx-auto h-[66px] px-5 md:px-[40px] flex items-center justify-between relative">
         {/* Brand Wordmark */}
         <a
-          href="#inicio"
-          onClick={(e) => handleAnchorClick(e, '#inicio')}
-          className="inline-flex items-center gap-[10px] text-[#0A0A0B] select-none shrink-0"
+          href="/"
+          className="inline-flex items-center justify-center text-[#0A0A0B] select-none shrink-0"
           aria-label="Littera Início"
         >
-          <TillmornDiamondGlyph size={26} className="text-[#0A0A0B]" />
-          <span className="tm-display text-[20px] leading-[24px] font-medium tracking-[0.2px] text-[#0A0A0B]">
-            Littera
-          </span>
+          <img src="/assets/littera-logo.png" alt="Littera" className="block h-7 lg:h-8 w-auto" />
         </a>
 
         {/* Centered Desktop Navigation */}
@@ -126,7 +121,7 @@ export const FloatingNavbar: React.FC = () => {
         {/* Desktop CTAs */}
         <div className="hidden lg:flex items-center gap-[6px] shrink-0">
           <TillmornButton label="Entrar" variant="ghost" href="/login" />
-          <TillmornButton label="Agendar reunião" variant="compact" href="#reuniao" />
+          <TillmornButton label="Agendar demonstração" variant="compact" href="#waitlist" />
         </div>
 
         {/* Mobile Menu Trigger */}
@@ -193,9 +188,9 @@ export const FloatingNavbar: React.FC = () => {
                   className="flex-1"
                 />
                 <TillmornButton
-                  label="Agendar reunião"
+                  label="Agendar demonstração"
                   variant="compact"
-                  href="#reuniao"
+                  href="#waitlist"
                   onClick={() => setMobileOpen(false)}
                   className="flex-1 py-[13px]"
                 />

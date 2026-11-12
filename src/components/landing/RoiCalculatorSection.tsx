@@ -112,7 +112,7 @@ export const RoiCalculatorSection: React.FC = () => {
   const handleGoToBooking = (e: React.MouseEvent) => {
     e.preventDefault();
     markSimulationAttached();
-    const target = document.querySelector('#reuniao');
+    const target = document.querySelector('#waitlist');
     if (target) {
       target.scrollIntoView({ behavior: 'smooth' });
     }
@@ -399,7 +399,7 @@ export const RoiCalculatorSection: React.FC = () => {
               </div>
             </div>
 
-            {/* Conversion CTA to #reuniao */}
+            {/* Conversion CTA to #waitlist */}
             <div className="relative z-10 flex flex-col gap-[10px] pt-2">
               <button
                 type="button"

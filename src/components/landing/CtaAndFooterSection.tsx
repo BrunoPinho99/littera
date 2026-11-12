@@ -3,7 +3,6 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { TillmornButton } from './TillmornButton';
-import { TillmornDiamondGlyph } from './TillmornIcons';
 
 const FOOTER_LINKS = [
   { label: 'Como funciona', href: '#como-funciona' },
@@ -103,7 +102,7 @@ export const CtaAndFooterSection: React.FC = () => {
               transition={{ duration: 0.7, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
               className="mt-[36px] flex flex-wrap items-center justify-center gap-[12px]"
             >
-              <TillmornButton label="Agendar reunião" variant="primary" href="#reuniao" />
+              <TillmornButton label="Agendar demonstração" variant="primary" href="#waitlist" />
               <TillmornButton
                 label="Calcular minha economia"
                 variant="white"
@@ -123,15 +122,11 @@ export const CtaAndFooterSection: React.FC = () => {
           {/* Top Row */}
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-[24px] pb-[44px]">
             <a
-              href="#inicio"
-              onClick={(e) => handleSmoothAnchor(e, '#inicio')}
-              className="inline-flex items-center gap-[10px] text-[#0A0A0B]"
+              href="/"
+              className="inline-flex items-center justify-center text-[#0A0A0B]"
               aria-label="Littera Início"
             >
-              <TillmornDiamondGlyph size={26} />
-              <span className="tm-display text-[20px] font-medium tracking-[0.2px] leading-none">
-                Littera
-              </span>
+              <img src="/assets/littera-logo.png" alt="Littera" className="block h-7 lg:h-8 w-auto" />
             </a>
 
             <nav

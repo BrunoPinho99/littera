@@ -470,14 +470,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       {/* Header */}
       <header className="relative z-10 border-b border-outline-variant/40 backdrop-blur-md bg-surface/90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/30">
-              <span className="text-white font-black text-lg leading-none">L</span>
-            </div>
-            <span className="font-black text-xl tracking-tight text-on-surface">
-              Littera<span className="text-primary">.</span>
-            </span>
-          </div>
+          <img src="/assets/littera-logo.png" alt="Littera" className="block h-8 w-auto" />
           <div className="flex items-center gap-4">
             <span className="hidden sm:flex items-center gap-1.5 text-xs text-on-surface-variant font-medium">
               <span className="material-icons-outlined text-emerald-600 text-sm">lock</span>

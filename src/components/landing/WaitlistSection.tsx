@@ -63,7 +63,7 @@ export const WaitlistSection: React.FC = () => {
 
   return (
     <section
-      id="reuniao"
+      id="waitlist"
       data-framer-name="Agendamento"
       className="w-full bg-white pt-[110px] lg:pt-[140px] pb-[40px] px-5 sm:px-[40px]"
     >
