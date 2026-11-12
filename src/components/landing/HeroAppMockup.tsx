@@ -267,6 +267,7 @@ export const HeroAppMockup: React.FC = () => {
   const [activeNav, setActiveNav] = useState<string>('visao-geral');
   const [leads, setLeads] = useState<ActivityLead[]>(INITIAL_ACTIVITY);
   const [paused, setPaused] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
   const activityRef = useRef<HTMLDivElement>(null);
   const [activityInView, setActivityInView] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -279,6 +280,14 @@ export const HeroAppMockup: React.FC = () => {
   const rotateX = useSpring(rawRotateX, { stiffness: 220, damping: 30, mass: 0.4 });
   const scale = useSpring(rawScale, { stiffness: 220, damping: 30, mass: 0.4 });
   const stageOpacity = useSpring(rawOpacity, { stiffness: 220, damping: 30, mass: 0.4 });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(max-width: 639px)');
+    const updateViewport = () => setIsCompactViewport(mediaQuery.matches);
+    updateViewport();
+    mediaQuery.addEventListener('change', updateViewport);
+    return () => mediaQuery.removeEventListener('change', updateViewport);
+  }, []);
 
   useEffect(() => {
     const el = activityRef.current;
@@ -312,13 +321,13 @@ export const HeroAppMockup: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
       style={{ perspective: 1200 }}
-      className="w-full max-w-[1280px] mx-auto pt-[56px] md:pt-[68px] px-3 sm:px-6 xl:px-0 relative z-10"
+      className="w-full min-w-0 max-w-[1280px] mx-auto pt-[56px] md:pt-[68px] px-3 sm:px-6 xl:px-0 relative z-10 overflow-hidden"
     >
       {/* Frosted Glass Stage Container */}
       <motion.div
         data-framer-name="Stage"
         style={
-          prefersReducedMotion
+          prefersReducedMotion || isCompactViewport
             ? undefined
             : {
                 rotateX,
@@ -327,12 +336,12 @@ export const HeroAppMockup: React.FC = () => {
                 transformOrigin: '50% 0%',
               }
         }
-        className="relative rounded-t-[28px] sm:rounded-t-[36px] bg-white/[0.42] backdrop-blur-[16px] border border-b-0 border-white/80 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_-12px_50px_rgba(10,15,31,0.03)] pt-[28px] sm:pt-[54px] lg:pt-[62px] px-2.5 sm:px-8 lg:px-[70px] overflow-hidden will-change-transform"
+        className="relative w-full min-w-0 max-w-full rounded-t-[28px] sm:rounded-t-[36px] bg-white/[0.42] backdrop-blur-[16px] border border-b-0 border-white/80 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_-12px_50px_rgba(10,15,31,0.03)] pt-[28px] sm:pt-[54px] lg:pt-[62px] px-2.5 sm:px-8 lg:px-[70px] overflow-hidden will-change-transform"
       >
         {/* Inner App Window (app.littera.com.br) */}
         <div
           data-framer-name="App Window"
-          className="w-full max-w-[1140px] mx-auto bg-white rounded-t-[20px] border border-[#E9EBEF] border-b-0 shadow-[0_32px_72px_rgba(10,15,31,0.12)] overflow-hidden text-left"
+          className="w-full min-w-0 max-w-[1140px] mx-auto bg-white rounded-t-[20px] border border-[#E9EBEF] border-b-0 shadow-[0_32px_72px_rgba(10,15,31,0.12)] overflow-hidden text-left"
         >
           {/* Browser Chrome Title Bar */}
           <div className="h-[42px] px-[16px] border-b border-[#E9EBEF] bg-white flex items-center justify-between select-none">
@@ -354,7 +363,7 @@ export const HeroAppMockup: React.FC = () => {
           {/* Dashboard Workspace Body */}
           <div className="flex flex-col md:flex-row">
             {/* Left Sidebar */}
-            <aside className="w-full md:w-[212px] shrink-0 bg-[#FAFAFB] border-b md:border-b-0 md:border-r border-[#E9EBEF] p-[18px_14px] md:p-[20px_16px] flex flex-col justify-between">
+            <aside className="hidden md:flex w-full md:w-[212px] shrink-0 bg-[#FAFAFB] border-b md:border-b-0 md:border-r border-[#E9EBEF] p-[18px_14px] md:p-[20px_16px] flex-col justify-between">
               <div>
                 {/* Sidebar Logo */}
                 <div className="flex items-center gap-[8px] px-[10px] mb-[18px]">
@@ -444,7 +453,7 @@ export const HeroAppMockup: React.FC = () => {
             </aside>
 
             {/* Center & Right Main Workspace */}
-            <div className="flex-1 bg-white p-[20px] sm:p-[28px_30px_34px] min-w-0">
+            <div className="flex-1 min-w-0 bg-white p-[16px] sm:p-[28px_30px_34px]">
               {/* Top Greeting Row */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-[22px]">
                 <div>
@@ -456,7 +465,7 @@ export const HeroAppMockup: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-[8px]">
+                <div className="flex flex-wrap items-center justify-end gap-[8px]">
                   <span className="inline-flex items-center px-[13px] py-[7px] rounded-full border border-[#E9EBEF] bg-white tm-sans text-[13px] leading-[15.6px] font-medium text-[#0A0A0B] tabular-nums">
                     Seg, 16 mar
                   </span>
@@ -558,7 +567,7 @@ export const HeroAppMockup: React.FC = () => {
                         initial={{ opacity: 0, y: -18 }}
                         animate={{ opacity: ROW_OPACITIES[idx] ?? 0.3, y: 0 }}
                         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                        className="h-[51px] px-[18px] flex items-center justify-between gap-3 bg-white"
+                        className="h-[51px] px-[12px] sm:px-[18px] flex items-center justify-between gap-3 bg-white min-w-0"
                       >
                         <div className="flex items-center gap-[11px] min-w-0 flex-1">
                           <span
