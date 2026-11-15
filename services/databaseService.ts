@@ -59,13 +59,14 @@ export const isSubscriptionActive = async (schoolId: string): Promise<boolean> =
 
     if (error) {
       console.warn("Failed to check subscription status:", error);
-      return true; // fail open to not block users unnecessarily if check fails
+      return false;
     }
 
-    return data?.subscription_status === 'ACTIVE' || data?.subscription_status === 'TRIAL';
+    const status = (data?.subscription_status || '').toLowerCase();
+    return status === 'active';
   } catch (err) {
     console.warn("Exception checking subscription status:", err);
-    return true;
+    return false;
   }
 };
 
@@ -322,8 +323,22 @@ export const createStudent = async (
     throw new Error("Este e-mail já está cadastrado com uma conta ativa no sistema.");
   }
 
-  // Busca nome da escola se não foi passado
-  const schoolName = _schoolName || (await getSchoolData(studentData.school_id).catch(() => null))?.name || 'sua escola';
+  // Busca dados da escola para checar trava de vagas e personalizar o email
+  const schoolData = await getSchoolData(studentData.school_id).catch(() => null);
+  const schoolName = _schoolName || schoolData?.name || 'sua escola';
+
+  if (!existingUser) {
+    const { count: currentStudentCount } = await supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('school_id', studentData.school_id)
+      .eq('role', 'student');
+
+    const maxStudents = schoolData?.student_count ?? 0;
+    if (maxStudents > 0 && (currentStudentCount || 0) >= maxStudents) {
+      throw new Error("Limite de alunos do plano atingido. Aumente o número de alunos na aba Assinatura.");
+    }
+  }
 
   // Envia email de convite via Edge Function (que cria o auth.users e o perfil)
   const inviteResult = await sendInviteEmail({
@@ -378,6 +393,18 @@ export const createStudentsBulk = async (students: { name: string; email: string
   // Busca nome da escola uma única vez
   const schoolData = await getSchoolData(schoolId).catch(() => null);
   const schoolName = schoolData?.name || 'sua escola';
+
+  // Verifica trava de vagas da escola antes de processar o lote
+  const { count: currentStudentCount } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('school_id', schoolId)
+    .eq('role', 'student');
+
+  const maxStudents = schoolData?.student_count ?? 0;
+  if (maxStudents > 0 && (currentStudentCount || 0) >= maxStudents) {
+    throw new Error("Limite de alunos do plano atingido. Aumente o número de alunos na aba Assinatura.");
+  }
 
   // 1. Filtrar emails já existentes ativos para evitar erro de constraint (mas permite reenvio se status for 'invited')
   const emails = students.map(s => s.email);

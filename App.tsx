@@ -73,6 +73,40 @@ const App: React.FC = () => {
   // Banner de redação em andamento
   const [essayDraft, setEssayDraft] = useState<{ topicTitle: string; startTime: number } | null>(null);
   const [schoolStatus, setSchoolStatus] = useState<string | null>(null);
+  const [schoolId, setSchoolId] = useState<string | null>(null);
+
+  // Resolve school_id + subscription_status (fail-closed: qualquer falha => 'inactive')
+  const resolveSchoolStatus = async (s: any): Promise<void> => {
+    try {
+      let sid: string | null = s.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
+      if (!sid) {
+        const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', s.user.id).single();
+        sid = profile?.school_id || null;
+      }
+      setSchoolId(sid);
+      if (!sid) { setSchoolStatus('inactive'); return; }
+      const { data: school, error } = await supabase
+        .from('schools').select('subscription_status').eq('id', sid).single();
+      const status = !error && school?.subscription_status ? String(school.subscription_status).toLowerCase() : 'inactive';
+      setSchoolStatus(prev => (prev === status ? prev : status));
+    } catch {
+      setSchoolStatus('inactive');
+    }
+  };
+
+  // Realtime: libera acesso no instante em que o webhook do Asaas ativar a escola
+  useEffect(() => {
+    if (!session || !schoolId) return;
+    const channel = supabase
+      .channel(`school-status-${schoolId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'schools', filter: `id=eq.${schoolId}` },
+        (payload: any) => {
+          const st = String(payload.new?.subscription_status || '').toLowerCase();
+          if (st) setSchoolStatus(st);
+        })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session, schoolId]);
 
   // Desafios Ativos (Alunos)
   const [activeAssignments, setActiveAssignments] = useState<Assignment[]>([]);
@@ -106,30 +140,12 @@ const App: React.FC = () => {
           setUserType(resolvedType);
           loadNotifications(data.session.user.id);
 
-          let schoolId = data.session.user.user_metadata?.school_id;
-          
-          // Fallback 1: localStorage
-          if (!schoolId) {
-            schoolId = localStorage.getItem('checkout_schoolId');
-          }
-
-          // Fallback 2: fetch from profiles
-          if (!schoolId) {
-            const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', data.session.user.id).single();
-            schoolId = profile?.school_id;
-          }
-
-          if (schoolId) {
-            const schoolData = await getSchoolData(schoolId);
-            setSchoolStatus(schoolData?.subscription_status || 'inactive');
-          } else if (data.session.user.user_metadata?.user_type === 'school_admin') {
-            // For school_admins, if we absolutely can't find a schoolId, assume inactive
-            // so they don't bypass the paywall
-            setSchoolStatus('inactive');
-          }
+          // Paywall: não libera a UI até resolver o status da escola
+          await resolveSchoolStatus(data.session);
         }
       } catch (error) {
         console.error('Init error:', error);
+        setSchoolStatus('inactive');
       } finally {
         setIsInitializing(false);
       }
@@ -153,21 +169,8 @@ const App: React.FC = () => {
           }
           loadNotifications(session.user.id);
 
-          const schoolId = session.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
-
-          if (schoolId) {
-            getSchoolData(schoolId).then(sd => setSchoolStatus(prev => prev === (sd?.subscription_status || 'inactive') ? prev : (sd?.subscription_status || 'inactive')));
-          } else {
-            // Fallback 2: fetch from profiles (async)
-            supabase.from('profiles').select('school_id').eq('id', session.user.id).single()
-              .then(({ data }) => {
-                if (data?.school_id) {
-                  getSchoolData(data.school_id).then(sd => setSchoolStatus(prev => prev === (sd?.subscription_status || 'inactive') ? prev : (sd?.subscription_status || 'inactive')));
-                } else if (session.user.user_metadata?.user_type === 'school_admin') {
-                  setSchoolStatus(prev => prev === 'inactive' ? prev : 'inactive');
-                }
-              });
-          }
+          if (event === 'SIGNED_IN') setIsInitializing(true);
+          resolveSchoolStatus(session).finally(() => setIsInitializing(false));
         }
       } else {
         if (!isDemoMode) {
@@ -269,9 +272,37 @@ const App: React.FC = () => {
       const userId = session?.user?.id;
 
       // Usa a função demo ou normal conforme o modo
-      const { essayId } = isDemoMode
+      const res = isDemoMode
         ? await correctEssayDemo(writingTopicTitle, input)
         : await correctEssay(writingTopicTitle, input);
+      const { essayId } = res;
+
+      if ((res as any).cached) {
+        const { data: existingRecord } = await supabase
+          .from('redacoes')
+          .select('*')
+          .eq('id', essayId)
+          .maybeSingle();
+
+        if (existingRecord && existingRecord.status === 'corrigida') {
+          const competencies = JSON.parse(existingRecord.competencias_json || '[]');
+          const result: CorrectionResult = {
+            totalScore: existingRecord.total_score,
+            competencies,
+            generalComment: existingRecord.comentario_geral,
+            aiDetected: false,
+            aiJustification: "",
+            zeroReason: existingRecord.zero_reason || null,
+            strengths: existingRecord.strengths_json ? (typeof existingRecord.strengths_json === 'string' ? JSON.parse(existingRecord.strengths_json) : existingRecord.strengths_json) : [],
+            priorityImprovements: existingRecord.improvements_json ? (typeof existingRecord.improvements_json === 'string' ? JSON.parse(existingRecord.improvements_json) : existingRecord.improvements_json) : [],
+            annotations: existingRecord.annotations_json ? (typeof existingRecord.annotations_json === 'string' ? JSON.parse(existingRecord.annotations_json) : existingRecord.annotations_json) : [],
+          };
+          setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
+          navigate('/app/result');
+          setTimeout(() => setIsCorrecting(false), 100);
+          return;
+        }
+      }
       
       const channel = supabase.channel(`essay-${essayId}`)
         .on('postgres_changes', {
@@ -322,9 +353,35 @@ const App: React.FC = () => {
   const handleHandwrittenSubmit = async (base64: string, mimeType: string) => {
     setIsCorrecting(true);
     try {
-      const { essayId } = isDemoMode
+      const res = isDemoMode
         ? await correctHandwrittenEssayDemo(writingTopicTitle, base64, mimeType)
         : await correctHandwrittenEssay(writingTopicTitle, base64, mimeType);
+      const { essayId } = res;
+
+      if ((res as any).cached) {
+        const { data: existingRecord } = await supabase
+          .from('redacoes')
+          .select('*')
+          .eq('id', essayId)
+          .maybeSingle();
+
+        if (existingRecord && existingRecord.status === 'corrigida') {
+          const result: HandwrittenCorrectionResult = {
+            totalScore: existingRecord.total_score,
+            competencies: JSON.parse(existingRecord.competencias_json || '[]'),
+            generalComment: existingRecord.comentario_geral,
+            annotatedSegments: [],
+            overallSuggestions: [],
+            transcribedText: "[Transcrição Oculta - Processado no Backend]",
+            topicTitle: writingTopicTitle,
+            timeTaken: '0m'
+          };
+          setHandwrittenResult(result);
+          navigate('/app/handwritten-result');
+          setTimeout(() => setIsCorrecting(false), 100);
+          return;
+        }
+      }
       
       const channel = supabase.channel(`handwritten-essay-${essayId}`)
         .on('postgres_changes', {
@@ -376,11 +433,11 @@ const App: React.FC = () => {
   }
 
   // --- TRAVA DE ASSINATURA (PAYWALL B2B) ---
-  const isSuspended = session && !isDemoMode && schoolStatus !== 'active' && schoolStatus !== null && userType !== 'school_admin';
+  const isSuspended = Boolean(session && !isDemoMode && schoolStatus !== 'active');
 
   const renderSuspended = () => {
     if (userType === 'school_admin') {
-      return <PendingCheckoutPage onLogout={handleLogout} session={session} />;
+      return <PendingCheckoutPage onLogout={handleLogout} session={session} schoolStatus={schoolStatus} />;
     }
 
     return (
@@ -563,6 +620,8 @@ const App: React.FC = () => {
               <Route path="inst-performance" element={<InstitutionDashboard initialTab="essays" userType={userType as any} />} />
               <Route path="inst-ranking" element={<InstitutionDashboard initialTab="ranking" userType={userType as any} />} />
               <Route path="inst-classes" element={<InstitutionDashboard initialTab="classes" userType={userType as any} />} />
+              <Route path="inst-staff" element={<InstitutionDashboard initialTab="staff" userType={userType as any} />} />
+              <Route path="inst-subscription" element={<InstitutionDashboard initialTab="subscription" userType={userType as any} />} />
               <Route path="admin/warm-schools" element={<WarmSchoolsDashboard />} />
               <Route path="admin/activate-trial" element={<ActivateTrialDashboard />} />
               <Route path="profile" element={<ProfileView user={session?.user} />} />
@@ -602,7 +661,7 @@ const App: React.FC = () => {
           <Navigate to={`/app/${getDefaultView(userType)}`} replace />
         ) : (
           <LoginView
-            onLoginSuccess={() => navigate(`/app/${getDefaultView('student')}`)}
+            onLoginSuccess={() => navigate(`/app/${getDefaultView(localStorage.getItem('littera_user_type') || userType)}`)}
             onEnterDemo={handleEnterDemo}
           />
         )

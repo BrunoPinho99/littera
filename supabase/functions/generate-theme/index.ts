@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI, type GenerationConfig } from '@google/generative-ai'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,9 +57,14 @@ Deno.serve(async (req: Request) => {
     const { action, prompt } = body
 
     const genAI = new GoogleGenerativeAI(geminiKey)
+    const generationConfig: GenerationConfig & { thinkingConfig?: { thinkingBudget: number } } = {
+      temperature: 0.7,
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
+    }
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
-      generationConfig: { temperature: 0.7, responseMimeType: "application/json" },
+      model: "gemini-2.5-flash-lite",
+      generationConfig,
     })
 
     if (action === 'generateCustomTopic') {

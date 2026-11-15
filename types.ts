@@ -112,6 +112,10 @@ export interface School {
   subscription_id?: string;
   subscription_status?: SubscriptionStatus;
   plano_ativado_em?: string;
+  student_count?: number;
+  billing_cycle?: string;
+  credits_per_student?: number;
+  extra_credits?: number;
 }
 
 export interface UserProfile {

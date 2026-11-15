@@ -1,6 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
-import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.21.0'
-import { Receiver } from 'https://esm.sh/@upstash/qstash@2.7.2'
+import { GoogleGenerativeAI, type GenerationConfig, type GenerateContentRequest } from '@google/generative-ai'
+import { Receiver } from '@upstash/qstash'
+
+interface ParsedEssayResponse {
+  totalScore?: number
+  zeroReason?: string | null
+  generalComment?: string
+  strengths?: unknown[]
+  priorityImprovements?: unknown[]
+  competencies?: unknown[]
+  annotations?: unknown[]
+  aiDetected?: boolean
+  aiJustification?: string
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -96,19 +108,29 @@ Deno.serve(async (req: Request) => {
 
     // Chamar Gemini API
     const genAI = new GoogleGenerativeAI(geminiKey)
+    const generationConfig: GenerationConfig & { thinkingConfig?: { thinkingBudget: number } } = {
+      temperature: 0.15,
+      responseMimeType: "application/json",
+      thinkingConfig: { thinkingBudget: 0 },
+    }
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      generationConfig: { 
-        temperature: 0.15,
-        responseMimeType: "application/json"
-      },
+      generationConfig,
     })
 
     const isTextInput = input.type === "text"
-    const essayContent = isTextInput ? input.content : null
 
     const systemPrompt = `
 Você é um corretor OFICIAL de redações do ENEM, seguindo rigorosamente a Matriz de Referência do INEP (Cartilha do Participante). Corrija a redação sobre o tema: "${topicTitle}".
+
+═══════════════════════════════════════════════════
+REGRA DE SAÍDA CURTA PARA IMAGEM INVÁLIDA (FAST-FAIL):
+═══════════════════════════════════════════════════
+Se a foto enviada estiver borrada/ilegível, muito escura, cortada impedindo a leitura, em branco, ou NÃO contiver uma redação manuscrita (ex.: foto de rosto/selfie, objeto, paisagem, tela aleatória):
+- Retorne IMEDIATAMENTE totalScore = 0 e zeroReason = "Imagem ilegível ou inválida".
+- Escreva generalComment com NO MÁXIMO 1 frase curta explicando o motivo.
+- Em todas as 5 competências, defina score = 0, feedback com NO MÁXIMO 1 frase curta, tips = [] e errors = [].
+- strengths = [], priorityImprovements = [], annotations = [].
 
 ═══════════════════════════════════════════════════
 REGRAS DE NOTA ZERO (verificar ANTES de corrigir):
@@ -249,13 +271,11 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
   ]
 }
 `
-    let requestContent: any
-    let isHandwritten = false
+    let requestContent: string | GenerateContentRequest
 
     if (input.type === "text") {
       requestContent = systemPrompt + `\n\nREDAÇÃO DO ALUNO:\n${input.content}`
     } else {
-      isHandwritten = true
       const base64Data = input.base64?.includes(",") ? input.base64.split(",")[1] : input.base64 || ""
       requestContent = {
         contents: [{
@@ -272,10 +292,10 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
     const result = await model.generateContent(requestContent)
     const text = result.response.text()
     
-    let parsed: any;
+    let parsed: ParsedEssayResponse;
     try {
-      parsed = JSON.parse(extractJson(text))
-    } catch (e) {
+      parsed = JSON.parse(extractJson(text)) as ParsedEssayResponse
+    } catch (_e) {
       console.error(`[process-essay] Erro ao fazer parse do JSON do Gemini para redação ${essayId}:`, text)
       // Atualizar status para erro
       await supabase.from('redacoes').update({
@@ -301,7 +321,7 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
     }
 
     // Atualizar redação no Supabase Database
-    const updatePayload: Record<string, any> = {
+    const updatePayload: Record<string, unknown> = {
       total_score: parsed.totalScore,
       status: 'corrigida',
       competencias_json: JSON.stringify(parsed.competencies),
@@ -324,9 +344,10 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
     console.log(`[process-essay] Redação ${essayId} corrigida com sucesso! Score: ${parsed.totalScore}`)
     return jsonResponse({ success: true, essayId })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[process-essay] Erro geral:", error)
-    return jsonResponse({ error: error.message || 'Erro interno do servidor.' }, 500)
+    const message = error instanceof Error ? error.message : 'Erro interno do servidor.'
+    return jsonResponse({ error: message }, 500)
   }
 })
 

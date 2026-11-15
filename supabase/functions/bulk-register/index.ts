@@ -103,7 +103,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    if (callerProfile.role !== 'owner') {
+    if (!['owner', 'school_admin'].includes(callerProfile.role)) {
       return new Response(JSON.stringify({ error: 'Apenas administradores podem fazer convites em massa' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -133,12 +133,34 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Pegar nome da escola
+    // Pegar nome e limite de alunos da escola
     const { data: schoolData } = await supabaseAdmin
       .from('schools')
-      .select('name')
+      .select('name, student_count')
       .eq('id', school_id)
       .single()
+
+    const studentsInBatch = users.filter((u) => u.role === 'student').length
+    if (studentsInBatch > 0) {
+      const { count: currentStudentCount } = await supabaseAdmin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('school_id', school_id)
+        .eq('role', 'student')
+
+      const maxStudents = schoolData?.student_count ?? 0
+      if (maxStudents > 0 && ((currentStudentCount || 0) >= maxStudents || (currentStudentCount || 0) + studentsInBatch > maxStudents)) {
+        return new Response(
+          JSON.stringify({
+            error: 'Limite de alunos do plano atingido. Aumente o número de alunos na aba Assinatura.',
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+    }
 
     const school_name = schoolData?.name || 'Escola Parceira'
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'

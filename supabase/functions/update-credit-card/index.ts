@@ -6,87 +6,142 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const ASAAS_API_KEY = Deno.env.get('ASAAS_API_KEY') || ''
-const IS_PRODUCTION = Deno.env.get('IS_PRODUCTION') === 'true'
-const ASAAS_BASE = !IS_PRODUCTION 
-  ? 'https://sandbox.asaas.com/api/v3'
-  : 'https://api.asaas.com/v3'
-
-const asaasHeaders = {
-  'Content-Type': 'application/json',
-  'access_token': ASAAS_API_KEY,
-}
-
 Deno.serve(async (req: Request) => {
-  // CORS Options
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    const ASAAS_API_KEY = Deno.env.get('ASAAS_API_KEY') || ''
+    const ASAAS_ENV = Deno.env.get('ASAAS_ENV') || (Deno.env.get('IS_PRODUCTION') === 'true' ? 'production' : 'production')
+    const ASAAS_BASE = ASAAS_ENV === 'sandbox'
+      ? 'https://sandbox.asaas.com/api/v3'
+      : 'https://api.asaas.com/v3'
+
+    const asaasHeaders = {
+      'Content-Type': 'application/json',
+      'access_token': ASAAS_API_KEY,
+    }
+
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) throw new Error('Não autorizado.')
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      { global: { headers: { Authorization: authHeader } } }
     )
-    
-    // Check Auth
+
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
     if (authError || !user) throw new Error('Não autorizado.')
 
-    const { schoolId } = await req.json()
+    const body = await req.json().catch(() => ({}))
+    const requestedSchoolId = body?.schoolId
 
-    if (!schoolId) {
-      throw new Error('Parâmetro schoolId obrigatório.')
-    }
-
-    // Verify if user belongs to this school
-    const profileSchoolId = user.user_metadata?.school_id
-    if (profileSchoolId !== schoolId) {
-      throw new Error('Permissão negada.')
-    }
-
-    // Service role for DB operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Get school's subscription_id and asaas_customer_id
+    let profileSchoolId = user.user_metadata?.school_id
+    if (!profileSchoolId) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('school_id')
+        .eq('id', user.id)
+        .single()
+      profileSchoolId = profile?.school_id
+    }
+
+    const targetSchoolId = requestedSchoolId || profileSchoolId
+    if (!targetSchoolId) {
+      throw new Error('Parâmetro schoolId obrigatório.')
+    }
+
+    if (profileSchoolId && requestedSchoolId && profileSchoolId !== requestedSchoolId) {
+      throw new Error('Permissão negada.')
+    }
+
     const { data: school, error: schoolError } = await supabaseAdmin
       .from('schools')
       .select('subscription_id, asaas_customer_id')
-      .eq('id', schoolId)
+      .eq('id', targetSchoolId)
       .single()
 
     if (schoolError || !school) {
       throw new Error('Escola não encontrada.')
     }
 
-    if (!school.subscription_id || !school.asaas_customer_id) {
-      throw new Error('A escola não possui uma assinatura ativa no Asaas.')
+    if (!school.subscription_id && !school.asaas_customer_id) {
+      throw new Error('A escola não possui uma assinatura registrada no Asaas.')
     }
 
-    const { subscription_id: subscriptionId, asaas_customer_id: _customerId } = school
+    const subscriptionId = school.subscription_id
+    let invoiceUrl: string | null = null
 
-    // Busca a próxima cobrança pendente para retornar a url
-    console.log(`Buscando cobrança pendente para assinatura ${subscriptionId}...`)
-    const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}/payments?status=PENDING`, { headers: asaasHeaders })
-    const paymentsData = await paymentsRes.json()
-    const pendingPayment = paymentsData.data?.[0]
+    if (subscriptionId) {
+      const baseEndpoint = subscriptionId.startsWith('inst_')
+        ? `${ASAAS_BASE}/payments?installment=${subscriptionId}`
+        : `${ASAAS_BASE}/subscriptions/${subscriptionId}/payments`
 
-    if (!pendingPayment?.invoiceUrl) {
-      throw new Error('Não há faturas pendentes onde o cartão possa ser atualizado no momento.')
+      // 1. Buscar cobrança PENDING ou OVERDUE mais recente
+      for (const statusFilter of ['OVERDUE', 'PENDING']) {
+        const sep = baseEndpoint.includes('?') ? '&' : '?'
+        const res = await fetch(`${baseEndpoint}${sep}status=${statusFilter}`, { headers: asaasHeaders })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.data?.[0]?.invoiceUrl) {
+            invoiceUrl = data.data[0].invoiceUrl
+            break
+          }
+        }
+      }
+
+      // 2. Fallback: última cobrança gerada da assinatura
+      if (!invoiceUrl) {
+        const allRes = await fetch(baseEndpoint, { headers: asaasHeaders })
+        if (allRes.ok) {
+          const allData = await allRes.json()
+          if (allData.data?.[0]?.invoiceUrl) {
+            invoiceUrl = allData.data[0].invoiceUrl
+          }
+        }
+      }
     }
 
-    return new Response(JSON.stringify({ success: true, invoiceUrl: pendingPayment.invoiceUrl }), {
+    // 3. Fallback adicional por customer ou tabela local payments
+    if (!invoiceUrl && school.asaas_customer_id) {
+      const custRes = await fetch(`${ASAAS_BASE}/payments?customer=${school.asaas_customer_id}`, { headers: asaasHeaders })
+      if (custRes.ok) {
+        const custData = await custRes.json()
+        if (custData.data?.[0]?.invoiceUrl) {
+          invoiceUrl = custData.data[0].invoiceUrl
+        }
+      }
+    }
+
+    if (!invoiceUrl) {
+      const { data: lastDbPayment } = await supabaseAdmin
+        .from('payments')
+        .select('invoice_url')
+        .eq('school_id', targetSchoolId)
+        .not('invoice_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      invoiceUrl = lastDbPayment?.invoice_url || null
+    }
+
+    if (!invoiceUrl) {
+      throw new Error('Não foi possível localizar uma fatura para esta assinatura no momento.')
+    }
+
+    return new Response(JSON.stringify({ success: true, invoiceUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
-
-
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    console.error('Error:', message)
+    console.error('[update-credit-card] Error:', message)
     return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { PendingCheckoutPage } from './PendingCheckoutPage';
 
 // ── Helpers de validação ────────────────────────────────────────────────────────
 
@@ -76,30 +77,6 @@ function formatCEP(value: string): string {
   return val.length > 5 ? `${val.slice(0, 5)}-${val.slice(5, 8)}` : val;
 }
 
-function formatCardNumber(value: string): string {
-  return value.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
-}
-
-function formatExpiry(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 4);
-  if (digits.length >= 3) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-  return digits;
-}
-
-function validateLuhn(cardNumber: string): boolean {
-  const digits = cardNumber.replace(/\D/g, '');
-  if (digits.length < 13) return false;
-  let sum = 0;
-  let isEven = false;
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let digit = parseInt(digits.charAt(i), 10);
-    if (isEven) { digit *= 2; if (digit > 9) digit -= 9; }
-    sum += digit;
-    isEven = !isEven;
-  }
-  return sum % 10 === 0;
-}
-
 function formatBRL(val: number): string {
   return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
@@ -136,11 +113,6 @@ const checkoutSchema = z.object({
     return !isNaN(num) && num > 0 && num <= 50000;
   }, "Quantidade deve estar entre 1 e 50.000"),
   billingCycle: z.enum(['MONTHLY', 'YEARLY']),
-  // Section 3 — Cartão
-  ccHolderName: z.string().min(3, "Nome no cartão obrigatório"),
-  ccNumber: z.string().refine(v => validateLuhn(v), "Número de cartão inválido"),
-  ccExpiry: z.string().min(5, "Validade inválida (MM/AA)"),
-  ccCvv: z.string().min(3, "CVV inválido"),
 }).refine(
   (data) => data.password === data.confirmPassword,
   { message: "As senhas não coincidem", path: ["confirmPassword"] }
@@ -157,6 +129,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const [cepLoading, setCepLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [checkoutSession, setCheckoutSession] = useState<any>(null);
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(checkoutSchema),
@@ -167,7 +140,6 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       schoolName: '', cnpj: '',
       postalCode: '', endereco: '', addressNumber: '', complemento: '', bairro: '', cidade: '', estado: '',
       studentCount: '', billingCycle: 'MONTHLY',
-      ccHolderName: '', ccNumber: '', ccExpiry: '', ccCvv: '',
     }
   });
 
@@ -251,7 +223,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
     setGlobalError(null);
 
     try {
-      // 1. Criar conta + assinatura
+      // Passo 1: Criar conta Auth, escola (subscription_status: 'inactive'), perfil ('owner') e cliente no Asaas
       const { data: fnData, error: fnError } = await supabase.functions.invoke('process-subscription', {
         body: {
           directorName: data.directorName.trim(),
@@ -263,19 +235,18 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           cnpj: data.cnpj.replace(/\D/g, ''),
           postalCode: data.postalCode.replace(/\D/g, ''),
           addressNumber: data.addressNumber.trim(),
-          studentCount: parseInt(data.studentCount),
+          studentCount: parseInt(data.studentCount, 10),
           billingCycle: data.billingCycle,
-          paymentMethod: 'CREDIT_CARD',
         },
       });
 
       if (fnError || fnData?.error) {
         setIsLoading(false);
-        setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar assinatura.');
+        setGlobalError(fnError?.message || fnData?.error || 'Erro ao processar cadastro da escola.');
         return;
       }
 
-      // 2. Auto-login
+      // Passo 2: Login automático
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: data.email.toLowerCase().trim(),
         password: data.password,
@@ -287,17 +258,12 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
         return;
       }
 
-      // 3. Processar pagamento com cartão imediatamente
+      // Passo 3: Gerar assinatura/parcelamento no Asaas com billingType: 'UNDEFINED' (sem dados de cartão)
       const { data: payData, error: payError } = await supabase.functions.invoke('pay-subscription', {
         body: {
-          paymentMethod: 'CREDIT_CARD',
-          ccHolderName: data.ccHolderName,
-          ccCpfCnpj: data.cpf.replace(/\D/g, ''),
-          ccNumber: data.ccNumber.replace(/\s/g, ''),
-          ccExpiry: data.ccExpiry,
-          ccCvv: data.ccCvv,
           billingCycle: data.billingCycle,
-          studentCount: parseInt(data.studentCount),
+          studentCount: parseInt(data.studentCount, 10),
+          billingType: 'UNDEFINED',
         },
         headers: {
           Authorization: `Bearer ${signInData.session?.access_token}`,
@@ -305,29 +271,26 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       });
 
       if (payError || payData?.error) {
-        // Pagamento falhou — avisa o usuário e não redireciona
-        console.warn('[CheckoutWizard] Pagamento falhou:', payError?.message || payData?.error);
-        setGlobalError(payError?.message || payData?.error || 'Falha ao processar o pagamento. Verifique os dados do cartão e tente novamente.');
+        console.warn('[CheckoutWizard] Falha ao gerar cobrança no Asaas:', payError?.message || payData?.error);
+        setGlobalError(payError?.message || payData?.error || 'Falha ao gerar link de pagamento no Asaas. Tente novamente.');
         setIsLoading(false);
         return;
       }
 
-      // 4. Pagamento processado! Exibir tela de sucesso ou pendente
+      // Passo 4: Salvar invoiceUrl e schoolId no localStorage, abrir checkout hospedado do Asaas e redirecionar para /app/inst-overview
       localStorage.setItem('checkout_billingCycle', data.billingCycle);
       if (fnData?.schoolId) localStorage.setItem('checkout_schoolId', fnData.schoolId);
-      
-      // Atualiza a sessão para pegar o novo status
-      await supabase.auth.refreshSession();
-      
-      if (payData?.status === 'PENDING_CARD') {
-        setIsPending(true);
-      } else {
-        setIsSuccess(true);
+      if (payData?.invoiceUrl) {
+        localStorage.setItem('checkout_invoiceUrl', payData.invoiceUrl);
+        window.open(payData.invoiceUrl, '_blank', 'noopener,noreferrer');
       }
 
+      await supabase.auth.refreshSession();
+      setCheckoutSession(signInData.session);
+      navigate('/app/inst-overview');
     } catch (err: any) {
       console.error('[CheckoutWizard] Error:', err);
-      setGlobalError(err.message || 'Falha ao processar o pagamento. Tente novamente.');
+      setGlobalError(err.message || 'Falha ao iniciar assinatura. Tente novamente.');
       setIsLoading(false);
     }
   }, [navigate]);
@@ -428,34 +391,10 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
 
   if (isPending) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#0a0f1c] flex flex-col items-center justify-center font-sans p-4 relative overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30vw] h-[30vw] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none" />
-
-        <div className="bg-white dark:bg-surface-dark p-10 rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
-          <div className="relative z-10">
-            <div className="relative w-24 h-24 mx-auto mb-8 bg-amber-50 dark:bg-amber-500/10 rounded-full flex items-center justify-center">
-              <span className="material-icons-outlined text-amber-500 text-5xl">pending_actions</span>
-            </div>
-
-            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-3 tracking-tight font-display">
-              Pagamento em Análise
-            </h2>
-            
-            <p className="text-gray-500 dark:text-gray-400 mb-8 font-medium leading-relaxed">
-              O seu pagamento está passando por uma rápida análise de segurança da operadora do cartão (anti-fraude). Isso é normal e deve ser concluído em breve.
-            </p>
-
-            <button
-              onClick={() => window.location.href = '/app/inst-overview'}
-              className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-4 rounded-xl shadow-xl shadow-amber-500/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-sm uppercase tracking-widest"
-            >
-              <span className="material-icons-outlined text-lg">login</span>
-              Acessar Painel
-            </button>
-          </div>
-        </div>
-      </div>
+      <PendingCheckoutPage
+        onLogout={() => { supabase.auth.signOut(); navigate('/login'); }}
+        session={checkoutSession}
+      />
     );
   }
 
@@ -577,18 +516,16 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                 </div>
               </div>
 
-              {/* ─ Section 3: Dados do Cartão ─ */}
-              <div className="bg-white border border-outline-variant/30 rounded-2xl p-6 sm:p-7 shadow-card">
-                <SectionHeader number={3} title="Dados do Cartão" />
-
-                <div className="space-y-4">
-                  {renderField('Nome no Cartão', 'ccHolderName', 'text', 'Nome como está no cartão')}
-                  {renderField('Número do Cartão', 'ccNumber', 'text', '0000 0000 0000 0000', formatCardNumber)}
-
-                  <div className="grid grid-cols-2 gap-4">
-                    {renderField('Validade', 'ccExpiry', 'text', 'MM/AA', formatExpiry)}
-                    {renderField('CVV', 'ccCvv', 'text', '123', (v) => v.replace(/\D/g, '').slice(0, 4))}
-                  </div>
+              {/* ─ Ambiente Seguro Asaas Info ─ */}
+              <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-5 flex items-start gap-3.5">
+                <span className="material-icons-outlined text-emerald-600 text-xl mt-0.5">verified_user</span>
+                <div>
+                  <p className="text-xs font-bold text-emerald-900 uppercase tracking-wider mb-1">
+                    Pagamento 100% Hospedado pelo Asaas
+                  </p>
+                  <p className="text-xs text-emerald-800/90 leading-relaxed">
+                    O Littera não coleta nem armazena dados de cartão de crédito. Ao avançar, sua fatura oficial será aberta no ambiente seguro do Asaas para você escolher entre <strong>Cartão de Crédito (recorrência automática)</strong>, <strong>PIX</strong> ou <strong>Boleto Bancário</strong>.
+                  </p>
                 </div>
               </div>
 

@@ -157,7 +157,7 @@ export const correctEssay = async (
   topicTitle: string,
   input: EssayInput,
   _onStream?: (text: string) => void
-): Promise<{ success: boolean; essayId: string }> => {
+): Promise<{ success: boolean; essayId: string; cached?: boolean }> => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error("Usuário não autenticado.");
 
@@ -171,8 +171,11 @@ export const correctEssay = async (
   });
 
   if (error) {
-    if (error.context && error.context.status === 403) {
-       throw new Error(error.context.json()?.message || "Limite atingido ou teste expirado.");
+    if (error.context && typeof error.context.json === 'function') {
+      const errBody = await error.context.json().catch(() => null);
+      if (errBody?.message || errBody?.error) {
+        throw new Error(errBody.message || errBody.error);
+      }
     }
     throw new Error(error.message || "Erro na Edge Function");
   }
@@ -181,7 +184,7 @@ export const correctEssay = async (
     throw new Error(data.message || data.error);
   }
 
-  return data as { success: boolean; essayId: string };
+  return data as { success: boolean; essayId: string; cached?: boolean };
 };
 
 // --- GERAÇÃO DE TEMA PARA ATIVIDADE ---
@@ -205,7 +208,7 @@ export const correctHandwrittenEssay = async (
   topicTitle: string,
   base64Image: string,
   mimeType: string
-): Promise<{ success: boolean; essayId: string }> => {
+): Promise<{ success: boolean; essayId: string; cached?: boolean }> => {
   const input: EssayInput = { type: 'image', base64: base64Image, mimeType };
   return await correctEssay(topicTitle, input);
 };

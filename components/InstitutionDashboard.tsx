@@ -96,114 +96,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
-  // ── Subscription & Card Management ──
-  interface CreditCard {
-    id: string;
-    brand: string;
-    last4: string;
-    holder: string;
-    expiry: string;
-    isDefault: boolean;
-  }
-  const [savedCards, setSavedCards] = useState<CreditCard[]>([
-    { id: 'card-1', brand: 'Visa', last4: '4242', holder: 'Bruno Pinho', expiry: '12/27', isDefault: true }
-  ]);
-  const [isCardModalOpen, setIsCardModalOpen] = useState(false);
-  const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
-  const [cardForm, setCardForm] = useState({ number: '', holder: '', expiry: '', cvv: '' });
-  const [isSavingCard, setIsSavingCard] = useState(false);
-  const [confirmDeleteCardId, setConfirmDeleteCardId] = useState<string | null>(null);
-
-  const detectBrand = (num: string): string => {
-    const n = num.replace(/\s/g, '');
-    if (/^4/.test(n)) return 'Visa';
-    if (/^5[1-5]/.test(n) || /^2[2-7]/.test(n)) return 'Mastercard';
-    if (/^3[47]/.test(n)) return 'Amex';
-    if (/^6(?:011|5)/.test(n)) return 'Discover';
-    if (/^(606282|3841)/.test(n)) return 'Hipercard';
-    if (/^(36|38|30[0-5])/.test(n)) return 'Diners';
-    return 'Cartão';
-  };
-
-  const brandColor: Record<string, string> = {
-    'Visa': '#1a1f71',
-    'Mastercard': '#eb001b',
-    'Amex': '#006fcf',
-    'Elo': '#00a4e0',
-    'Hipercard': '#822124',
-    'Diners': '#004a97',
-    'Discover': '#ff6000',
-    'Cartão': '#6b7280'
-  };
-
-  const formatCardNumber = (v: string): string => {
-    const digits = v.replace(/\D/g, '').slice(0, 16);
-    return digits.replace(/(\d{4})(?=\d)/g, '$1 ');
-  };
-
-  const formatExpiry = (v: string): string => {
-    const digits = v.replace(/\D/g, '').slice(0, 4);
-    if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
-    return digits;
-  };
-
-  const openAddCard = () => {
-    setEditingCard(null);
-    setCardForm({ number: '', holder: '', expiry: '', cvv: '' });
-    setIsCardModalOpen(true);
-  };
-
-  const openEditCard = (card: CreditCard) => {
-    setEditingCard(card);
-    setCardForm({ number: `**** **** **** ${card.last4}`, holder: card.holder, expiry: card.expiry, cvv: '' });
-    setIsCardModalOpen(true);
-  };
-
-  const handleSaveCard = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSavingCard(true);
-    setTimeout(() => {
-      if (editingCard) {
-        setSavedCards(prev => prev.map(c => c.id === editingCard.id ? {
-          ...c,
-          holder: cardForm.holder,
-          expiry: cardForm.expiry,
-          brand: cardForm.number.startsWith('*') ? c.brand : detectBrand(cardForm.number),
-          last4: cardForm.number.startsWith('*') ? c.last4 : cardForm.number.replace(/\s/g, '').slice(-4)
-        } : c));
-      } else {
-        const digits = cardForm.number.replace(/\s/g, '');
-        const newCard: CreditCard = {
-          id: `card-${Date.now()}`,
-          brand: detectBrand(digits),
-          last4: digits.slice(-4),
-          holder: cardForm.holder,
-          expiry: cardForm.expiry,
-          isDefault: savedCards.length === 0
-        };
-        setSavedCards(prev => [...prev, newCard]);
-      }
-      setIsSavingCard(false);
-      setIsCardModalOpen(false);
-      setCardForm({ number: '', holder: '', expiry: '', cvv: '' });
-      setEditingCard(null);
-    }, 800);
-  };
-
-  const handleDeleteCard = (id: string) => {
-    const card = savedCards.find(c => c.id === id);
-    if (card?.isDefault && savedCards.length > 1) {
-      alert('Defina outro cartão como principal antes de excluir este.');
-      return;
-    }
-    setSavedCards(prev => prev.filter(c => c.id !== id));
-    setConfirmDeleteCardId(null);
-  };
-
-  const handleSetDefaultCard = (id: string) => {
-    setSavedCards(prev => prev.map(c => ({ ...c, isDefault: c.id === id })));
-  };
-
   // Sync activeTab with prop when it changes (navigation from sidebar/navbar)
   useEffect(() => {
     setActiveTab(initialTab);
@@ -375,7 +267,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       const createdStudent = await createStudent({
         name: newStudent.name,
         email: newStudent.email,
-        class_id: undefined,
+        class_id: newStudent.class_id || undefined,
         school_id: schoolId,
         registration_number: newStudent.registration_number
       });
@@ -501,12 +393,15 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         body: {
           users: usersToRegister,
           school_id: schoolId,
-          class_id: undefined
+          class_id: newStudent.class_id || undefined
         }
       });
 
       if (error) throw error;
       if (data.error) throw new Error(data.error);
+
+      const updatedStudents = await getStudentsByContext(schoolId);
+      setStudents(updatedStudents);
 
       showToast('success', '✅ Lote Processado!', `${data.success} alunos convidados com sucesso. ${data.failed} falhas.`);
       
@@ -652,6 +547,30 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       { label: 'Docentes', value: professors.length, icon: 'school', color: 'bg-violet-500' },
     ];
   }, [students, classes, essays, professors, userType]);
+
+  const { monthlyCorrectionsUsed, monthlyCorrectionsQuota, monthlyQuotaPercentage } = useMemo(() => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const used = essays.filter(e => {
+      if (!e.data_envio) return false;
+      const d = new Date(e.data_envio);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).length;
+
+    const studentCount = school?.student_count || 0;
+    const creditsPerStudent = school?.credits_per_student || 12;
+    const extraCredits = school?.extra_credits || 0;
+    const quota = studentCount * creditsPerStudent + extraCredits;
+    const pct = quota > 0 ? Math.min(100, Math.round((used / quota) * 100)) : 0;
+
+    return {
+      monthlyCorrectionsUsed: used,
+      monthlyCorrectionsQuota: quota,
+      monthlyQuotaPercentage: pct,
+    };
+  }, [essays, school]);
   const availableTabs = useMemo(() => {
     const baseTabs = [
       { id: 'overview', label: 'Visão Geral', icon: 'dashboard' },
@@ -826,68 +745,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         )}
       </header>
 
-      {/* ── Onboarding: Primeiros Passos (só para school_admin sem turmas) ─── */}
-      {userType === 'school_admin' && !loading && classes.length === 0 && (
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary to-blue-700 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl shadow-primary/30">
-          {/* Decorative blobs */}
-          <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/15 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4 pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center gap-8">
-            {/* Icon */}
-            <div className="flex-shrink-0 w-16 h-16 bg-white/20 rounded-3xl flex items-center justify-center backdrop-blur-sm">
-              <span className="material-icons-outlined text-white text-3xl">rocket_launch</span>
-            </div>
-
-            {/* Text */}
-            <div className="flex-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 mb-1">Primeiros Passos</p>
-              <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-2 font-display">
-                Comece criando suas turmas! 🎓
-              </h3>
-              <p className="text-white/75 font-medium text-sm leading-relaxed max-w-xl">
-                Para convidar professores e alunos, você precisa ter pelo menos uma turma cadastrada. Siga a ordem abaixo para configurar sua escola rapidamente.
-              </p>
-
-              {/* Steps */}
-              <div className="flex flex-wrap gap-3 mt-5">
-                {[
-                  { step: '1', icon: 'meeting_room', label: 'Criar turmas', active: true },
-                  { step: '2', icon: 'school', label: 'Convidar professores', active: false },
-                  { step: '3', icon: 'group_add', label: 'Convidar alunos', active: false },
-                ].map(({ step, icon, label, active }) => (
-                  <div
-                    key={step}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold transition-all ${
-                      active
-                        ? 'bg-white text-primary shadow-lg'
-                        : 'bg-white/15 text-white/70'
-                    }`}
-                  >
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black ${active ? 'bg-primary text-white' : 'bg-white/20 text-white'}`}>
-                      {step}
-                    </span>
-                    <span className="material-icons-outlined text-base">{icon}</span>
-                    {label}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* CTA */}
-            <div className="flex-shrink-0">
-              <button
-                onClick={() => setIsClassModalOpen(true)}
-                className="flex items-center gap-2 px-8 py-4 bg-white text-primary font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all"
-              >
-                <span className="material-icons-outlined text-lg">add</span>
-                Criar Primeira Turma
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Grid de Métricas */}
       <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
         {stats.map((stat, i) => (
@@ -939,9 +796,87 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         <div className="p-10">
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-fade-in">
+              {/* Guia de Primeiros Passos (Empty State Conectado) */}
+              {userType === 'school_admin' && (classes.length === 0 || professors.length === 0 || students.length === 0) && (
+                <div className="relative overflow-hidden bg-gradient-to-br from-primary to-blue-700 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl shadow-primary/30">
+                  <div className="absolute top-0 right-0 w-72 h-72 bg-white/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 w-48 h-48 bg-black/15 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+
+                  <div className="relative z-10 flex flex-col gap-6">
+                    <div className="flex items-start gap-5">
+                      <div className="flex-shrink-0 w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm">
+                        <span className="material-icons-outlined text-white text-2xl">rocket_launch</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 mb-1">Configuração Inicial da Escola</p>
+                        <h3 className="text-2xl md:text-3xl font-black tracking-tight mb-2 font-display">
+                          Complete os primeiros passos da sua instituição
+                        </h3>
+                        <p className="text-white/80 font-medium text-sm leading-relaxed max-w-2xl">
+                          Sua assinatura está ativa! Siga as etapas abaixo para estruturar suas turmas, convidar o corpo docente e matricular os alunos.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                      <button
+                        onClick={() => setIsClassModalOpen(true)}
+                        className={`flex items-center justify-between p-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all text-left ${
+                          classes.length === 0
+                            ? 'bg-white text-primary shadow-xl hover:scale-[1.02]'
+                            : 'bg-white/15 text-white hover:bg-white/25'
+                        }`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <span className="material-icons-outlined text-xl">
+                            {classes.length > 0 ? 'check_circle' : 'meeting_room'}
+                          </span>
+                          1. Criar Primeira Turma
+                        </span>
+                        <span className="material-icons-outlined text-base">arrow_forward</span>
+                      </button>
+
+                      <button
+                        onClick={() => setIsProfessorModalOpen(true)}
+                        className={`flex items-center justify-between p-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all text-left ${
+                          classes.length > 0 && professors.length === 0
+                            ? 'bg-white text-primary shadow-xl hover:scale-[1.02]'
+                            : 'bg-white/15 text-white hover:bg-white/25'
+                        }`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <span className="material-icons-outlined text-xl">
+                            {professors.length > 0 ? 'check_circle' : 'school'}
+                          </span>
+                          2. Cadastrar Professores
+                        </span>
+                        <span className="material-icons-outlined text-base">arrow_forward</span>
+                      </button>
+
+                      <button
+                        onClick={() => setIsStudentModalOpen(true)}
+                        className={`flex items-center justify-between p-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all text-left ${
+                          classes.length > 0 && students.length === 0
+                            ? 'bg-white text-primary shadow-xl hover:scale-[1.02]'
+                            : 'bg-white/15 text-white hover:bg-white/25'
+                        }`}
+                      >
+                        <span className="flex items-center gap-3">
+                          <span className="material-icons-outlined text-xl">
+                            {students.length > 0 ? 'check_circle' : 'group_add'}
+                          </span>
+                          3. Cadastrar / Importar Alunos
+                        </span>
+                        <span className="material-icons-outlined text-base">arrow_forward</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* ROI and General Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] shadow-ambient border-none shadow-ambient relative overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] shadow-ambient border-none relative overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-2">Média da Escola</p>
                   <div className="flex items-end gap-2">
                     <h3 className="text-5xl font-black text-gray-900 dark:text-white">
@@ -958,7 +893,7 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   <p className="text-xs text-gray-400 font-medium mt-3">Nota média calculada em todas as submissões deste ano.</p>
                 </div>
 
-                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] shadow-ambient border-none shadow-ambient relative overflow-hidden">
+                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] shadow-ambient border-none relative overflow-hidden">
                   <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2">Engajamento</p>
                   <div className="flex items-end gap-2">
                     <h3 className="text-5xl font-black text-gray-900 dark:text-white">
@@ -967,6 +902,24 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     <span className="text-xl font-bold text-gray-400 mb-1">%</span>
                   </div>
                   <p className="text-xs text-gray-400 font-medium mt-4">Percentual de alunos que já submeteram ao menos uma redação na plataforma.</p>
+                </div>
+
+                <div className="bg-white dark:bg-surface-dark p-8 rounded-[2rem] shadow-ambient border-none relative overflow-hidden">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-2">Franquia Mensal</p>
+                  <p className="text-sm font-black text-gray-900 dark:text-white">
+                    Correções no mês: {monthlyCorrectionsUsed} / {monthlyCorrectionsQuota} disponíveis
+                  </p>
+                  <div className="mt-4 w-full h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        monthlyQuotaPercentage >= 90 ? 'bg-rose-500' : monthlyQuotaPercentage >= 75 ? 'bg-amber-500' : 'bg-primary'
+                      }`}
+                      style={{ width: `${monthlyQuotaPercentage}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 font-medium mt-3">
+                    Pool compartilhado ({school?.credits_per_student || 12} créditos/aluno contratado{school?.extra_credits ? ` + ${school.extra_credits} extras` : ''}).
+                  </p>
                 </div>
               </div>
 
@@ -1330,213 +1283,107 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {activeTab === 'subscription' && userType === 'school_admin' && (
             <div className="space-y-10 animate-fade-in">
 
-              {/* Banner de Assinatura Pendente */}
-              {school?.subscription_status !== 'active' && (
-                <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-black to-slate-900 rounded-[2rem] border-2 border-primary/20 shadow-2xl p-8 sm:p-12 text-center">
-                  <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/20 rounded-full blur-[80px] pointer-events-none"></div>
-                  <div className="relative z-10 max-w-xl mx-auto">
-                    <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                      <span className="material-icons-outlined text-primary text-3xl">workspace_premium</span>
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-black text-white mb-3">Ative sua Assinatura</h3>
-                    <p className="text-gray-400 text-sm sm:text-base mb-8 leading-relaxed">
-                      Para liberar o acesso completo da sua instituição — turmas ilimitadas, convites de professores e alunos, correções por IA e painel de relatórios — finalize sua assinatura.
-                    </p>
-                    <button
-                      onClick={() => {
-                        // Redireciona para a PendingCheckoutPage que tem o fluxo completo de pagamento
-                        window.location.href = '/app/inst-overview';
-                      }}
-                      id="asaas-subscribe-btn"
-                      className="px-10 py-4 bg-primary hover:bg-primary/90 text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/30 transition-all hover:scale-105 flex items-center gap-3 mx-auto"
-                    >
-                      <span className="material-icons-outlined">lock_open</span>
-                      Assinar Agora
-                    </button>
-                    <p className="text-[10px] text-gray-500 mt-4 uppercase tracking-widest">Pagamento seguro via Asaas • Pix, Boleto ou Cartão</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Subscription Overview (só aparece quando ativa) */}
+              {/* Subscription Overview */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-gradient-to-br from-[#131b2e] to-[#1e293b] p-8 rounded-[2rem] relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-40 h-40 bg-primary/20 rounded-full blur-[80px] pointer-events-none"></div>
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest">Ativa</span>
-                      <h3 className="text-2xl font-black text-white mt-3">Plano School</h3>
-                      <p className="text-gray-400 text-sm mt-1">Renovação automática em 15/06/2026</p>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                        school?.subscription_status === 'active'
+                          ? 'bg-emerald-500/20 text-emerald-400'
+                          : 'bg-amber-500/20 text-amber-400'
+                      }`}>
+                        {school?.subscription_status === 'active' ? 'Assinatura Ativa' : `Status: ${school?.subscription_status || 'Inativa'}`}
+                      </span>
+                      <h3 className="text-2xl font-black text-white mt-3">Plano Institucional Littera</h3>
+                      <p className="text-gray-400 text-sm mt-1">
+                        {school?.plano_ativado_em
+                          ? `Ativado em ${new Date(school.plano_ativado_em).toLocaleDateString('pt-BR')}`
+                          : 'Cobrança gerenciada com segurança via Asaas'}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-4xl font-black text-white">R$ 7<span className="text-lg font-bold text-gray-400">/aluno</span></p>
-                      <p className="text-xs text-gray-500 mt-1">200-1.000 alunos</p>
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Alunos Contratados</p>
+                      <p className="text-4xl font-black text-white mt-1">
+                        {school?.student_count || students.length || 0}
+                      </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4 mt-8">
                     <div className="bg-white/5 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Alunos ativos</p>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Alunos Cadastrados</p>
                       <p className="text-xl font-black text-white">{students.length}</p>
                     </div>
                     <div className="bg-white/5 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Correções/mês</p>
-                      <p className="text-xl font-black text-primary">∞</p>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Licenças Contratadas</p>
+                      <p className="text-xl font-black text-primary">{school?.student_count || students.length || 0}</p>
                     </div>
                     <div className="bg-white/5 rounded-2xl p-4">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Custo mensal</p>
-                      <p className="text-xl font-black text-emerald-400">R$ {(students.length * 7).toLocaleString('pt-BR')}</p>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">Status no Asaas</p>
+                      <p className="text-xl font-black text-emerald-400 uppercase">{school?.subscription_status || 'inactive'}</p>
+                    </div>
+                  </div>
+
+                  {/* Medidor de Consumo Mensal da Franquia */}
+                  <div className="mt-6 bg-white/5 rounded-2xl p-5 border border-white/10">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                      <span className="text-xs font-black text-white uppercase tracking-wider">
+                        Correções no mês: {monthlyCorrectionsUsed} / {monthlyCorrectionsQuota} disponíveis
+                      </span>
+                      <span className="text-xs font-bold text-gray-400">
+                        {monthlyQuotaPercentage}% utilizado
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          monthlyQuotaPercentage >= 90 ? 'bg-rose-500' : monthlyQuotaPercentage >= 75 ? 'bg-amber-500' : 'bg-emerald-400'
+                        }`}
+                        style={{ width: `${monthlyQuotaPercentage}%` }}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-ambient border-none p-8 flex flex-col justify-between">
                   <div>
-                    <h4 className="text-lg font-black text-gray-900 dark:text-white mb-1">Próxima fatura</h4>
-                    <p className="text-xs text-gray-400 mb-6">Cobrada automaticamente no cartão principal</p>
-                    <div className="flex items-end gap-1">
-                      <span className="text-4xl font-black text-gray-900 dark:text-white">R$ {(students.length * 7).toLocaleString('pt-BR')}</span>
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                      <span className="material-icons-outlined text-2xl">verified_user</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">Vencimento: 15/06/2026</p>
-                  </div>
-                  <button className="w-full mt-6 py-3 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-gray-400 font-bold text-xs uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
-                    Ver histórico de faturas
-                  </button>
-                </div>
-              </div>
-
-              {/* Credit Cards Section */}
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <div>
-                    <h3 className="text-xl font-black text-gray-900 dark:text-white">Formas de Pagamento</h3>
-                    <p className="text-sm text-gray-400 mt-1">Gerencie seus cartões de crédito cadastrados</p>
+                    <h4 className="text-lg font-black text-gray-900 dark:text-white mb-2">Gestão Financeira Asaas</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                      Para sua segurança, o Littera não armazena dados de cartão de crédito. Todas as faturas, segunda via de boletos/PIX e alterações de plano são processadas diretamente pelo Asaas.
+                    </p>
                   </div>
                   <button
-                    onClick={openAddCard}
-                    className="px-5 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
+                    onClick={async () => {
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        const resolvedSchoolId = school?.id || await getResolvedSchoolId(session);
+                        const { data, error } = await supabase.functions.invoke('update-credit-card', {
+                          body: { schoolId: resolvedSchoolId },
+                          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+                        });
+                        if (!error && data?.invoiceUrl) {
+                          localStorage.setItem('checkout_invoiceUrl', data.invoiceUrl);
+                          window.open(data.invoiceUrl, '_blank', 'noopener,noreferrer');
+                          return;
+                        }
+                        const savedUrl = localStorage.getItem('checkout_invoiceUrl');
+                        if (savedUrl) {
+                          window.open(savedUrl, '_blank', 'noopener,noreferrer');
+                          return;
+                        }
+                        navigate('/checkout');
+                      } catch {
+                        navigate('/checkout');
+                      }
+                    }}
+                    className="w-full mt-6 py-4 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
                   >
-                    <span className="material-icons-outlined text-lg">add</span>
-                    Novo Cartão
-                  </button>
-                </div>
-
-                {savedCards.length === 0 ? (
-                  <div className="bg-white dark:bg-surface-dark rounded-[2rem] border-2 border-dashed border-gray-200 dark:border-white/10 p-12 flex flex-col items-center text-center">
-                    <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center text-gray-300 mb-4">
-                      <span className="material-icons-outlined text-3xl">credit_card_off</span>
-                    </div>
-                    <p className="font-bold text-gray-500 dark:text-gray-400">Nenhum cartão cadastrado</p>
-                    <p className="text-sm text-gray-400 mt-1">Adicione um cartão para manter sua assinatura ativa.</p>
-                    <button onClick={openAddCard} className="mt-6 px-6 py-3 bg-primary text-white rounded-xl font-bold text-sm hover:bg-primary/90 transition-colors">
-                      Adicionar cartão
-                    </button>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {savedCards.map(card => (
-                      <div
-                        key={card.id}
-                        className={`relative bg-white dark:bg-surface-dark rounded-[2rem] border-2 p-6 transition-all group hover:shadow-lg ${
-                          card.isDefault
-                            ? 'border-primary shadow-md shadow-primary/10'
-                            : 'border-gray-100 dark:border-white/5'
-                        }`}
-                      >
-                        {card.isDefault && (
-                          <span className="absolute -top-3 left-6 px-3 py-1 bg-primary text-white text-[9px] font-black uppercase tracking-widest rounded-full">Principal</span>
-                        )}
-
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="w-12 h-8 rounded-lg flex items-center justify-center text-white text-[10px] font-black"
-                              style={{ backgroundColor: brandColor[card.brand] || '#6b7280' }}
-                            >
-                              {card.brand.slice(0, 4).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="font-black text-sm text-gray-900 dark:text-white">{card.brand}</p>
-                              <p className="text-xs text-gray-400">•••• {card.last4}</p>
-                            </div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!card.isDefault && (
-                              <button
-                                onClick={() => handleSetDefaultCard(card.id)}
-                                className="p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-gray-400 hover:text-emerald-500 transition-colors"
-                                title="Definir como principal"
-                              >
-                                <span className="material-icons-outlined text-lg">star_outline</span>
-                              </button>
-                            )}
-                            <button
-                              onClick={() => openEditCard(card)}
-                              className="p-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 text-gray-400 hover:text-blue-500 transition-colors"
-                              title="Editar"
-                            >
-                              <span className="material-icons-outlined text-lg">edit</span>
-                            </button>
-                            <button
-                              onClick={() => setConfirmDeleteCardId(card.id)}
-                              className="p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 text-gray-400 hover:text-rose-500 transition-colors"
-                              title="Excluir"
-                            >
-                              <span className="material-icons-outlined text-lg">delete_outline</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-end">
-                          <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Titular</p>
-                            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{card.holder}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Validade</p>
-                            <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{card.expiry}</p>
-                          </div>
-                        </div>
-
-                        {/* Delete confirmation overlay */}
-                        {confirmDeleteCardId === card.id && (
-                          <div className="absolute inset-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm rounded-[2rem] flex flex-col items-center justify-center p-6 z-10 animate-fade-in">
-                            <span className="material-icons-outlined text-3xl text-rose-500 mb-3">warning</span>
-                            <p className="font-bold text-gray-900 dark:text-white text-center mb-1">Excluir este cartão?</p>
-                            <p className="text-xs text-gray-400 text-center mb-6">•••• {card.last4} · {card.brand}</p>
-                            <div className="flex gap-3 w-full">
-                              <button
-                                onClick={() => setConfirmDeleteCardId(null)}
-                                className="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 transition-colors text-sm"
-                              >
-                                Cancelar
-                              </button>
-                              <button
-                                onClick={() => handleDeleteCard(card.id)}
-                                className="flex-1 py-3 rounded-xl font-bold text-white bg-rose-500 hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all text-sm"
-                              >
-                                Excluir
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Danger Zone */}
-              <div className="bg-white dark:bg-surface-dark rounded-[2rem] shadow-sm border-none bg-rose-50/30 dark:bg-rose-900/10 p-8">
-                <h4 className="text-lg font-black text-gray-900 dark:text-white mb-1">Zona de risco</h4>
-                <p className="text-sm text-gray-400 mb-6">Ações irreversíveis sobre a assinatura.</p>
-                <div className="flex gap-4">
-                  <button className="px-6 py-3 rounded-xl border border-amber-300 dark:border-amber-700 text-amber-600 dark:text-amber-400 font-bold text-xs uppercase tracking-widest hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors">
-                    Pausar assinatura
-                  </button>
-                  <button className="px-6 py-3 rounded-xl border border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 font-bold text-xs uppercase tracking-widest hover:bg-rose-50 dark:hover:bg-rose-900/10 transition-colors">
-                    Cancelar plano
+                    <span className="material-icons-outlined text-sm">open_in_new</span>
+                    Gerenciar Cartão e Faturas no Asaas
                   </button>
                 </div>
               </div>
@@ -1861,7 +1708,23 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     />
                   </div>
 
-
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
+                    <select
+                      value={newStudent.class_id}
+                      onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
+                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                      required
+                    >
+                      <option value="">Selecione uma turma...</option>
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
+                      ))}
+                    </select>
+                    {classes.length === 0 && (
+                      <p className="text-xs text-rose-500 font-bold mt-1">Crie uma turma antes de matricular alunos.</p>
+                    )}
+                  </div>
 
                   <div className="flex gap-3 mt-8">
                     <button
@@ -1886,7 +1749,19 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 </form>
               ) : (
                 <form onSubmit={handleBulkRegister} className="p-5 sm:p-8 space-y-5">
-
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Vincular Turma</label>
+                    <select
+                      value={newStudent.class_id}
+                      onChange={e => setNewStudent({ ...newStudent, class_id: e.target.value })}
+                      className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all appearance-none"
+                    >
+                      <option value="">Selecione uma turma (opcional)...</option>
+                      {classes.map(cls => (
+                        <option key={cls.id} value={cls.id}>{cls.name} ({cls.shift})</option>
+                      ))}
+                    </select>
+                  </div>
 
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Opção 1: Colar Múltiplos E-mails</label>
@@ -2070,115 +1945,6 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           </div>
         )
       }
-
-      {/* Modal Adicionar/Editar Cartão */}
-      {isCardModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 animate-fade-in">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"></div>
-          <div className="relative bg-white dark:bg-surface-dark w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden overflow-y-auto max-h-[85vh] animate-scale-in border border-gray-100 dark:border-white/10">
-            <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/5">
-              <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                {editingCard ? 'Editar Cartão' : 'Novo Cartão'}
-              </h3>
-              <p className="text-gray-500 text-sm mt-1">
-                {editingCard ? `Atualize os dados do cartão •••• ${editingCard.last4}` : 'Adicione um cartão de crédito para pagamento da assinatura.'}
-              </p>
-            </div>
-
-            <form onSubmit={handleSaveCard} className="p-5 sm:p-8 space-y-5">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Número do Cartão</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={cardForm.number}
-                    onChange={e => setCardForm({ ...cardForm, number: formatCardNumber(e.target.value) })}
-                    placeholder="0000 0000 0000 0000"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all pr-20 tracking-wider"
-                    maxLength={19}
-                    required={!editingCard}
-                  />
-                  {cardForm.number.replace(/\s/g, '').length >= 4 && (
-                    <span
-                      className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 rounded text-[9px] font-black text-white"
-                      style={{ backgroundColor: brandColor[detectBrand(cardForm.number)] || '#6b7280' }}
-                    >
-                      {detectBrand(cardForm.number)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Nome no Cartão</label>
-                <input
-                  type="text"
-                  value={cardForm.holder}
-                  onChange={e => setCardForm({ ...cardForm, holder: e.target.value.toUpperCase() })}
-                  placeholder="NOME COMO ESTÁ NO CARTÃO"
-                  className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all uppercase tracking-wider"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Validade</label>
-                  <input
-                    type="text"
-                    value={cardForm.expiry}
-                    onChange={e => setCardForm({ ...cardForm, expiry: formatExpiry(e.target.value) })}
-                    placeholder="MM/AA"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-wider"
-                    maxLength={5}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">CVV</label>
-                  <input
-                    type="password"
-                    value={cardForm.cvv}
-                    onChange={e => setCardForm({ ...cardForm, cvv: e.target.value.replace(/\D/g, '').slice(0, 4) })}
-                    placeholder="•••"
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 dark:bg-white/5 border-none focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all tracking-widest text-center"
-                    maxLength={4}
-                    required={!editingCard}
-                  />
-                </div>
-              </div>
-
-              <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl flex items-start gap-3 border border-blue-100 dark:border-blue-800/20">
-                <span className="material-icons-outlined text-blue-500 text-lg mt-0.5">lock</span>
-                <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
-                  Seus dados de pagamento são criptografados e protegidos. Nenhum número de cartão é armazenado nos nossos servidores.
-                </p>
-              </div>
-
-              <div className="flex gap-3 mt-8">
-                <button
-                  type="button"
-                  onClick={() => { setIsCardModalOpen(false); setEditingCard(null); }}
-                  className="flex-1 py-4 rounded-xl font-bold text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingCard}
-                  className="flex-1 py-4 rounded-xl font-bold text-white bg-primary hover:bg-primary-dark shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-70 flex items-center justify-center gap-2"
-                >
-                  {isSavingCard ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    editingCard ? 'Atualizar Cartão' : 'Salvar Cartão'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div >
   );
 };

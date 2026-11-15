@@ -13,6 +13,13 @@ function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   })
 }
 
+async function computeSha256Hex(payload: string): Promise<string> {
+  const data = new TextEncoder().encode(payload)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 // Extrai JSON seguro da resposta do Gemini
 const _extractJson = (str: string): string => {
   if (!str) return "{}"
@@ -89,20 +96,69 @@ Deno.serve(async (req: Request) => {
       userMetadata = user.user_metadata || {}
       resolvedClassId = classId || user.user_metadata?.class_id || null
       resolvedSchoolId = schoolId || user.user_metadata?.school_id || null
+    }
 
-      // Checar Limits (is_trial e limite de 2 redações) via RPC
-      const { data: canSend, error: rpcError } = await supabase.rpc('check_essay_limit', { p_student_id: studentId } as Record<string, unknown>)
-      
+    // 1. Calcular hash SHA-256 do payload (base64 da imagem ou texto)
+    const rawPayload = input.type === 'text'
+      ? (input.content || '').trim()
+      : (input.base64?.includes(',') ? input.base64.split(',')[1] : (input.base64 || '')).trim()
+    const imageHash = await computeSha256Hex(rawPayload)
+
+    // 2. Deduplicação: verificar se a mesma redação já foi enviada para este tema
+    if (!demo_mode && imageHash) {
+      const { data: existingEssay } = await supabase
+        .from('redacoes')
+        .select('id, status')
+        .eq('user_id', studentId)
+        .eq('tema', topicTitle)
+        .eq('image_hash', imageHash)
+        .in('status', ['processando', 'corrigida'])
+        .order('data_envio', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (existingEssay?.id) {
+        console.log(`[correct-essay] Redação duplicada detectada (hash=${imageHash.slice(0, 12)}...). Retornando cache: ${existingEssay.id}`)
+        return jsonResponse({
+          success: true,
+          essayId: existingEssay.id,
+          cached: true,
+        })
+      }
+    }
+
+    // 2.5. Checar limites (cooldown 10min, teto diário 3/dia, pool mensal da escola e trial) via RPC
+    if (!demo_mode) {
+      const { data: quotaResult, error: rpcError } = await supabase.rpc(
+        'check_and_reserve_essay_quota',
+        {
+          p_student_id: studentId,
+          p_school_id: resolvedSchoolId,
+        } as Record<string, unknown>
+      )
+
       if (rpcError) {
-        console.error('[correct-essay] Erro ao checar limite:', rpcError)
+        console.error('[correct-essay] Erro ao checar cota de envio:', rpcError)
         return jsonResponse({ error: 'Erro ao validar limites de envio.' }, 500)
       }
 
-      if (canSend === false) {
-        return jsonResponse({ 
-          error: 'Limite Atingido', 
-          message: 'Você atingiu o limite de 2 redações hoje ou seu período de teste (15 dias) expirou. Assine o plano completo ou volte amanhã.' 
-        }, 403)
+      const quota = (quotaResult || {}) as { allowed?: boolean; reason?: string }
+      if (quota.allowed === false) {
+        const reasonMessages: Record<string, string> = {
+          COOLDOWN: 'Aguarde 10 minutos entre o envio de uma redação e outra para enviar uma nova foto.',
+          DAILY_LIMIT: 'Você atingiu o limite diário de redações enviadas hoje. Volte amanhã para continuar praticando!',
+          SCHOOL_QUOTA_EXCEEDED: 'A franquia mensal de correções da sua escola foi atingida. Comunique a coordenação da sua instituição.',
+          TRIAL_EXPIRED: 'Seu período de teste gratuito expirou. Peça para sua escola ativar o plano completo do Littera.',
+        }
+        const reason = quota.reason || 'DAILY_LIMIT'
+        return jsonResponse(
+          {
+            error: 'Limite Atingido',
+            reason,
+            message: reasonMessages[reason] || 'Limite de envio atingido.',
+          },
+          403
+        )
       }
     }
 
@@ -121,6 +177,7 @@ Deno.serve(async (req: Request) => {
       competencias_json: '[]',
       comentario_geral: '',
       user_metadata: JSON.stringify(userMetadata),
+      image_hash: imageHash,
     }
 
     const { data: insertedEssay, error: insertError } = await supabase

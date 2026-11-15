@@ -11,6 +11,61 @@ interface EssayEditorProps {
   startTime: number;
 }
 
+export const compressEssayImage = (
+  file: File,
+  maxDimension = 1280,
+  quality = 0.82
+): Promise<{ dataUrl: string; sizeKB: number }> => {
+  return new Promise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+
+      if (width > maxDimension || height > maxDimension) {
+        if (width >= height) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        } else {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        reject(new Error('Falha ao inicializar contexto de imagem (Canvas).'));
+        return;
+      }
+
+      // Fundo branco para evitar transparências pretas ao converter PNG/HEIC para JPEG
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      const base64Part = dataUrl.split(',')[1] || '';
+      const sizeBytes = Math.ceil((base64Part.length * 3) / 4);
+      const sizeKB = Math.max(1, Math.round(sizeBytes / 1024));
+
+      resolve({ dataUrl, sizeKB });
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Não foi possível processar a imagem selecionada.'));
+    };
+
+    img.src = objectUrl;
+  });
+};
+
 const EssayEditor: React.FC<EssayEditorProps> = ({ 
   topicTitle, 
   onCancel, 
@@ -21,6 +76,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
 }) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [compressedSizeKB, setCompressedSizeKB] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState("00:00");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,33 +143,35 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
     return () => clearInterval(interval);
   }, [isSubmitting]);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("O arquivo é muito grande. Máximo 5MB.");
+      if (file.size > 15 * 1024 * 1024) {
+        alert("O arquivo é muito grande. Máximo 15MB.");
         return;
       }
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const { dataUrl, sizeKB } = await compressEssayImage(file, 1280, 0.82);
+        setImageFile(file);
+        setImagePreview(dataUrl);
+        setCompressedSizeKB(sizeKB);
+      } catch (err) {
+        console.error('[EssayEditor] Erro ao comprimir imagem:', err);
+        alert("Não foi possível processar a foto. Tente outra imagem.");
+      }
     }
   };
 
   const handleSubmit = () => {
     if (!imageFile || !imagePreview) return;
     localStorage.removeItem(`draft_${topicTitle}`);
+    const base64Data = imagePreview.split(',')[1];
+    const mimeType = 'image/jpeg';
+
     // Route through handwritten handler for OCR + annotated correction
     if (onHandwrittenSubmit) {
-      const base64Data = imagePreview.split(',')[1];
-      const mimeType = imageFile.type;
       onHandwrittenSubmit(base64Data, mimeType);
     } else {
-      const base64Data = imagePreview.split(',')[1];
-      const mimeType = imageFile.type;
       onSubmit({ type: 'image', base64: base64Data, mimeType });
     }
   };
@@ -174,7 +232,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">Foto carregada com sucesso!</p>
                 <p className="text-xs text-emerald-600 dark:text-emerald-400/80 truncate">
-                  {imageFile?.name || 'imagem.jpg'} • {imageFile ? `${(imageFile.size / 1024).toFixed(0)} KB` : ''}
+                  {imageFile?.name || 'imagem.jpg'} • {compressedSizeKB ? `${compressedSizeKB} KB • Otimizada para leitura IA` : (imageFile ? `${(imageFile.size / 1024).toFixed(0)} KB` : '')}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -186,7 +244,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
                   Trocar
                 </button>
                 <button
-                  onClick={() => { setImageFile(null); setImagePreview(null); }}
+                  onClick={() => { setImageFile(null); setImagePreview(null); setCompressedSizeKB(null); }}
                   className="px-3 py-1.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-800/40 rounded-lg transition-colors flex items-center gap-1"
                 >
                   <span className="material-icons-outlined text-sm">delete</span>
