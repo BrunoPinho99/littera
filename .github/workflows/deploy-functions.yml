@@ -25,22 +25,22 @@ jobs:
           version: latest
 
       - name: Deploy process-subscription
-        run: supabase functions deploy process-subscription --project-ref $PROJECT_ID
+        run: supabase functions deploy process-subscription --project-ref $PROJECT_ID --yes
         
       - name: Deploy pay-subscription
-        run: supabase functions deploy pay-subscription --project-ref $PROJECT_ID
+        run: supabase functions deploy pay-subscription --project-ref $PROJECT_ID --yes
         
       - name: Deploy complete-onboarding
-        run: supabase functions deploy complete-onboarding --project-ref $PROJECT_ID
+        run: supabase functions deploy complete-onboarding --project-ref $PROJECT_ID --yes
         
       - name: Deploy create-checkout
-        run: supabase functions deploy create-checkout --project-ref $PROJECT_ID
+        run: supabase functions deploy create-checkout --project-ref $PROJECT_ID --yes
         
       - name: Deploy onboarding
-        run: supabase functions deploy onboarding --project-ref $PROJECT_ID
+        run: supabase functions deploy onboarding --project-ref $PROJECT_ID --yes
         
       - name: Deploy send-invite
-        run: supabase functions deploy send-invite --project-ref $PROJECT_ID
+        run: supabase functions deploy send-invite --project-ref $PROJECT_ID --yes
 
       - name: Deploy webhook-asaas
-        run: supabase functions deploy webhook-asaas --project-ref $PROJECT_ID
+        run: supabase functions deploy webhook-asaas --project-ref $PROJECT_ID --yes
