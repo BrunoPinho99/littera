@@ -1,0 +1,30 @@
+# Littera
+
+> Littera (https://www.littera.app.br) é uma plataforma educacional de inteligência artificial especializada na correção instantânea de redações no padrão oficial do ENEM (Exame Nacional do Ensino Médio), voltada para escolas, colégios e cursinhos pré-vestibular.
+
+## O que é o Littera
+
+O Littera substitui o trabalho braçal e demorado das bancas corretoras tradicionais. A inteligência artificial avalia a redação completa do aluno e atribui notas de 0 a 200 para cada uma das 5 competências oficiais do ENEM, gerando devolutivas linha a linha em segundos, apontando desvios gramaticais, repertório sociocultural, coerência argumentativa e propostas de intervenção.
+
+## Público-Alvo e Casos de Uso
+
+- **Escolas de Ensino Médio e Redes de Ensino**: Ampliação do volume de redações produzidas pelos alunos sem sobrecarregar o corpo docente nem inflacionar o orçamento de bancas terceirizadas.
+- **Cursinhos Pré-Vestibular**: Correção rápida e em escala para turmas extensivas e intensivas focadas em notas 900+ no ENEM.
+- **Professores e Coordenadores Pedagógicos**: Liberação de tempo para mentorias e aulas focadas nos pontos fracos da turma, com relatórios detalhados de desempenho gerados automaticamente pela plataforma.
+
+## Principais Recursos e Diferenciais
+
+- **Matriz ENEM Oficial**: Avaliação rigorosa nas 5 competências (Norma culta, Compreensão da proposta, Argumentação e coerência, Coesão estrutural e Proposta de intervenção).
+- **Correção em Segundos**: O aluno recebe o feedback imediato enquanto a linha de raciocínio da escrita ainda está fresca.
+- **Redução de Custo de até 80%**: Modelo de assinatura institucional previsível, sem surpresas com volume de redações corrigidas por mês.
+- **Revisão e Moderação do Professor**: A equipe docente pode revisar notas, adicionar comentários personalizados e moderar casos antes da entrega final.
+- **Integração com Plataformas de Ensino**: Suporte a Google Classroom, Microsoft Teams e importação ágil de turmas via planilhas.
+- **Privacidade e LGPD**: Criptografia de ponta a ponta, total conformidade com a LGPD e garantia de que os textos dos alunos nunca são utilizados para treino de modelos de terceiros.
+
+## Resumo Técnico e Institucional
+
+- **Website Oficial**: https://www.littera.app.br
+- **Segmento**: EdTech / Inteligência Artificial Educacional B2B
+- **País / Idioma**: Brasil / Português (pt-BR)
+- **Documentação Detalhada para IA**: https://www.littera.app.br/llms-full.txt
+- **Sitemap**: https://www.littera.app.br/sitemap.xml
