@@ -139,7 +139,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
   };
 
   return (
-    <div className="h-screen w-full flex bg-background-light dark:bg-background-dark overflow-hidden font-sans">
+    <div className="min-h-screen lg:h-screen w-full flex bg-background-light dark:bg-background-dark overflow-y-auto lg:overflow-hidden font-sans">
       {/* Lado Esquerdo - Branding Imersivo Premium */}
       <div className="hidden lg:flex lg:w-1/2 relative bg-[#06132B] flex-col justify-between p-12 xl:p-16 overflow-hidden select-none">
         {/* Glows Ambientes Suaves */}

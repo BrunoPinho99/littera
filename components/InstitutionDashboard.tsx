@@ -697,12 +697,12 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         </div>
       )}
 
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-2">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6">
+        <div className="w-full md:w-auto">
+          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-1.5 sm:mb-2">
             {userType === 'teacher' ? 'Área do Docente' : 'Painel de Controle'}
           </span>
-          <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tighter font-display">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tight sm:tracking-tighter font-display break-words">
             {userType === 'school_admin' 
               ? `Seja bem-vindo(a), ${school?.name || "Escola"}` 
               : (school?.name || "Minha Instituição")}
@@ -710,10 +710,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         </div>
 
         {userType === 'teacher' && (
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2.5 sm:gap-4 w-full md:w-auto">
             <button
               onClick={() => setIsAssignmentModalOpen(true)}
-              className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
+              className="flex-1 sm:flex-initial justify-center px-4 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
             >
               <span className="material-icons-outlined text-lg">add_task</span>
               Nova Atividade
@@ -722,22 +722,22 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         )}
 
         {userType === 'school_admin' && (
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
             <button
               onClick={() => setIsClassModalOpen(true)}
-              className="px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:scale-105"
+              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2.5 sm:px-6 sm:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:scale-105 whitespace-nowrap"
             >
               Criar Turma
             </button>
             <button
               onClick={() => setIsProfessorModalOpen(true)}
-              className="px-6 py-3 bg-white dark:bg-surface-dark text-gray-900 dark:text-white shadow-sm border-none rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5"
+              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2.5 sm:px-6 sm:py-3 bg-white dark:bg-surface-dark text-gray-900 dark:text-white shadow-sm border-none rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5 whitespace-nowrap"
             >
               + Professor
             </button>
             <button
               onClick={() => setIsStudentModalOpen(true)}
-              className="px-6 py-3 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105"
+              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 whitespace-nowrap"
             >
               + Aluno
             </button>
@@ -746,22 +746,22 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       </header>
 
       {/* Grid de Métricas */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-6`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 sm:gap-6`}>
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-surface-dark p-8 rounded-[2.5rem] shadow-sm shadow-ambient border-none flex items-center gap-6">
-            <div className={`w-14 h-14 rounded-2xl ${stat.color} flex items-center justify-center text-white shadow-lg`}>
+          <div key={i} className="bg-white dark:bg-surface-dark p-5 sm:p-7 rounded-2xl sm:rounded-[2.5rem] shadow-sm shadow-ambient border-none flex items-center gap-4 sm:gap-6">
+            <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${stat.color} flex items-center justify-center text-white shadow-lg shrink-0`}>
               <span className="material-icons-outlined text-2xl">{stat.icon}</span>
             </div>
-            <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</p>
-              <h3 className="text-3xl font-black text-gray-900 dark:text-white font-display">{stat.value}</h3>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{stat.label}</p>
+              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white font-display">{stat.value}</h3>
             </div>
           </div>
         ))}
       </div>
 
-      <h2 className="text-2xl font-black text-gray-900 dark:text-white mt-8 mb-4 font-display">Painel de Controle</h2>
-      <div className={`grid grid-cols-2 md:grid-cols-3 ${userType === 'teacher' ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4 mb-8`}>
+      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-6 sm:mt-8 mb-3 sm:mb-4 font-display">Painel de Controle</h2>
+      <div className={`grid grid-cols-2 sm:grid-cols-3 ${userType === 'teacher' ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-2.5 sm:gap-4 mb-6 sm:mb-8`}>
         {availableTabs.map(tab => (
           <button
             key={tab.id}
@@ -772,28 +772,28 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 setActiveTab(tab.id as any);
               }
             }}
-            className={`flex flex-col items-center justify-center p-6 rounded-[2rem] border-2 outline-none focus-visible:ring-4 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-300 group ${
+            className={`flex flex-col items-center justify-center p-3.5 sm:p-5 lg:p-6 rounded-2xl sm:rounded-[2rem] border-2 outline-none focus-visible:ring-4 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-300 group ${
               activeTab === tab.id 
-              ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30 scale-105 z-10' 
+              ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30 scale-[1.02] sm:scale-105 z-10' 
               : 'bg-white dark:bg-surface-dark border-transparent dark:border-white/5 text-gray-600 dark:text-gray-400 hover:border-primary/30 hover:text-gray-900 dark:hover:text-white hover:shadow-lg'
             }`}
           >
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:-translate-y-1 ${
+            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center mb-2.5 sm:mb-4 transition-transform duration-300 group-hover:-translate-y-1 ${
               activeTab === tab.id ? 'bg-white/20' : 'bg-gray-50 dark:bg-white/5 text-primary'
             }`}>
-              <span className={`material-icons-outlined text-3xl ${activeTab === tab.id ? 'text-white' : ''}`}>
+              <span className={`material-icons-outlined text-2xl sm:text-3xl ${activeTab === tab.id ? 'text-white' : ''}`}>
                 {tab.icon}
               </span>
             </div>
-            <span className="text-sm sm:text-base font-bold text-center leading-tight">{tab.label}</span>
+            <span className="text-xs sm:text-sm lg:text-base font-bold text-center leading-tight">{tab.label}</span>
           </button>
         ))}
       </div>
 
-      <div className="bg-white dark:bg-surface-dark rounded-[3rem] shadow-premium shadow-ambient border-none overflow-hidden">
+      <div className="bg-white dark:bg-surface-dark rounded-2xl sm:rounded-[2.5rem] lg:rounded-[3rem] shadow-premium shadow-ambient border-none overflow-hidden">
 
 
-        <div className="p-10">
+        <div className="p-4 sm:p-6 md:p-8 lg:p-10">
           {activeTab === 'overview' && (
             <div className="space-y-8 animate-fade-in">
               {/* Guia de Primeiros Passos (Empty State Conectado) */}

@@ -537,7 +537,7 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <main className="pt-16 sm:pt-20 lg:pt-24 px-3 sm:px-6 pb-20 md:pb-12 max-w-[1400px] mx-auto">
+        <main className="pt-16 sm:pt-20 lg:pt-24 px-3.5 sm:px-6 lg:px-8 pb-28 sm:pb-24 md:pb-12 max-w-[1440px] mx-auto">
           {/* Views de Aluno */}
           {!['school_admin', 'teacher'].includes(userType) && (
             <Routes>

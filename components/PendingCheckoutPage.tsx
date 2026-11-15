@@ -184,7 +184,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-red-500/10 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[30vw] h-[30vw] bg-orange-500/10 rounded-full blur-[80px] pointer-events-none" />
 
-        <div className="bg-white dark:bg-surface-dark p-10 rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
+        <div className="bg-white dark:bg-surface-dark p-6 sm:p-10 rounded-3xl sm:rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
           <div className="relative z-10">
             <div className="relative w-24 h-24 mx-auto mb-8 bg-red-50 dark:bg-red-500/10 rounded-full flex items-center justify-center">
               <span className="material-icons-outlined text-red-500 text-5xl">error_outline</span>
@@ -231,7 +231,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] bg-green-500/10 rounded-full blur-[100px] pointer-events-none" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[30vw] h-[30vw] bg-emerald-500/10 rounded-full blur-[80px] pointer-events-none" />
 
-        <div className="bg-white dark:bg-surface-dark p-10 rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
+        <div className="bg-white dark:bg-surface-dark p-6 sm:p-10 rounded-3xl sm:rounded-[2.5rem] shadow-premium max-w-lg w-full text-center border-none shadow-ambient relative z-10 animate-fade-in-up">
           <div className="relative z-10">
             <div className="relative w-24 h-24 mx-auto mb-8 bg-green-50 dark:bg-green-500/10 rounded-full flex items-center justify-center">
               <span className="material-icons-outlined text-green-500 text-5xl">check_circle</span>
