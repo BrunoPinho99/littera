@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
+import { LegalModal } from './LegalModal';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -113,6 +114,8 @@ const checkoutSchema = z.object({
     return !isNaN(num) && num > 0 && num <= 50000;
   }, "Quantidade deve estar entre 1 e 50.000"),
   billingCycle: z.enum(['MONTHLY', 'YEARLY']),
+  // LGPD & Termos
+  acceptTerms: z.boolean().refine(val => val === true, "Você precisa aceitar os Termos de Uso e a Política de Privacidade (LGPD)."),
 }).refine(
   (data) => data.password === data.confirmPassword,
   { message: "As senhas não coincidem", path: ["confirmPassword"] }
@@ -130,6 +133,8 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
   const [isSuccess, setIsSuccess] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [checkoutSession, setCheckoutSession] = useState<any>(null);
+  const [legalModalOpen, setLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'termos' | 'privacidade' | 'lgpd' | 'seguranca'>('termos');
 
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<any>({
     resolver: zodResolver(checkoutSchema),
@@ -140,6 +145,7 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
       schoolName: '', cnpj: '',
       postalCode: '', endereco: '', addressNumber: '', complemento: '', bairro: '', cidade: '', estado: '',
       studentCount: '', billingCycle: 'MONTHLY',
+      acceptTerms: false,
     }
   });
 
@@ -529,6 +535,57 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
                 </div>
               </div>
 
+              {/* ─ Aceite de Termos e LGPD ─ */}
+              <div className="bg-surface-container-low rounded-2xl p-4 sm:p-5 border border-outline-variant/30">
+                <div className="flex items-start gap-3">
+                  <Controller
+                    name="acceptTerms"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        type="checkbox"
+                        id="acceptTerms"
+                        checked={Boolean(field.value)}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded text-primary focus:ring-primary border-gray-300 cursor-pointer"
+                      />
+                    )}
+                  />
+                  <label htmlFor="acceptTerms" className="text-xs text-on-surface-variant leading-relaxed cursor-pointer select-none">
+                    Declaro que li e concordo com os{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setLegalModalTab('termos'); setLegalModalOpen(true); }}
+                      className="text-primary font-bold underline hover:text-primary-dark"
+                    >
+                      Termos de Uso
+                    </button>
+                    , a{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setLegalModalTab('privacidade'); setLegalModalOpen(true); }}
+                      className="text-primary font-bold underline hover:text-primary-dark"
+                    >
+                      Política de Privacidade
+                    </button>{' '}
+                    e a{' '}
+                    <button
+                      type="button"
+                      onClick={() => { setLegalModalTab('lgpd'); setLegalModalOpen(true); }}
+                      className="text-primary font-bold underline hover:text-primary-dark"
+                    >
+                      Adequação à LGPD (Dados de Menores)
+                    </button>
+                    , ciente de que as redações dos alunos nunca são utilizadas para treino de modelos de IA de terceiros.
+                  </label>
+                </div>
+                {(errors as any).acceptTerms?.message && (
+                  <p className="text-rose-600 text-xs font-semibold mt-2 pl-7">
+                    {String((errors as any).acceptTerms.message)}
+                  </p>
+                )}
+              </div>
+
               {/* ─ Submit (mobile only) ─ */}
               <div className="lg:hidden">
                 <button
@@ -701,6 +758,12 @@ const CheckoutWizard: React.FC<{ onBack: () => void; onLogin: () => void }> = ({
           </div>
         </form>
       </main>
+
+      <LegalModal
+        isOpen={legalModalOpen}
+        onClose={() => setLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
     </div>
   );
 };

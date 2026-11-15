@@ -77,9 +77,11 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [compressedSizeKB, setCompressedSizeKB] = useState<number | null>(null);
+  const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState("00:00");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isSubmittingRef = useRef(false);
   const _finishedRef = useRef(false);
 
   // Marca redação em andamento ao montar
@@ -163,8 +165,27 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   };
 
   const handleSubmit = () => {
-    if (!imageFile || !imagePreview) return;
+    if (!imageFile || !imagePreview || isSubmitting || isSubmittingRef.current) return;
+
+    // Trava de intervalo pedagógico (Anti-spam / Anti-script - 10 minutos entre envios)
+    const lastSub = localStorage.getItem('littera_last_essay_submitted_at');
+    if (lastSub) {
+      const elapsed = Date.now() - parseInt(lastSub, 10);
+      const tenMinutes = 10 * 60 * 1000;
+      if (elapsed < tenMinutes) {
+        const remainingSecs = Math.ceil((tenMinutes - elapsed) / 1000);
+        const remMins = Math.floor(remainingSecs / 60);
+        const remSecs = remainingSecs % 60;
+        setCooldownNotice(`Intervalo pedagógico ativo: aguarde ${remMins}m ${remSecs}s antes de enviar nova redação. Aproveite para reler o tema e refletir sobre a estrutura.`);
+        return;
+      }
+    }
+
+    isSubmittingRef.current = true;
+    setCooldownNotice(null);
     localStorage.removeItem(`draft_${topicTitle}`);
+    localStorage.setItem('littera_last_essay_submitted_at', Date.now().toString());
+
     const base64Data = imagePreview.split(',')[1];
     const mimeType = 'image/jpeg';
 
@@ -174,6 +195,10 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
     } else {
       onSubmit({ type: 'image', base64: base64Data, mimeType });
     }
+
+    setTimeout(() => {
+      isSubmittingRef.current = false;
+    }, 2000);
   };
 
   const canSubmit = () => {
@@ -210,6 +235,18 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       </div>
 
       {/* Photo Upload Area */}
+      {cooldownNotice && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800/40 p-3 sm:p-4 flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-900 dark:text-amber-200 animate-fade-in shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="material-icons-outlined text-amber-600 text-lg shrink-0">hourglass_top</span>
+            <span className="font-semibold">{cooldownNotice}</span>
+          </div>
+          <button onClick={() => setCooldownNotice(null)} className="text-amber-600 hover:text-amber-900 shrink-0">
+            <span className="material-icons-outlined text-base">close</span>
+          </button>
+        </div>
+      )}
+
       <div className="flex-grow p-0 relative bg-surface-container-lowest dark:bg-slate-900/30 overflow-y-auto flex flex-col min-h-0">
         <input 
           type="file" 

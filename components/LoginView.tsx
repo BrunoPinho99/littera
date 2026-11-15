@@ -460,6 +460,15 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                     : 'Fazer Login'}
                 </button>
               </p>
+
+              <div className="pt-2 text-center">
+                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal">
+                  Ao continuar, você concorda com os{' '}
+                  <a href="/termos" className="underline hover:text-primary transition-colors">Termos de Uso</a>{' '}
+                  e a{' '}
+                  <a href="/privacidade" className="underline hover:text-primary transition-colors">Política de Privacidade (LGPD)</a>.
+                </p>
+              </div>
             </div>
           </div>
         </div>

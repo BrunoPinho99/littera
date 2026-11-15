@@ -53,6 +53,21 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Sessão inválida.' }, 401)
     }
 
+    // Anti-spam simples por usuário (mínimo 10 segundos entre gerações de tema)
+    const userLastReq = ((globalThis as unknown as { _userLastThemeGen?: Map<string, number> })._userLastThemeGen) || new Map<string, number>();
+    (globalThis as unknown as { _userLastThemeGen?: Map<string, number> })._userLastThemeGen = userLastReq;
+
+    const lastTime = userLastReq.get(user.id);
+    const now = Date.now();
+    if (lastTime && now - lastTime < 10000) {
+      const waitSecs = Math.ceil((10000 - (now - lastTime)) / 1000);
+      return jsonResponse({
+        error: 'Limite de Requisições (Anti-Spam)',
+        message: `Por favor, aguarde ${waitSecs} segundo(s) antes de solicitar a geração de um novo tema com IA.`
+      }, 429);
+    }
+    userLastReq.set(user.id, now);
+
     const body = await req.json()
     const { action, prompt } = body
 

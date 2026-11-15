@@ -527,6 +527,13 @@ const AcceptInviteView: React.FC = () => {
                     </>
                   )}
                 </button>
+
+                <p className="text-center text-[10px] text-gray-400 dark:text-gray-500">
+                  Ao ativar sua conta, você concorda com os{' '}
+                  <a href="/termos" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Termos de Uso</a>{' '}
+                  e as diretrizes de{' '}
+                  <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Privacidade (LGPD)</a>.
+                </p>
               </form>
 
               {/* Footer */}

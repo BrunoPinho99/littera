@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { TillmornButton } from './TillmornButton';
+import { LegalModal } from '../../../components/LegalModal';
 
 const FOOTER_LINKS = [
   { label: 'Como funciona', href: '#como-funciona' },
@@ -18,13 +19,14 @@ const SOCIAL_LINKS = [
   { label: 'LinkedIn', href: 'https://linkedin.com' },
 ];
 
-const LEGAL_LINKS = [
-  { label: 'Privacidade', href: '#inicio' },
-  { label: 'Termos', href: '#inicio' },
-  { label: 'Encarregado de dados (LGPD)', href: '#inicio' },
+const LEGAL_LINKS: { label: string; tab: 'termos' | 'privacidade' | 'lgpd' | 'seguranca' }[] = [
+  { label: 'Privacidade', tab: 'privacidade' },
+  { label: 'Termos', tab: 'termos' },
+  { label: 'Encarregado de dados (LGPD)', tab: 'lgpd' },
 ];
 
 export const CtaAndFooterSection: React.FC = () => {
+  const [legalTab, setLegalTab] = useState<'termos' | 'privacidade' | 'lgpd' | 'seguranca' | null>(null);
   const ctaRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: ctaRef,
@@ -99,19 +101,25 @@ export const CtaAndFooterSection: React.FC = () => {
               ))}
               <span className="text-[#0A0A0B]/20 hidden sm:inline">·</span>
               {LEGAL_LINKS.map((item) => (
-                <a
+                <button
                   key={item.label}
-                  href={item.href}
-                  onClick={(e) => handleSmoothAnchor(e, item.href)}
-                  className="tm-sans text-[13.5px] text-[#6B6F76] hover:text-[#0A0A0B] transition-colors"
+                  type="button"
+                  onClick={() => setLegalTab(item.tab)}
+                  className="tm-sans text-[13.5px] text-[#6B6F76] hover:text-[#0A0A0B] transition-colors cursor-pointer"
                 >
                   {item.label}
-                </a>
+                </button>
               ))}
             </div>
           </div>
         </div>
       </footer>
+
+      <LegalModal
+        isOpen={Boolean(legalTab)}
+        onClose={() => setLegalTab(null)}
+        initialTab={legalTab || 'termos'}
+      />
     </>
   );
 };

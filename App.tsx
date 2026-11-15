@@ -24,6 +24,7 @@ import WarmSchoolsDashboard from './components/WarmSchoolsDashboard';
 import ActivateTrialDashboard from './components/ActivateTrialDashboard';
 import ClassRegistration from './components/ClassRegistration';
 import SchoolRegistration from './components/SchoolRegistration';
+import { TermsPrivacyPage } from './components/TermsPrivacyPage';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay, correctEssayDemo, correctHandwrittenEssayDemo } from './services/geminiService';
@@ -111,6 +112,41 @@ const App: React.FC = () => {
   // Desafios Ativos (Alunos)
   const [activeAssignments, setActiveAssignments] = useState<Assignment[]>([]);
   const [forceShowChallengeId, setForceShowChallengeId] = useState<string | null>(null);
+  const [quotaAlert, setQuotaAlert] = useState<{ title: string; message: string; icon: string; color: string } | null>(null);
+
+  const handleCorrectionError = (err: unknown) => {
+    setIsCorrecting(false);
+    const msg = err instanceof Error ? err.message : String(err || 'Erro desconhecido');
+    if (msg.includes('10 minutos') || msg.includes('COOLDOWN') || msg.includes('Aguarde 10')) {
+      setQuotaAlert({
+        title: 'Intervalo Pedagógico (Cooldown)',
+        message: 'Aguarde 10 minutos entre os envios de redação. O processo de escrita do ENEM exige leitura atenta da devolutiva e planejamento antes da próxima folha.',
+        icon: 'hourglass_top',
+        color: 'amber'
+      });
+    } else if (msg.includes('diário') || msg.includes('DAILY_LIMIT')) {
+      setQuotaAlert({
+        title: 'Limite Diário Atingido',
+        message: 'Você atingiu o limite de redações diárias para o seu perfil. Essa trava de intervalo garante a qualidade do seu aprendizado e evita sobrecarga.',
+        icon: 'event_busy',
+        color: 'indigo'
+      });
+    } else if (msg.includes('franquia') || msg.includes('SCHOOL_QUOTA_EXCEEDED')) {
+      setQuotaAlert({
+        title: 'Franquia da Escola Atingida',
+        message: 'A franquia mensal de correções contratada pela sua instituição foi atingida. Comunique a coordenação pedagógica da sua escola.',
+        icon: 'school',
+        color: 'rose'
+      });
+    } else {
+      setQuotaAlert({
+        title: 'Aviso de Correção',
+        message: msg,
+        icon: 'info',
+        color: 'rose'
+      });
+    }
+  };
 
   useEffect(() => {
     if (userType === 'student') {
@@ -337,16 +373,14 @@ const App: React.FC = () => {
             supabase.removeChannel(channel);
           } else if (updatedRecord.status === 'erro') {
             setIsCorrecting(false);
-            alert('Erro ao corrigir: ' + (updatedRecord.comentario_geral || 'Erro desconhecido.'));
+            handleCorrectionError(updatedRecord.comentario_geral || 'Erro ao processar redação.');
             supabase.removeChannel(channel);
           }
         })
         .subscribe();
         
     } catch (err: unknown) {
-      setIsCorrecting(false);
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      alert('Erro ao corrigir: ' + message);
+      handleCorrectionError(err);
     }
   };
 
@@ -409,16 +443,14 @@ const App: React.FC = () => {
             supabase.removeChannel(channel);
           } else if (updatedRecord.status === 'erro') {
             setIsCorrecting(false);
-            alert('Erro ao corrigir manuscrito: ' + (updatedRecord.comentario_geral || 'Erro desconhecido.'));
+            handleCorrectionError(updatedRecord.comentario_geral || 'Erro ao processar manuscrito.');
             supabase.removeChannel(channel);
           }
         })
         .subscribe();
         
     } catch (err: unknown) {
-      setIsCorrecting(false);
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      alert('Erro ao corrigir manuscrito: ' + message);
+      handleCorrectionError(err);
     }
   };
 
@@ -648,51 +680,80 @@ const App: React.FC = () => {
   };
 
   return (
-    <Routes>
-      <Route path="/" element={
-        session && !isSuspended ? (
-          <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-        ) : (
-          <TillmornMarketingPage />
-        )
-      } />
-      <Route path="/login" element={
-        session ? (
-          <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-        ) : (
-          <LoginView
-            onLoginSuccess={() => navigate(`/app/${getDefaultView(localStorage.getItem('littera_user_type') || userType)}`)}
-            onEnterDemo={handleEnterDemo}
-          />
-        )
-      } />
-      <Route path="/cadastro" element={
-        <CheckoutWizard onBack={() => window.location.href = '/'} onLogin={() => window.location.href = '/login'} />
-      } />
-      <Route path="/cadastro/finalizar" element={
-        session
-          ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-          : <FinalizarCadastroView />
-      } />
-      <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
-      <Route path="/convite" element={<AcceptInviteView />} />
-      <Route path="/matricula/:schoolId" element={
-        session && !isSuspended ? (
-          <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-        ) : (
-          <SchoolRegistration />
-        )
-      } />
-      <Route path="/invite/:inviteCode" element={
-        session && !isSuspended ? (
-          <Navigate to={`/app/${getDefaultView(userType)}`} replace />
-        ) : (
-          <ClassRegistration />
-        )
-      } />
-      <Route path="/app/*" element={renderMainAppLayout()} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={
+          session && !isSuspended ? (
+            <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+          ) : (
+            <TillmornMarketingPage />
+          )
+        } />
+        <Route path="/termos" element={<TermsPrivacyPage defaultTab="termos" />} />
+        <Route path="/privacidade" element={<TermsPrivacyPage defaultTab="privacidade" />} />
+        <Route path="/lgpd" element={<TermsPrivacyPage defaultTab="lgpd" />} />
+        <Route path="/login" element={
+          session ? (
+            <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+          ) : (
+            <LoginView
+              onLoginSuccess={() => navigate(`/app/${getDefaultView(localStorage.getItem('littera_user_type') || userType)}`)}
+              onEnterDemo={handleEnterDemo}
+            />
+          )
+        } />
+        <Route path="/cadastro" element={
+          <CheckoutWizard onBack={() => window.location.href = '/'} onLogin={() => window.location.href = '/login'} />
+        } />
+        <Route path="/cadastro/finalizar" element={
+          session
+            ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+            : <FinalizarCadastroView />
+        } />
+        <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
+        <Route path="/convite" element={<AcceptInviteView />} />
+        <Route path="/matricula/:schoolId" element={
+          session && !isSuspended ? (
+            <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+          ) : (
+            <SchoolRegistration />
+          )
+        } />
+        <Route path="/invite/:inviteCode" element={
+          session && !isSuspended ? (
+            <Navigate to={`/app/${getDefaultView(userType)}`} replace />
+          ) : (
+            <ClassRegistration />
+          )
+        } />
+        <Route path="/app/*" element={renderMainAppLayout()} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {/* Modal de Alerta de Limite / Intervalo Anti-Spam */}
+      {quotaAlert && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-surface-dark max-w-md w-full rounded-3xl p-6 sm:p-8 shadow-2xl border border-gray-100 dark:border-white/10 text-center animate-scale-up">
+            <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center ${
+              quotaAlert.color === 'amber' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+              quotaAlert.color === 'rose' ? 'bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400' :
+              quotaAlert.color === 'indigo' ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' :
+              'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+            }`}>
+              <span className="material-icons-outlined text-3xl">{quotaAlert.icon}</span>
+            </div>
+            <h3 className="text-xl font-black text-gray-900 dark:text-white font-display mb-2">{quotaAlert.title}</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-6 font-medium">{quotaAlert.message}</p>
+            <button
+              onClick={() => setQuotaAlert(null)}
+              className="w-full py-3.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-all"
+            >
+              Compreendido
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 
 };

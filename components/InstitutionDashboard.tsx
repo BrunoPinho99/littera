@@ -17,6 +17,7 @@ import {
 } from '../services/databaseService';
 import { generateAssignmentTheme } from '../services/geminiService';
 import RankingView from './RankingView';
+import { LegalModal } from './LegalModal';
 
 interface InstitutionDashboardProps {
   initialTab?: 'overview' | 'students' | 'essays' | 'ranking' | 'classes' | 'staff' | 'settings' | 'subscription';
@@ -95,6 +96,8 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [newAssignment, setNewAssignment] = useState({ title: '', baseText: '', class_id: '', due_date: '' });
   const [isSavingAssignment, setIsSavingAssignment] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
+  const [legalModalTab, setLegalModalTab] = useState<'termos' | 'privacidade' | 'lgpd' | 'seguranca'>('termos');
 
   // Sync activeTab with prop when it changes (navigation from sidebar/navbar)
   useEffect(() => {
@@ -1387,6 +1390,79 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   </button>
                 </div>
               </div>
+
+              {/* ── PAINEL DE CONTROLE DE FILA, ANTI-SPAM E ORÇAMENTO DE IA ── */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Card 1: Anti-Spam e Fila de Processamento */}
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] p-7 shadow-sm border border-gray-100 dark:border-white/5 space-y-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                      <span className="material-icons-outlined text-xl">speed</span>
+                    </div>
+                    <div>
+                      <h4 className="font-black text-gray-900 dark:text-white text-base">Controle de Fila & Anti-Spam</h4>
+                      <p className="text-xs text-gray-400">Proteção contra abuso e concorrência ativa</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/[0.03]">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">Intervalo entre envios (Cooldown)</span>
+                      <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">10 minutos</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/[0.03]">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">Teto diário por estudante</span>
+                      <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">3 redações/dia</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/[0.03]">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">Deduplicação de imagens</span>
+                      <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">Hash SHA-256</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-white/[0.03]">
+                      <span className="text-gray-600 dark:text-gray-300 font-medium">Fila Assíncrona & Circuit-Breaker</span>
+                      <span className="font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded-md">QStash 3 Retries</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2: Governança de Custos e LGPD */}
+                <div className="bg-white dark:bg-surface-dark rounded-[2rem] p-7 shadow-sm border border-gray-100 dark:border-white/5 flex flex-col justify-between space-y-5">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                        <span className="material-icons-outlined text-xl">shield</span>
+                      </div>
+                      <div>
+                        <h4 className="font-black text-gray-900 dark:text-white text-base">Governança, Orçamento & LGPD</h4>
+                        <p className="text-xs text-gray-400">Proteção de dados e conformidade escolar</p>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                      Sua escola tem previsibilidade absoluta: as correções custam menos de R$ 0,03 via Gemini 2.5 Flash, e o modelo <strong>NUNCA</strong> utiliza redações para treinamento de IA de terceiros.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => { setLegalModalTab('lgpd'); setIsLegalModalOpen(true); }}
+                      className="w-full py-3 px-4 rounded-xl bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-800 dark:text-gray-200 text-xs font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                      <span className="material-icons-outlined text-sm text-emerald-600">verified_user</span>
+                      Ver Acordo de Tratamento de Dados (LGPD)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLegalModalTab('seguranca'); setIsLegalModalOpen(true); }}
+                      className="w-full py-3 px-4 rounded-xl bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-800 dark:text-gray-200 text-xs font-bold transition-all flex items-center justify-center gap-2"
+                    >
+                      <span className="material-icons-outlined text-sm text-primary">lock</span>
+                      Ver Diretrizes de Segurança da IA e Sigilo
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
           {activeTab === 'essays' && (
@@ -1945,6 +2021,12 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           </div>
         )
       }
+
+      <LegalModal
+        isOpen={isLegalModalOpen}
+        onClose={() => setIsLegalModalOpen(false)}
+        initialTab={legalModalTab}
+      />
     </div >
   );
 };
