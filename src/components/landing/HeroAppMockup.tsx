@@ -10,7 +10,6 @@ import {
   OverviewIcon,
   PlusIcon,
   SequencesIcon,
-  TillmornDiamondGlyph,
 } from './TillmornIcons';
 
 interface CountUpValueProps {
@@ -366,11 +365,12 @@ export const HeroAppMockup: React.FC = () => {
             <aside className="hidden md:flex w-full md:w-[212px] shrink-0 bg-[#FAFAFB] border-b md:border-b-0 md:border-r border-[#E9EBEF] p-[18px_14px] md:p-[20px_16px] flex-col justify-between">
               <div>
                 {/* Sidebar Logo */}
-                <div className="flex items-center gap-[8px] px-[10px] mb-[18px]">
-                  <TillmornDiamondGlyph size={19} className="text-[#0A0A0B]" />
-                  <span className="tm-sans text-[16px] leading-[20.8px] font-medium tracking-[0.16px] text-[#0A0A0B]">
-                    Littera
-                  </span>
+                <div className="flex items-center px-[10px] mb-[18px]">
+                  <img
+                    src="/assets/littera-logo.png"
+                    alt="Littera"
+                    className="block h-[21px] w-auto"
+                  />
                 </div>
 
                 {/* Sidebar Navigation */}

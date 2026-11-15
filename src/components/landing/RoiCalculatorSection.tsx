@@ -144,7 +144,7 @@ export const RoiCalculatorSection: React.FC = () => {
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[44px] lg:gap-[56px]">
         <div className="flex flex-col items-center gap-[16px] text-center max-w-[840px]">
           <SectionHeading
-            lines={['Quanto custa corrigir redação', 'na sua escola ou cursinho?']}
+            lines={['Quanto custa corrigir redações', 'na sua escola ou cursinho?']}
             mobileLines={['Quanto custa sua correção?']}
           />
           <p className="tm-sans text-[16.5px] sm:text-[18.5px] leading-[1.45] text-[#6B6F76] max-w-[680px]">
@@ -163,7 +163,7 @@ export const RoiCalculatorSection: React.FC = () => {
           <div className="flex-1 min-w-0 rounded-[28px] bg-[#F4F5F7] p-[28px] sm:p-[44px] flex flex-col gap-[32px] sm:gap-[38px]">
             {/* Controle 1: Alunos */}
             <RoiSlider
-              label="Alunos que escrevem redação"
+              label="Quantidade de alunos"
               value={alunos}
               min={100}
               max={5000}

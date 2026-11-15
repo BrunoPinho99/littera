@@ -15,19 +15,19 @@ interface IntegrationTag {
 }
 
 const SCHOOL_INTEGRATION_TAGS: IntegrationTag[] = [
-  { label: 'Google Classroom', dot: '#0F9D58', tone: 'light' },
-  { label: 'Microsoft Teams', dot: '#6264A7', tone: 'dark' },
-  { label: 'Google Workspace', dot: '#4285F4', tone: 'cobalt' },
-  { label: 'Microsoft 365', dot: '#D83B01', tone: 'light' },
-  { label: 'Moodle', dot: '#F98012', tone: 'light' },
-  { label: 'Canvas', dot: '#E63228', tone: 'light' },
-  { label: 'Totvs Educacional', dot: '#008289', tone: 'light' },
-  { label: 'Sponte', dot: '#1E88E5', tone: 'cobalt' },
-  { label: 'Agenda Edu', dot: '#3D5AFE', tone: 'light' },
-  { label: 'ClassApp', dot: '#00BFA5', tone: 'light' },
-  { label: 'Planilha Excel/CSV', dot: '#107C41', tone: 'dark' },
-  { label: 'Login Google', dot: '#EA4335', tone: 'light' },
-  { label: 'Login Microsoft', dot: '#00A4EF', tone: 'light' },
+  { label: '5 Competências ENEM', dot: '#2F5BFF', tone: 'cobalt' },
+  { label: 'Nota de 0 a 1000', dot: '#107C41', tone: 'dark' },
+  { label: 'Devolutivas em Segundos', dot: '#4285F4', tone: 'cobalt' },
+  { label: 'Análise Linha por Linha', dot: '#3D5AFE', tone: 'light' },
+  { label: 'Apontamento por Trecho', dot: '#F98012', tone: 'light' },
+  { label: 'Sem Custo por Folha', dot: '#0F9D58', tone: 'light' },
+  { label: 'Rigor Pedagógico Oficial', dot: '#1E88E5', tone: 'cobalt' },
+  { label: '100% no Navegador', dot: '#6264A7', tone: 'dark' },
+  { label: 'Alinhado à Matriz INEP', dot: '#D83B01', tone: 'light' },
+  { label: 'Histórico por Aluno', dot: '#008289', tone: 'light' },
+  { label: 'Critérios Claros', dot: '#00A4EF', tone: 'light' },
+  { label: 'Feedback Construtivo', dot: '#107C41', tone: 'dark' },
+  { label: 'Sem Burocracia Técnica', dot: '#EA4335', tone: 'light' },
 ];
 
 function seededNoise(seed: number): number {
@@ -260,19 +260,19 @@ export const IntegrationsBentoSection: React.FC = () => {
             >
               <div className="relative z-20 flex flex-col gap-[6px] pointer-events-none">
                 <h3 className="tm-display text-[26px] sm:text-[28px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
-                  Funciona com o que você já usa
+                  Simplicidade total. Sem burocracia técnica.
                 </h3>
                 <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
-                  13+ integrações para escolas e cursinhos. Turmas importadas. Zero retrabalho.
+                  Acesso 100% pelo navegador para alunos e professores. Sem instalações complexas.
                 </p>
               </div>
 
               <PhysicsSchoolPills />
             </motion.div>
 
-            {/* Top-Right Photo Card: No ar em 48 horas */}
+            {/* Top-Right Photo Card: No ar em 24 horas */}
             <motion.div
-              data-framer-name="Card · No ar em 48 horas"
+              data-framer-name="Card · No ar em 24 horas"
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
@@ -280,27 +280,27 @@ export const IntegrationsBentoSection: React.FC = () => {
               className="w-full lg:w-[384px] h-[480px] lg:h-[520px] rounded-[28px] p-[24px] sm:p-[28px] relative overflow-hidden flex flex-col justify-between shrink-0 bg-[#1B1D21]"
             >
               <img
-                src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1600&q=85"
-                alt="Ambiente educacional de implantação rápida"
+                src="/assets/landing/diretora-littera.jpg"
+                alt="Diretora escolar satisfeita acompanhando o Littera no MacBook"
                 decoding="async"
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                className="absolute inset-0 w-full h-full object-cover object-[center_20%] pointer-events-none"
               />
               <div
                 aria-hidden="true"
-                className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/35 pointer-events-none"
+                className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/50 pointer-events-none"
               />
 
               <div className="relative z-10 flex flex-col gap-[4px]">
                 <span className="tm-sans text-[15px] font-normal text-white/85">No ar em</span>
                 <div className="tm-display text-[40px] sm:text-[44px] font-medium leading-[1.04] tracking-[-0.03em] text-white">
-                  48 horas
+                  24 horas
                 </div>
               </div>
 
-              {/* Frosted 3-step onboarding checklist */}
-              <div className="relative z-10 rounded-[22px] bg-white/[0.93] backdrop-blur-[10px] p-[18px] sm:p-[20px] shadow-[0_16px_32px_rgba(10,15,31,0.16)] flex flex-col gap-[13px]">
+              {/* Frosted 3-step onboarding checklist - All checked */}
+              <div className="relative z-10 rounded-[22px] bg-white/[0.95] backdrop-blur-[12px] p-[18px] sm:p-[20px] shadow-[0_16px_32px_rgba(10,15,31,0.22)] border border-white/40 flex flex-col gap-[13px]">
                 <div className="flex items-center gap-[12px]">
-                  <span className="w-[22px] h-[22px] rounded-full bg-[#2F5BFF] text-white flex items-center justify-center shrink-0">
+                  <span className="w-[22px] h-[22px] rounded-full bg-[#2F5BFF] text-white flex items-center justify-center shrink-0 shadow-[0_2px_6px_rgba(47,91,255,0.35)]">
                     <CheckTimelineIcon className="w-[12.5px] h-[12.5px]" />
                   </span>
                   <span className="tm-sans text-[14.5px] font-medium text-[#0A0A0B]">
@@ -309,7 +309,7 @@ export const IntegrationsBentoSection: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-[12px]">
-                  <span className="w-[22px] h-[22px] rounded-full bg-[#2F5BFF] text-white flex items-center justify-center shrink-0">
+                  <span className="w-[22px] h-[22px] rounded-full bg-[#2F5BFF] text-white flex items-center justify-center shrink-0 shadow-[0_2px_6px_rgba(47,91,255,0.35)]">
                     <CheckTimelineIcon className="w-[12.5px] h-[12.5px]" />
                   </span>
                   <span className="tm-sans text-[14.5px] font-medium text-[#0A0A0B]">
@@ -318,8 +318,10 @@ export const IntegrationsBentoSection: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-[12px]">
-                  <span className="w-[22px] h-[22px] rounded-full border-[1.75px] border-[#2F5BFF] shrink-0" />
-                  <span className="tm-sans text-[14.5px] text-[#6B6F76]">
+                  <span className="w-[22px] h-[22px] rounded-full bg-[#2F5BFF] text-white flex items-center justify-center shrink-0 shadow-[0_2px_6px_rgba(47,91,255,0.35)]">
+                    <CheckTimelineIcon className="w-[12.5px] h-[12.5px]" />
+                  </span>
+                  <span className="tm-sans text-[14.5px] font-medium text-[#0A0A0B]">
                     Convide os professores
                   </span>
                 </div>
@@ -329,9 +331,9 @@ export const IntegrationsBentoSection: React.FC = () => {
 
           {/* Bottom Row: 3 Equal Bento Cards */}
           <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-[24px]">
-            {/* Cell 1: Segurança institucional */}
+            {/* Cell 1: Engajamento e autonomia do estudante */}
             <motion.div
-              data-framer-name="Segurança institucional"
+              data-framer-name="Engajamento do estudante"
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
@@ -339,21 +341,22 @@ export const IntegrationsBentoSection: React.FC = () => {
               className="rounded-[28px] bg-[#F4F5F7] p-[32px] min-h-[268px] flex flex-col justify-between gap-[20px]"
             >
               <div className="w-[46px] h-[46px] rounded-full bg-white shadow-[0_4px_10px_rgba(10,15,31,0.06)] flex items-center justify-center text-[#2F5BFF]">
-                <ShieldCheckIcon className="w-[21px] h-[21px]" />
+                <svg className="w-[21px] h-[21px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                </svg>
               </div>
 
               <div className="flex flex-col gap-[8px]">
                 <h3 className="tm-display text-[24px] sm:text-[25px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
-                  Segurança institucional
+                  Autonomia que gera nota 900+
                 </h3>
                 <p className="tm-sans text-[14.5px] sm:text-[15px] leading-[1.45] text-[#6B6F76]">
-                  Dados criptografados, acesso por perfil e textos nunca usados para treinar modelos
-                  de terceiros.
+                  O estudante recebe feedback na hora, corrige os próprios desvios e reescreve até dominar a redação nota mil.
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-[8px]">
-                {['LGPD', 'SSO', 'Criptografia'].map((badge) => (
+                {['Reescreve na hora', 'Ciclo rápido', 'Rumo aos 900+'].map((badge) => (
                   <span
                     key={badge}
                     className="rounded-full bg-white px-[12px] py-[5.5px] tm-sans text-[12px] font-medium leading-none text-[#0A0A0B] shadow-[0_2px_4px_rgba(10,15,31,0.04)]"
@@ -403,9 +406,9 @@ export const IntegrationsBentoSection: React.FC = () => {
               </div>
             </motion.div>
 
-            {/* Cell 3: Notas no boletim, sem digitar */}
+            {/* Cell 3: Devolutivas claras e imediatas */}
             <motion.div
-              data-framer-name="Sincronização Boletim"
+              data-framer-name="Devolutivas Imediatas"
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
@@ -413,32 +416,32 @@ export const IntegrationsBentoSection: React.FC = () => {
               className="rounded-[28px] bg-[#F4F5F7] p-[32px] min-h-[268px] flex flex-col justify-between gap-[18px]"
             >
               <h3 className="tm-display text-[24px] sm:text-[25px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
-                Notas no boletim, sem digitar
+                Devolutiva instantânea ao aluno
               </h3>
 
               <div className="flex flex-col gap-[10px]">
                 <div className="rounded-[14px] bg-white px-[14px] py-[12px] shadow-[0_4px_10px_rgba(10,15,31,0.05)] flex items-center justify-between gap-2">
                   <span className="tm-sans text-[13.5px] font-medium text-[#0A0A0B]">
-                    Littera · 3º A
+                    Redação enviada
                   </span>
                   <span className="rounded-full bg-[#2F5BFF]/10 text-[#2F5BFF] px-[10px] py-[4.5px] tm-sans text-[11.5px] font-medium leading-none shrink-0">
-                    Redação corrigida · 880
+                    Análise em segundos
                   </span>
                 </div>
 
                 <div className="flex items-center gap-[6px] pl-[10px] text-[#1F9D55]">
                   <SyncArrowsIcon className="w-[14px] h-[14px]" />
                   <span className="tm-sans text-[12.5px] font-medium leading-none">
-                    Sincronizado há 2 s
+                    Justificativa pedagógica gerada
                   </span>
                 </div>
 
                 <div className="rounded-[14px] bg-white px-[14px] py-[12px] shadow-[0_4px_10px_rgba(10,15,31,0.05)] flex items-center justify-between gap-2">
                   <span className="tm-sans text-[13.5px] font-medium text-[#0A0A0B]">
-                    Classroom · 3º A
+                    Nota oficial ENEM
                   </span>
                   <span className="rounded-full bg-[#35D07F]/15 text-[#178047] px-[10px] py-[4.5px] tm-sans text-[11.5px] font-medium leading-none shrink-0">
-                    Nota lançada
+                    5 competências
                   </span>
                 </div>
               </div>

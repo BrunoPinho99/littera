@@ -9,7 +9,6 @@ const FOOTER_LINKS = [
   { label: 'Calculadora', href: '#calculadora' },
   { label: 'Recursos', href: '#recursos' },
   { label: 'Integrações', href: '#integracoes' },
-  { label: 'Escolas', href: '#escolas' },
   { label: 'Como contratar', href: '#como-contratar' },
   { label: 'Dúvidas', href: '#duvidas' },
 ];
@@ -45,74 +44,6 @@ export const CtaAndFooterSection: React.FC = () => {
 
   return (
     <>
-      {/* Dobra 14: CTA Final — Comece a semana com a pilha zerada */}
-      <section
-        id="cta-final"
-        data-framer-name="CTA Final"
-        className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[20px] px-3 sm:px-[20px]"
-      >
-        <div
-          ref={ctaRef}
-          data-framer-name="CTA Card"
-          className="max-w-[1400px] mx-auto h-[520px] sm:h-[620px] lg:h-[680px] rounded-[36px] relative overflow-hidden flex flex-col items-center justify-center text-center px-6 bg-[#DCE7EE]"
-        >
-          {/* Foto de fundo: sala de aula iluminada com luz suave da manhã */}
-          <motion.img
-            src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&w=2200&q=85"
-            alt="Sala de aula vazia com luz da manhã"
-            aria-hidden="true"
-            decoding="async"
-            style={{ scale: skyScale }}
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none will-change-transform"
-          />
-
-          {/* Scrim translúcido de legibilidade editorial */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-b from-white/75 via-white/85 to-white/95 pointer-events-none"
-          />
-
-          <div className="relative z-10 max-w-[880px] flex flex-col items-center">
-            <h2 className="tm-display text-[44px] sm:text-[68px] lg:text-[96px] font-medium leading-[0.96] tracking-[-0.05em] text-[#0A0A0B]">
-              <motion.span
-                initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-                whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-                className="block"
-              >
-                Comece a semana
-              </motion.span>
-              <motion.span
-                initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
-                whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-                viewport={{ once: true, margin: '-80px' }}
-                transition={{ duration: 0.85, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-                className="block text-[#2F5BFF]"
-              >
-                com a pilha zerada.
-              </motion.span>
-            </h2>
-
-            <motion.div
-              data-framer-name="CTAs"
-              initial={{ opacity: 0, y: 18 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.7, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-              className="mt-[36px] flex flex-wrap items-center justify-center gap-[12px]"
-            >
-              <TillmornButton label="Agendar demonstração" variant="primary" href="#waitlist" />
-              <TillmornButton
-                label="Calcular minha economia"
-                variant="white"
-                href="#calculadora"
-              />
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
       {/* Dobra 15: Footer */}
       <footer
         data-framer-name="Footer"
@@ -126,7 +57,7 @@ export const CtaAndFooterSection: React.FC = () => {
               className="inline-flex items-center justify-center text-[#0A0A0B]"
               aria-label="Littera Início"
             >
-              <img src="/assets/littera-logo.png" alt="Littera" className="block h-7 lg:h-8 w-auto" />
+              <img src="/assets/littera-logo.png" alt="Littera" className="block h-6 lg:h-[26px] w-auto" />
             </a>
 
             <nav

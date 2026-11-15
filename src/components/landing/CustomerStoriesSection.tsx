@@ -28,8 +28,8 @@ const SCHOOL_STORIES: CustomerStory[] = [
   {
     company: 'Cursinho Pré-Vestibular · Intensivo',
     metric: '5×',
-    metricLabel: 'redações por vestibulando',
-    quote: 'Liberamos envios ilimitados na reta final do ENEM com custo 100% previsível.',
+    metricLabel: 'mais prática por vestibulando',
+    quote: 'Aumentamos os envios na reta final do ENEM com custo 100% previsível.',
     person: 'Renato Guimarães',
     role: 'Diretor de Ensino & Vestibulares',
     photo: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=85',

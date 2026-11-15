@@ -9,6 +9,22 @@ interface ExploreViewProps {
 const categories = ["Todos", "Sociedade", "Meio Ambiente", "Tecnologia", "Educação", "Saúde", "Cultura", "Política", "Economia"];
 const ITEMS_PER_PAGE = 9;
 
+const PROJECT_COVERS = [
+  '/assets/covers/cover-1.jpg',
+  '/assets/covers/cover-2.jpg',
+  '/assets/covers/cover-3.jpg',
+  '/assets/covers/cover-4.jpg',
+  '/assets/covers/cover-5.jpg',
+];
+
+const getProjectCover = (id: string, index: number) => {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+  }
+  return PROJECT_COVERS[(hash + index) % PROJECT_COVERS.length];
+};
+
 const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
@@ -18,16 +34,6 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory]);
-
-  // Lógica gamificada
-  const getDifficultyXP = (difficulty: string) => {
-    switch (difficulty) {
-      case 'Fácil': return 500;
-      case 'Médio': return 1000;
-      case 'Difícil': return 1500;
-      default: return 500;
-    }
-  };
 
   // Desafio da Semana (simulando um tema em destaque)
   const featuredTopic = exploreTopics.find(t => t.difficulty === 'Difícil') || exploreTopics[0];
@@ -49,17 +55,6 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case "Sociedade": return "text-purple-600 bg-purple-50 border-purple-100 dark:bg-purple-900/20 dark:border-purple-800/30";
-      case "Meio Ambiente": return "text-emerald-600 bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800/30";
-      case "Tecnologia": return "text-blue-600 bg-blue-50 border-blue-100 dark:bg-blue-900/20 dark:border-blue-800/30";
-      case "Educação": return "text-amber-600 bg-amber-50 border-amber-100 dark:bg-amber-900/20 dark:border-amber-800/30";
-      case "Saúde": return "text-rose-600 bg-rose-50 border-rose-100 dark:bg-rose-900/20 dark:border-rose-800/30";
-      default: return "text-gray-600 bg-gray-50 border-gray-100 dark:bg-slate-800 dark:border-slate-700";
-    }
-  };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
@@ -115,79 +110,77 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
 
       {/* Desafio da Semana (Hero Banner) */}
       {selectedCategory === 'Todos' && !searchTerm && currentPage === 1 && (
-        <div className="mb-12 relative overflow-hidden group rounded-[2rem] bg-gradient-to-br from-slate-900 via-black to-slate-900 border-2 border-primary/20 shadow-2xl shadow-primary/20 cursor-pointer"
-             onClick={() => onSelectTopic(featuredTopic.title)}>
-          {/* Fundo Decorativo */}
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/30 rounded-full blur-[80px] group-hover:bg-primary/50 transition-colors duration-700"></div>
-          <div className="absolute top-0 right-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay"></div>
-          
-          <div className="relative z-10 p-6 sm:p-10 flex flex-col md:flex-row gap-8 items-center md:items-start text-white">
-            <div className="flex-1 space-y-4">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 text-primary border border-primary/30 text-xs font-black uppercase tracking-widest">
-                  <span className="material-icons-outlined text-sm">local_fire_department</span>
-                  Desafio da Semana
-                </span>
-                <span className="px-3 py-1.5 rounded-lg bg-white/10 text-white border border-white/20 text-xs font-black uppercase tracking-widest">
-                  +{getDifficultyXP(featuredTopic.difficulty)} XP
-                </span>
-              </div>
-              
-              <h2 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 group-hover:to-white transition-colors">
-                {featuredTopic.title}
-              </h2>
-              
-              <div className="flex items-center gap-4 pt-4">
-                <button className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-on-primary rounded-xl font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/30 transform group-hover:scale-105 transition-all">
-                  <span className="material-icons-outlined">sports_esports</span>
-                  Aceitar Missão
-                </button>
-                <div className="text-sm font-bold text-gray-400 flex items-center gap-2">
-                  <span className="material-icons-outlined text-gray-500">group</span>
-                  2.450 alunos na arena
-                </div>
-              </div>
-            </div>
+        <div
+          className="mb-10 relative overflow-hidden group rounded-[28px] cursor-pointer min-h-[260px] sm:min-h-[300px] p-6 sm:p-10 flex flex-col justify-between shadow-ambient border border-white/10 transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl"
+          onClick={() => onSelectTopic(featuredTopic.title)}
+        >
+          {/* Background Cover Image */}
+          <img
+            src={getProjectCover(featuredTopic.id, 0)}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none"
+          />
+
+          {/* Scrim Overlay */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/25 pointer-events-none"
+          />
+
+          {/* Top: Logo Pequena */}
+          <div className="relative z-10 flex items-center">
+            <img
+              src="/assets/littera-logo.png"
+              alt="Littera"
+              className="h-4 sm:h-5 w-auto brightness-0 invert opacity-80 group-hover:opacity-100 transition-opacity"
+            />
+          </div>
+
+          {/* Bottom: Apenas o Título */}
+          <div className="relative z-10 max-w-3xl">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight text-white group-hover:text-blue-100 transition-colors drop-shadow-md">
+              {featuredTopic.title}
+            </h2>
           </div>
         </div>
       )}
 
-      {/* Grid de Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-8 mb-12">
+      {/* Grid de Cards (Capas de Projetos) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-7 mb-12">
         {currentTopics.map((topic, index) => (
           <div 
             key={topic.id}
             onClick={() => onSelectTopic(topic.title)}
-            className="group relative bg-surface-container-lowest rounded-card p-5 sm:p-8 border border-gray-100 dark:border-slate-800 cursor-pointer flex flex-col h-full transition-all duration-300 hover:-translate-y-2 hover:shadow-ambient overflow-hidden"
+            className="group relative rounded-[26px] overflow-hidden cursor-pointer h-[360px] sm:h-[400px] p-6 sm:p-7 flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl shadow-ambient border border-white/10"
             style={{ animationDelay: `${index * 50}ms` }}
           >
-            {/* Decorative Gradient Blob on Hover */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 rounded-full blur-[50px] opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+            {/* Background Cover Image */}
+            <img
+              src={getProjectCover(topic.id, index)}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none"
+            />
 
-            <div className="mb-6 flex justify-between items-start relative z-10">
-              <span className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest border ${getCategoryColor(topic.category)}`}>
-                {topic.category}
-              </span>
-              <div className="flex items-center gap-1.5 px-2 py-1 bg-surface-container-low rounded-md">
-                <div className={`w-2 h-2 rounded-full ${topic.difficulty === 'Fácil' ? 'bg-green-500' : topic.difficulty === 'Médio' ? 'bg-amber-500' : 'bg-rose-500'}`}></div>
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase">{topic.difficulty}</span>
-              </div>
+            {/* Scrim Overlay for Contrast */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/20 group-hover:from-black/90 transition-colors pointer-events-none"
+            />
+
+            {/* Top: Logo Pequena */}
+            <div className="relative z-10 flex items-center justify-between">
+              <img
+                src="/assets/littera-logo.png"
+                alt="Littera"
+                className="h-3.5 sm:h-4 w-auto brightness-0 invert opacity-75 group-hover:opacity-100 transition-opacity"
+              />
             </div>
-            
-            <h3 className="text-base sm:text-xl font-bold text-on-surface mb-3 sm:mb-4 leading-tight group-hover:text-primary transition-colors relative z-10 line-clamp-3">
-              {topic.title}
-            </h3>
-            
-            <div className="mt-auto pt-6 border-t border-gray-50 dark:border-slate-800/50 flex items-center justify-between relative z-10">
-               <div className="flex items-center gap-2">
-                 <span className="flex items-center gap-1 px-2.5 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-black tracking-widest uppercase">
-                   <span className="material-icons-outlined text-sm">stars</span>
-                   +{getDifficultyXP(topic.difficulty)} XP
-                 </span>
-               </div>
-               <div className="w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center text-on-surface-variant group-hover:bg-primary group-hover:text-white transition-all duration-300 shadow-sm transform group-hover:rotate-12">
-                 <span className="material-icons-outlined text-lg">arrow_forward</span>
-               </div>
+
+            {/* Bottom: Apenas o Título */}
+            <div className="relative z-10">
+              <h3 className="text-base sm:text-lg font-bold text-white leading-snug line-clamp-4 group-hover:text-blue-100 transition-colors drop-shadow-md">
+                {topic.title}
+              </h3>
             </div>
           </div>
         ))}

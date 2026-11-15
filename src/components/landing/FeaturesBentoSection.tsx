@@ -204,8 +204,8 @@ export const FeaturesBentoSection: React.FC = () => {
     >
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[52px] lg:gap-[64px]">
         <SectionHeading
-          lines={['Critério de banca.', 'Escala de software.']}
-          mobileLines={['Critério de banca.']}
+          lines={['Avaliação linha por linha.', 'Em segundos.']}
+          mobileLines={['Avaliação linha por linha.']}
         />
 
         <div className="w-full flex flex-col lg:flex-row gap-[24px] lg:h-[640px]">
@@ -261,15 +261,15 @@ export const FeaturesBentoSection: React.FC = () => {
               style={{
                 transform: isHandoffHovered ? 'translateY(-8px)' : 'translateY(0px)',
                 boxShadow: isHandoffHovered
-                  ? '0 28px 40px rgba(10, 10, 11, 0.22)'
-                  : '0 16px 20px rgba(10, 15, 31, 0.12)',
+                  ? '0 28px 48px rgba(10, 10, 11, 0.28)'
+                  : '0 18px 32px rgba(10, 15, 31, 0.16)',
               }}
-              className="relative z-20 w-full rounded-[22px] bg-white/92 backdrop-blur-[12px] py-[22px] px-[24px] flex flex-col gap-[8px] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+              className="relative z-20 w-full rounded-[22px] bg-white border border-black/[0.06] py-[22px] px-[24px] flex flex-col gap-[8px] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] shadow-xl"
             >
-              <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
+              <h3 className="tm-display text-[24px] font-semibold leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                 Sabe quando chamar o professor
               </h3>
-              <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
+              <p className="tm-sans text-[15.5px] leading-[1.45] text-[#4A4F59] font-normal">
                 <span className="hidden sm:inline">
                   Casos sensíveis vão para a fila do professor — com o trecho marcado e o motivo.
                 </span>
@@ -345,15 +345,15 @@ export const FeaturesBentoSection: React.FC = () => {
               transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.16 }}
               className="flex-1 min-h-[300px] lg:h-[308px] rounded-[28px] bg-[#F4F5F7] p-[28px] sm:p-[36px] flex flex-col sm:flex-row items-center justify-between gap-[24px] sm:gap-[32px] overflow-hidden"
             >
-              <div className="w-full sm:w-[211px] shrink-0 flex flex-col gap-[8px]">
+              <div className="w-full sm:w-[220px] shrink-0 flex flex-col gap-[8px]">
                 <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
-                  Vive na rotina da instituição
+                  Simples de usar, junto ao professor
                 </h3>
-                <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
+                <p className="tm-sans text-[15px] leading-[1.42] text-[#6B6F76]">
                   <span className="hidden sm:inline">
-                    Turmas, notas e relatórios conectados ao que sua escola ou cursinho já usa.
+                    Não substitui o educador: potencializa sua rotina com integração imediata às ferramentas que você já usa.
                   </span>
-                  <span className="sm:hidden">Conecta turmas, notas e relatórios.</span>
+                  <span className="sm:hidden">Trabalha junto ao docente com integração rápida e sem esforço.</span>
                 </p>
               </div>
 

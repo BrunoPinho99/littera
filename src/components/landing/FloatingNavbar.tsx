@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { TillmornButton } from './TillmornButton';
 
@@ -13,7 +14,6 @@ const DESKTOP_NAV_LINKS: NavLinkItem[] = [
   { label: 'Como funciona', href: '#como-funciona' },
   { label: 'Calculadora', href: '#calculadora' },
   { label: 'Recursos', href: '#recursos' },
-  { label: 'Escolas', href: '#escolas' },
   { label: 'Dúvidas', href: '#duvidas' },
 ];
 
@@ -23,6 +23,7 @@ const MOBILE_EXTRA_LINKS: NavLinkItem[] = [
 ];
 
 export const FloatingNavbar: React.FC = () => {
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [hidden, setHidden] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -98,7 +99,7 @@ export const FloatingNavbar: React.FC = () => {
           className="inline-flex items-center justify-center text-[#0A0A0B] select-none shrink-0"
           aria-label="Littera Início"
         >
-          <img src="/assets/littera-logo.png" alt="Littera" className="block h-7 lg:h-8 w-auto" />
+          <img src="/assets/littera-logo.png" alt="Littera" className="block h-6 lg:h-[26px] w-auto" />
         </a>
 
         {/* Centered Desktop Navigation */}
@@ -120,7 +121,15 @@ export const FloatingNavbar: React.FC = () => {
 
         {/* Desktop CTAs */}
         <div className="hidden lg:flex items-center gap-[6px] shrink-0">
-          <TillmornButton label="Entrar" variant="ghost" href="/login" />
+          <TillmornButton
+            label="Entrar"
+            variant="ghost"
+            href="/login"
+            onClick={(e) => {
+              e.preventDefault();
+              navigate('/login');
+            }}
+          />
           <TillmornButton label="Agendar demonstração" variant="compact" href="#waitlist" />
         </div>
 
@@ -184,7 +193,11 @@ export const FloatingNavbar: React.FC = () => {
                   label="Entrar"
                   variant="secondary"
                   href="/login"
-                  onClick={() => setMobileOpen(false)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setMobileOpen(false);
+                    navigate('/login');
+                  }}
                   className="flex-1"
                 />
                 <TillmornButton

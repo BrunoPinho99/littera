@@ -24,9 +24,9 @@ const WAITLIST_AVATARS = [
 ];
 
 const PERKS = [
-  'Correção ao vivo',
-  'Simulação da sua instituição',
-  'Proposta em até 24 h',
+  'Conversa rápida de 20 min',
+  'Diagnóstico do volume da escola',
+  'Proposta sem compromisso',
 ];
 
 export const WaitlistSection: React.FC = () => {
@@ -41,13 +41,27 @@ export const WaitlistSection: React.FC = () => {
     simulationAttached,
   } = useSimulation();
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [scheduled, setScheduled] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const formatWhatsApp = (value: string) => {
+    const numbers = value.replace(/\D/g, '').slice(0, 11);
+    if (numbers.length <= 2) return numbers;
+    if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+    return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+  };
+
+  const handleWhatsAppChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setWhatsapp(formatWhatsApp(e.target.value));
+    if (scheduled) setScheduled(false);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!name.trim() || !email.trim() || !whatsapp.trim()) return;
     setScheduled(true);
   };
 
@@ -72,24 +86,32 @@ export const WaitlistSection: React.FC = () => {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-        className="max-w-[1200px] mx-auto rounded-[36px] bg-[#F4F5F7] p-[28px] sm:p-[48px] lg:p-[64px] flex flex-col lg:flex-row items-center justify-between gap-[44px] lg:gap-[56px] relative overflow-hidden"
+        className="max-w-[1080px] mx-auto rounded-[36px] bg-[#0A1B3F] text-white p-[36px] sm:p-[60px] lg:p-[72px] flex flex-col items-center text-center gap-[32px] relative overflow-hidden shadow-[0_24px_60px_rgba(10,27,63,0.35)]"
       >
-        {/* Left Column: Form & Social Proof */}
-        <div className="w-full lg:max-w-[540px] flex flex-col items-start gap-[24px]">
-          <h2 className="tm-display text-[38px] sm:text-[54px] lg:text-[64px] font-medium leading-[1.02] tracking-[-0.04em] text-[#0A0A0B]">
-            Traga 3 redações.
-            <span className="block text-[#2F5BFF]">Veja a correção na hora.</span>
+        {/* Glow de fundo orgânico azul elétrico */}
+        <div
+          aria-hidden="true"
+          className="absolute -top-[120px] left-1/2 -translate-x-1/2 w-[600px] h-[360px] bg-[#1455E8]/40 blur-[90px] rounded-full pointer-events-none"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute -bottom-[80px] right-[-40px] w-[350px] h-[250px] bg-[#2F5BFF]/25 blur-[80px] rounded-full pointer-events-none"
+        />
+
+        <div className="relative z-10 w-full max-w-[720px] flex flex-col items-center gap-[20px]">
+          <h2 className="tm-display text-[38px] sm:text-[52px] lg:text-[62px] font-semibold leading-[1.06] tracking-[-0.035em] text-white">
+            Agende uma conversa com nosso time.
+            <span className="block text-[#60A5FA]">Conheça o Littera na prática.</span>
           </h2>
 
-          <p className="tm-sans text-[16px] sm:text-[17.5px] leading-[1.45] text-[#6B6F76] max-w-[500px]">
-            Em 30 minutos, corrigimos ao vivo redações reais dos seus alunos, refazemos a conta da
-            calculadora com os seus números e apresentamos a proposta para sua escola ou cursinho.
+          <p className="tm-sans text-[16.5px] sm:text-[18.5px] leading-[1.5] text-white/80 max-w-[600px]">
+            Em 20 minutos, entendemos o volume da sua instituição, tiramos dúvidas sobre o método de correção e montamos a proposta ideal para a sua escola ou cursinho.
           </p>
 
-          {/* Pill Email Form */}
+          {/* Form Multicampo: Nome, Email, WhatsApp */}
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-[520px] rounded-full bg-white p-[6px] pl-[18px] shadow-[0_8px_22px_rgba(10,15,31,0.06)] flex items-center justify-between gap-[10px]"
+            className="w-full max-w-[580px] rounded-[24px] bg-white p-[16px] sm:p-[20px] shadow-[0_16px_40px_rgba(0,0,0,0.3)] flex flex-col gap-[12px] text-left"
           >
             {/* Hidden fields storing simulation inputs */}
             <input type="hidden" name="sim_alunos" value={alunos} />
@@ -100,8 +122,42 @@ export const WaitlistSection: React.FC = () => {
             <input type="hidden" name="sim_gasto_mes" value={gastoMensal} />
             <input type="hidden" name="sim_gasto_ano" value={gastoAnual} />
 
-            <div className="flex items-center gap-[10px] flex-1 min-w-0">
-              <SequencesIcon className="w-[16px] h-[16px] text-[#6B6F76] shrink-0" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-[12px]">
+              {/* Campo Nome */}
+              <div className="flex flex-col gap-[4px]">
+                <label className="tm-sans text-[12px] font-medium text-[#4B5563]">Seu nome</label>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (scheduled) setScheduled(false);
+                  }}
+                  placeholder="Nome completo"
+                  aria-label="Seu nome"
+                  className="w-full rounded-[12px] bg-[#F4F5F7] px-[14px] py-[11px] border border-transparent focus:border-[#2F5BFF] focus:bg-white focus:outline-none tm-sans text-[14.5px] text-[#0A0A0B] placeholder:text-[#9CA3AF] transition-all"
+                />
+              </div>
+
+              {/* Campo WhatsApp */}
+              <div className="flex flex-col gap-[4px]">
+                <label className="tm-sans text-[12px] font-medium text-[#4B5563]">WhatsApp</label>
+                <input
+                  type="tel"
+                  required
+                  value={whatsapp}
+                  onChange={handleWhatsAppChange}
+                  placeholder="(11) 99999-9999"
+                  aria-label="WhatsApp"
+                  className="w-full rounded-[12px] bg-[#F4F5F7] px-[14px] py-[11px] border border-transparent focus:border-[#2F5BFF] focus:bg-white focus:outline-none tm-sans text-[14.5px] text-[#0A0A0B] placeholder:text-[#9CA3AF] transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Campo Email */}
+            <div className="flex flex-col gap-[4px]">
+              <label className="tm-sans text-[12px] font-medium text-[#4B5563]">Seu melhor e-mail</label>
               <input
                 type="email"
                 required
@@ -110,29 +166,29 @@ export const WaitlistSection: React.FC = () => {
                   setEmail(e.target.value);
                   if (scheduled) setScheduled(false);
                 }}
-                placeholder="E-mail institucional da escola ou cursinho"
-                aria-label="E-mail institucional"
-                className="w-full border-0 bg-transparent p-0 focus:ring-0 focus:outline-none tm-sans text-[14.5px] text-[#0A0A0B] placeholder:text-[#8E929B]"
+                placeholder="exemplo@email.com"
+                aria-label="E-mail"
+                className="w-full rounded-[12px] bg-[#F4F5F7] px-[14px] py-[11px] border border-transparent focus:border-[#2F5BFF] focus:bg-white focus:outline-none tm-sans text-[14.5px] text-[#0A0A0B] placeholder:text-[#9CA3AF] transition-all"
               />
             </div>
 
             <button
               type="submit"
-              className="rounded-full bg-[#0A0A0B] hover:bg-[#2A2B30] text-white px-[22px] py-[13px] tm-sans text-[14.5px] font-medium leading-none inline-flex items-center gap-[8px] shrink-0 transition-colors cursor-pointer"
+              className="mt-[4px] w-full rounded-[14px] bg-[#1455E8] hover:bg-[#0E44C4] text-white py-[14px] tm-sans text-[15px] font-semibold leading-none flex items-center justify-center gap-[8px] transition-colors cursor-pointer shadow-[0_4px_16px_rgba(20,85,232,0.4)]"
             >
-              <span>{scheduled ? 'Reunião solicitada' : 'Agendar reunião'}</span>
+              <span>{scheduled ? 'Conversa solicitada com sucesso!' : 'Agendar conversa'}</span>
               {scheduled ? (
-                <CheckTimelineIcon className="w-[14px] h-[14px] text-[#35D07F]" />
+                <CheckTimelineIcon className="w-[15px] h-[15px] text-white" />
               ) : (
-                <ArrowRightIcon className="w-[14px] h-[14px]" />
+                <ArrowRightIcon className="w-[15px] h-[15px]" />
               )}
             </button>
           </form>
 
           {/* Simulation attached info pill */}
           {simulationAttached && (
-            <div className="inline-flex items-center gap-[8px] px-[12px] py-[6px] rounded-full bg-white text-[#2F5BFF] border border-[#2F5BFF]/20 tm-sans text-[12.5px] font-medium">
-              <span className="w-[6px] h-[6px] rounded-full bg-[#2F5BFF]" />
+            <div className="inline-flex items-center gap-[8px] px-[14px] py-[7px] rounded-full bg-white/10 text-white backdrop-blur-md border border-white/20 tm-sans text-[13px] font-medium">
+              <span className="w-[7px] h-[7px] rounded-full bg-[#60A5FA]" />
               <span>
                 Simulação anexada: {formatIntegerPtBr(alunos)} alunos ·{' '}
                 {formatCurrencyFullPtBr(gastoMensal)}/mês
@@ -141,7 +197,7 @@ export const WaitlistSection: React.FC = () => {
           )}
 
           {/* Avatares + Prova Social */}
-          <div className="pt-[4px] flex items-center gap-[14px]">
+          <div className="pt-[6px] flex items-center justify-center gap-[14px]">
             <div className="flex items-center -space-x-[10px]">
               {WAITLIST_AVATARS.map((src, idx) => (
                 <img
@@ -149,118 +205,30 @@ export const WaitlistSection: React.FC = () => {
                   src={src}
                   alt={`Escola cadastrada ${idx + 1}`}
                   decoding="async"
-                  className="w-[38px] h-[38px] rounded-full object-cover border-2 border-[#F4F5F7]"
+                  className="w-[38px] h-[38px] rounded-full object-cover border-2 border-[#0A1B3F]"
                 />
               ))}
             </div>
-            <div className="flex flex-col">
-              <span className="tm-sans text-[14px] font-medium leading-[1.25] text-[#0A0A0B]">
+            <div className="flex flex-col text-left">
+              <span className="tm-sans text-[14px] font-medium leading-[1.25] text-white">
                 Escolas e cursinhos de todo o Brasil
               </span>
-              <span className="tm-sans text-[13px] leading-[1.25] text-[#6B6F76]">
-                já fizeram a simulação
+              <span className="tm-sans text-[13px] leading-[1.25] text-white/70">
+                já agendaram uma apresentação
               </span>
             </div>
           </div>
 
           {/* 3 Perks */}
-          <div className="pt-[4px] flex flex-wrap items-center gap-x-[20px] gap-y-[10px]">
+          <div className="pt-[10px] flex flex-wrap items-center justify-center gap-x-[24px] gap-y-[10px]">
             {PERKS.map((perk) => (
               <div key={perk} className="inline-flex items-center gap-[8px]">
-                <span className="w-[19px] h-[19px] rounded-full bg-[#2F5BFF]/10 text-[#2F5BFF] flex items-center justify-center shrink-0">
-                  <CheckTimelineIcon className="w-[11px] h-[11px]" />
+                <span className="w-[20px] h-[20px] rounded-full bg-white/15 text-[#93C5FD] flex items-center justify-center shrink-0">
+                  <CheckTimelineIcon className="w-[11.5px] h-[11.5px]" />
                 </span>
-                <span className="tm-sans text-[13.5px] font-medium text-[#0A0A0B]">{perk}</span>
+                <span className="tm-sans text-[13.5px] font-medium text-white/90">{perk}</span>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Right Column: Floating Toast + Stacked Spot Card */}
-        <div className="w-full max-w-[430px] relative pt-[48px] flex flex-col items-center">
-          {/* Floating Toast: Colégio Horizonte acabou de agendar */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-60px' }}
-            transition={{ duration: 0.6, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="self-end mb-[14px] rounded-full bg-white py-[7px] pl-[10px] pr-[14px] shadow-[0_10px_24px_rgba(10,15,31,0.08)] inline-flex items-center gap-[9px] z-20"
-          >
-            <span className="w-[8px] h-[8px] rounded-full bg-[#35D07F] animate-pulse" />
-            <span className="tm-sans text-[12.5px] font-medium text-[#6B6F76]">
-              Colégio Horizonte acabou de agendar
-            </span>
-          </motion.div>
-
-          {/* Stacked Depth Cards + Main Spot Card */}
-          <div className="relative w-full">
-            <div
-              aria-hidden="true"
-              className="absolute -top-[18px] inset-x-[26px] h-[40px] rounded-t-[22px] bg-white/45 pointer-events-none"
-            />
-            <div
-              aria-hidden="true"
-              className="absolute -top-[9px] inset-x-[13px] h-[40px] rounded-t-[22px] bg-white/75 pointer-events-none"
-            />
-
-            <div className="relative z-10 w-full rounded-[26px] bg-white p-[26px] sm:p-[30px] shadow-[0_24px_50px_rgba(10,15,31,0.08)] flex flex-col gap-[20px]">
-              {/* Card Top Row */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="inline-flex items-center gap-[9px]">
-                  <TillmornDiamondGlyph size={20} className="text-[#0A0A0B]" />
-                  <span className="tm-sans text-[14px] font-medium text-[#6B6F76]">
-                    Sua reunião
-                  </span>
-                </div>
-                <span className="rounded-full bg-[#35D07F]/[0.16] text-[#0E8A4A] px-[10px] py-[4.5px] inline-flex items-center gap-[6px] tm-sans text-[12px] font-medium leading-none">
-                  <span className="w-[6px] h-[6px] rounded-full bg-[#35D07F]" />
-                  Confirmada
-                </span>
-              </div>
-
-              {/* Data e hora grande */}
-              <div className="tm-display text-[44px] sm:text-[52px] font-medium leading-[0.95] tracking-[-0.04em] text-[#0A0A0B]">
-                Quinta · 10:30
-              </div>
-
-              {/* Convite prompt */}
-              <p className="tm-sans text-[13.5px] text-[#6B6F76] leading-snug">
-                Chame quem decide com você: mantenedor, direção ou coordenação.
-              </p>
-
-              {/* Referral Link Copy Box */}
-              <div className="rounded-[14px] bg-[#F4F5F7] py-[8px] pl-[14px] pr-[8px] flex items-center justify-between gap-[10px]">
-                <span className="tm-sans text-[13px] font-medium text-[#0A0A0B] truncate">
-                  littera.com.br/reuniao/helena
-                </span>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="rounded-[10px] bg-white hover:bg-[#FAFAFB] text-[#0A0A0B] px-[11px] py-[7px] shadow-[0_2px_6px_rgba(10,15,31,0.06)] inline-flex items-center gap-[6px] tm-sans text-[12px] font-medium leading-none cursor-pointer transition-colors shrink-0"
-                >
-                  <CopyIcon className="w-[13px] h-[13px]" />
-                  <span>{copied ? 'Copiado!' : 'Copiar convite'}</span>
-                </button>
-              </div>
-
-              {/* Batch Progress */}
-              <div className="flex flex-col gap-[8px] pt-[2px]">
-                <div className="flex items-center justify-between tm-sans text-[12.5px]">
-                  <span className="text-[#6B6F76]">Implantações para o próximo mês</span>
-                  <span className="font-medium text-[#0A0A0B] tabular-nums">7 / 10 vagas</span>
-                </div>
-                <div className="w-full h-[7px] rounded-full bg-[#0A0A0B]/[0.08] overflow-hidden">
-                  <motion.div
-                    initial={{ scaleX: 0 }}
-                    whileInView={{ scaleX: 1 }}
-                    viewport={{ once: true, margin: '-40px' }}
-                    transition={{ duration: 1.2, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                    style={{ width: '70%' }}
-                    className="h-full rounded-full bg-[#2F5BFF] origin-left"
-                  />
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </motion.div>

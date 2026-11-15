@@ -146,7 +146,7 @@ export const HowItWorksSection: React.FC = () => {
       className="w-full bg-white pt-[140px] lg:pt-[160px] pb-[40px] px-5 sm:px-[40px]"
     >
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[52px] lg:gap-[64px]">
-        <SectionHeading lines={['Da folha em branco', 'à nota.']} />
+        <SectionHeading lines={['O ciclo completo', 'da redação.']} />
 
         <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-[24px]">
           {/* Card 1: Envia */}
@@ -207,11 +207,11 @@ export const HowItWorksSection: React.FC = () => {
                   Envia
                 </h3>
                 <span className="rounded-full bg-white px-[10px] py-[4px] tm-sans text-[12px] font-medium text-[#6B6F76] shadow-sm">
-                  Envios ilimitados
+                  100% digital
                 </span>
               </div>
               <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
-                O aluno escreve quantas vezes precisar — sem cota e sem fila.
+                O aluno envia seu texto pelo próprio navegador — sem papel e sem complicação.
               </p>
             </div>
           </motion.div>

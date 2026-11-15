@@ -140,30 +140,150 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
 
   return (
     <div className="h-screen w-full flex bg-background-light dark:bg-background-dark overflow-hidden font-sans">
-      {/* Lado Esquerdo - Branding Imersivo */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-primary items-center justify-center p-16 overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
+      {/* Lado Esquerdo - Branding Imersivo Premium */}
+      <div className="hidden lg:flex lg:w-1/2 relative bg-[#06132B] flex-col justify-between p-12 xl:p-16 overflow-hidden select-none">
+        {/* Glows Ambientes Suaves */}
+        <div className="absolute top-[-10%] right-[-10%] w-[520px] h-[520px] bg-[#1455E8]/20 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-[-15%] left-[-15%] w-[480px] h-[480px] bg-[#1455E8]/15 rounded-full blur-[130px] pointer-events-none" />
+        <div className="absolute top-[45%] left-[-10%] w-[320px] h-[320px] bg-[#0A2663]/25 rounded-full blur-[100px] pointer-events-none" />
 
-        <div className="relative z-10 text-white max-w-xl text-left">
-          <a href="/" className="inline-flex items-center mb-16 animate-fade-in" aria-label="Littera Início">
+        {/* Textura sutil de micro-grid linear */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-[0.035] pointer-events-none"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+            backgroundSize: '48px 48px',
+          }}
+        />
+
+        {/* Formas Geométricas Orgânicas e Fluídas (SVG de Alta Fidelidade nas Extremidades) */}
+        <svg
+          className="absolute inset-0 w-full h-full pointer-events-none"
+          viewBox="0 0 800 1000"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid slice"
+        >
+          <defs>
+            {/* Gradiente de preenchimento fluido topo-direito */}
+            <linearGradient id="fluid-top-grad" x1="800" y1="0" x2="450" y2="400" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#1455E8" stopOpacity="0.4" />
+              <stop offset="50%" stopColor="#2563EB" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
+            </linearGradient>
+
+            {/* Gradiente de traçado topo-direito */}
+            <linearGradient id="stroke-top-grad" x1="800" y1="0" x2="400" y2="350" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.45" />
+              <stop offset="60%" stopColor="#1455E8" stopOpacity="0.18" />
+              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
+            </linearGradient>
+
+            {/* Gradiente de preenchimento fluido base-esquerda */}
+            <linearGradient id="fluid-bottom-grad" x1="0" y1="1000" x2="400" y2="650" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#1455E8" stopOpacity="0.32" />
+              <stop offset="65%" stopColor="#1D4ED8" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
+            </linearGradient>
+
+            {/* Gradiente de traçado base-esquerda */}
+            <linearGradient id="stroke-bottom-grad" x1="0" y1="1000" x2="450" y2="600" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.4" />
+              <stop offset="70%" stopColor="#1455E8" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
+            </linearGradient>
+
+            {/* Brilho radial focal */}
+            <radialGradient id="focal-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(700 150) rotate(90) scale(260)">
+              <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.25" />
+              <stop offset="60%" stopColor="#1455E8" stopOpacity="0.08" />
+              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+
+          {/* Curva Orgânica Superior Direita - Camada 1 (Profundidade Suave) */}
+          <path
+            d="M 520 0 C 580 140, 720 180, 800 240 L 800 0 Z"
+            fill="url(#fluid-top-grad)"
+          />
+
+          {/* Curva Orgânica Superior Direita - Camada 2 (Onda Elegante) */}
+          <path
+            d="M 450 0 C 540 180, 680 230, 800 320"
+            stroke="url(#stroke-top-grad)"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 500 0 C 590 150, 710 200, 800 280"
+            stroke="url(#stroke-top-grad)"
+            strokeWidth="1.2"
+            strokeDasharray="4 6"
+            opacity="0.65"
+          />
+
+          {/* Curva Orgânica Base Esquerda - Camada 1 (Profundidade Suave) */}
+          <path
+            d="M 0 780 C 120 760, 260 880, 360 1000 L 0 1000 Z"
+            fill="url(#fluid-bottom-grad)"
+          />
+
+          {/* Curva Orgânica Base Esquerda - Camada 2 (Onda Elegante) */}
+          <path
+            d="M 0 720 C 160 720, 290 840, 420 1000"
+            stroke="url(#stroke-bottom-grad)"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+          />
+          <path
+            d="M 0 770 C 130 780, 240 880, 340 1000"
+            stroke="url(#stroke-bottom-grad)"
+            strokeWidth="1.2"
+            strokeDasharray="4 6"
+            opacity="0.65"
+          />
+
+          {/* Orbe sutil iluminado topo-direito */}
+          <circle cx="700" cy="150" r="240" fill="url(#focal-glow)" />
+        </svg>
+
+        {/* 1. Topo: Logo Littera Preservada */}
+        <div className="relative z-10 animate-fade-in">
+          <a
+            href="/"
+            className="inline-flex items-center transition-opacity hover:opacity-85 focus:outline-none"
+            aria-label="Littera Início"
+          >
             <img
               src="/assets/littera-logo.png"
               alt="Littera"
-              className="block h-7 lg:h-8 w-auto brightness-0 invert"
+              className="block h-7 lg:h-[30px] w-auto brightness-0 invert"
             />
           </a>
+        </div>
 
-          <div className="space-y-8 animate-fade-in-up">
-            <h1 className="text-6xl font-black leading-[1.1] tracking-tight">
-              {isLogin ? 'Potencialize sua escrita com I.A.' : 'Você foi convidado?'}
+        {/* 2, 3, 4. Centro / Mensagem Principal com Alto Contraste */}
+        <div className="relative z-10 my-auto max-w-lg space-y-7 animate-fade-in-up">
+          <div className="space-y-3">
+            <h1 className="text-4xl xl:text-5xl 2xl:text-[3.5rem] font-black tracking-[-0.035em] text-white leading-[1.08] font-sans">
+              <span className="block">Suas ideias merecem ir mais longe.</span>
+              <span className="block mt-2.5 text-transparent bg-clip-text bg-gradient-to-r from-[#2F6BFF] via-[#3B82F6] to-[#60A5FA]">
+                A inteligência para chegar lá.
+              </span>
             </h1>
-            <p className="text-xl opacity-80 leading-relaxed font-medium max-w-md">
-              {isLogin
-                ? 'A plataforma definitiva para quem busca excelência. Correção instantânea, gestão de dados e evolução contínua.'
-                : 'Resgate seu convite institucional para criar sua senha e acessar a plataforma da sua escola.'}
-            </p>
           </div>
+
+          <p className="text-base sm:text-lg text-slate-300/85 leading-relaxed font-normal max-w-md font-sans">
+            Escrita, conhecimento e inteligência artificial trabalhando juntos para desenvolver seu potencial.
+          </p>
+        </div>
+
+        {/* 5. Base: Assinatura Editorial Minimalista */}
+        <div className="relative z-10 flex items-center gap-3 text-xs font-medium text-slate-400/60 font-sans tracking-wide">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#1455E8] shadow-[0_0_8px_#1455E8]" />
+          <span>Plataforma de inteligência e desenvolvimento da escrita</span>
         </div>
       </div>
 

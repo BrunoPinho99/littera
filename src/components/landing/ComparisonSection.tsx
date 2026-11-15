@@ -19,16 +19,18 @@ const MANUAL_TASKS: ManualTask[] = [
   { label: 'Montar relatório para a coordenação', duration: '1 h 30 min', rotateDeg: -0.5, offsetClass: 'sm:ml-[8px]' },
 ];
 
-interface LitteraSlot {
+interface LiveCorrectionFeed {
+  student: string;
+  grade: string;
+  competency: string;
+  status: string;
   time: string;
-  title: string;
-  subtitle: string;
 }
 
-const LITTERA_SLOTS: LitteraSlot[] = [
-  { time: '10:30', title: 'Plantão de redação — 3º A', subtitle: 'Pauta gerada pelo Littera' },
-  { time: '13:00', title: 'Aula: proposta de intervenção — 3º B', subtitle: 'Baseada nos erros da semana' },
-  { time: '16:00', title: 'Mentoria — alunos abaixo de 600', subtitle: 'Lista gerada pelo Littera' },
+const LIVE_CORRECTIONS: LiveCorrectionFeed[] = [
+  { student: 'Isabela Rocha · 3º B', grade: '920', competency: 'ENEM 5 Competências', status: 'Corrigida', time: 'agora' },
+  { student: 'Lucas Mendes · 3º A', grade: '880', competency: 'Devolutiva gerada', status: 'Corrigida', time: 'há 12s' },
+  { student: 'Mariana Duarte · 2º A', grade: '960', competency: 'Trechos justificados', status: 'Corrigida', time: 'há 45s' },
 ];
 
 export const ComparisonSection: React.FC = () => {
@@ -47,7 +49,7 @@ export const ComparisonSection: React.FC = () => {
       className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[40px] px-5 sm:px-[40px]"
     >
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[44px] lg:gap-[56px]">
-        <SectionHeading lines={['Menos pilha de papel.', 'Mais aula.']} />
+        <SectionHeading lines={['Menos pilhas de papel.', 'Mais foco no que importa.']} />
 
         {/* Mobile Toggle Tabs */}
         <div
@@ -169,53 +171,79 @@ export const ComparisonSection: React.FC = () => {
               className="absolute inset-0 w-full h-full object-cover pointer-events-none will-change-transform"
             />
 
+            {/* Subtle Gradient Scrim to ensure complete legibility against ribbon art */}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#EBF1FC]/90 via-[#EBF1FC]/50 to-transparent pointer-events-none z-[1]" />
+
             <div className="relative z-10 flex flex-col items-start">
               <span className="rounded-full bg-[#2F5BFF] text-white px-[14px] py-[7px] tm-sans text-[13px] font-medium leading-none shadow-[0_4px_12px_rgba(47,91,255,0.28)]">
                 Com o Littera
               </span>
 
-              <div className="mt-[24px] tm-display text-[52px] sm:text-[64px] font-medium leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
-                0 h
+              <div className="mt-[20px] rounded-[18px] bg-white/70 backdrop-blur-md px-[16px] py-[10px] -ml-[16px] border border-white/80 shadow-[0_4px_20px_rgba(47,91,255,0.06)] inline-flex flex-col">
+                <div className="tm-display text-[48px] sm:text-[58px] font-semibold leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
+                  Segundos
+                </div>
+                <p className="mt-[8px] tm-sans text-[15px] font-medium leading-[1.35] text-[#2D333F]">
+                  para corrigir cada redação com rigor ENEM.
+                </p>
               </div>
-              <p className="mt-[10px] tm-sans text-[15.5px] leading-[1.4] text-[#0A0A0B]/75">
-                de correção braçal. Só aula.
-              </p>
             </div>
 
             <div className="relative z-10 mt-[28px] flex flex-col items-start gap-[14px] w-full max-w-[440px]">
-              {/* Frosted Agenda Card */}
+              {/* Live Correction Feed Card */}
               <div
-                data-framer-name="Agenda"
-                className="w-full rounded-[22px] bg-white/[0.94] backdrop-blur-[10px] p-[18px] sm:p-[20px] shadow-[0_18px_36px_rgba(10,15,31,0.1)] flex flex-col gap-[10px]"
+                data-framer-name="Correcoes em tempo real"
+                className="w-full rounded-[22px] bg-white/95 backdrop-blur-[12px] p-[18px] sm:p-[20px] shadow-[0_20px_40px_rgba(10,15,31,0.12)] border border-white/60 flex flex-col gap-[10px]"
               >
-                <div className="flex items-center justify-between pb-[4px]">
-                  <span className="tm-sans text-[15px] font-medium text-[#0A0A0B]">Segunda</span>
-                  <span className="tm-sans text-[13px] text-[#6B6F76]">16 mar</span>
+                <div className="flex items-center justify-between pb-[6px] border-b border-black/[0.05]">
+                  <div className="flex items-center gap-[8px]">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2F5BFF] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2F5BFF]"></span>
+                    </span>
+                    <span className="tm-sans text-[13.5px] font-semibold text-[#0A0A0B]">
+                      Correções em tempo real
+                    </span>
+                  </div>
+                  <span className="tm-sans text-[11.5px] font-medium text-[#2F5BFF] bg-[#2F5BFF]/10 px-[8px] py-[3px] rounded-full">
+                    ENEM Oficial
+                  </span>
                 </div>
 
-                {LITTERA_SLOTS.map((slot, idx) => (
+                {LIVE_CORRECTIONS.map((item, idx) => (
                   <motion.div
-                    key={slot.time}
-                    initial={{ opacity: 0, scale: 0.9, y: -12 }}
+                    key={item.student}
+                    initial={{ opacity: 0, scale: 0.95, y: -8 }}
                     whileInView={{ opacity: 1, scale: 1, y: 0 }}
                     viewport={{ once: true, margin: '-60px' }}
                     transition={{
-                      duration: 0.7,
-                      delay: 0.25 + idx * 0.18,
+                      duration: 0.6,
+                      delay: 0.2 + idx * 0.15,
                       ease: [0.34, 1.56, 0.64, 1],
                     }}
-                    className="flex items-center gap-[12px]"
+                    className="rounded-[14px] bg-[#F7F9FD] border border-[#E3E8F5] p-[12px] flex items-center justify-between gap-[12px] shadow-sm hover:shadow-md transition-shadow"
                   >
-                    <span className="w-[42px] shrink-0 tm-sans text-[12.5px] text-[#6B6F76] tabular-nums">
-                      {slot.time}
-                    </span>
-                    <div className="flex-1 rounded-[12px] bg-[#2F5BFF] text-white px-[14px] py-[10px] flex flex-col gap-[2px] shadow-[0_6px_14px_rgba(47,91,255,0.25)] min-w-0">
-                      <span className="tm-sans text-[13.5px] font-medium leading-[1.25] truncate">
-                        {slot.title}
+                    <div className="flex flex-col min-w-0">
+                      <span className="tm-sans text-[13.5px] font-semibold text-[#0A0A0B] truncate">
+                        {item.student}
                       </span>
-                      <span className="tm-sans text-[12px] leading-[1.2] text-white/80 truncate">
-                        {slot.subtitle}
+                      <span className="tm-sans text-[12px] text-[#6B6F76] truncate">
+                        {item.competency} · {item.time}
                       </span>
+                    </div>
+
+                    <div className="flex items-center gap-[8px] shrink-0">
+                      <div className="flex flex-col items-end">
+                        <span className="tm-display text-[15px] font-bold text-[#0A0A0B] leading-none">
+                          {item.grade}
+                        </span>
+                        <span className="tm-sans text-[10px] text-[#16A34A] font-semibold">
+                          pts
+                        </span>
+                      </div>
+                      <div className="w-[24px] h-[24px] rounded-full bg-[#16A34A]/10 text-[#16A34A] flex items-center justify-center font-bold text-[12px]">
+                        ✓
+                      </div>
                     </div>
                   </motion.div>
                 ))}

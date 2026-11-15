@@ -22,7 +22,7 @@ export const HeroSection: React.FC = () => {
       className="relative w-full overflow-x-clip bg-white pt-[144px] sm:pt-[154px]"
     >
       {/* Interactive 3D Cobalt Particle Terrain Canvas (1440x742 exact Framer layer) */}
-      <div className="absolute inset-x-0 top-0 h-[742px] z-0">
+      <div className="absolute inset-x-0 top-0 h-[742px] z-0 pointer-events-none lg:pointer-events-auto">
         <ParticleTerrainCanvas
           color="rgb(54, 174, 255)"
           background="rgba(255, 255, 255, 0.5)"
@@ -81,10 +81,10 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Hero Copy & CTAs */}
-      <div className="relative z-10 max-w-[1080px] mx-auto px-5 text-center flex flex-col items-center">
-        <h1 className="tm-display text-[44px] sm:text-[68px] lg:text-[88px] xl:text-[96px] font-medium leading-[0.98] tracking-[-0.045em] text-[#0A0A0B]">
+      <div className="relative z-10 max-w-[1100px] mx-auto px-5 text-center flex flex-col items-center">
+        <h1 className="tm-display text-[32px] sm:text-[44px] md:text-[54px] lg:text-[64px] xl:text-[72px] font-medium leading-[1.08] tracking-[-0.035em] text-[#0A0A0B] whitespace-normal md:whitespace-nowrap">
           {HERO_TITLE_LINES.map((line, lineIdx) => (
-            <span key={lineIdx} className="block">
+            <span key={lineIdx} className="block whitespace-nowrap">
               {line.map((word, idxInLine) => {
                 const currentWordIdx = wordCounter++;
                 return (
@@ -115,8 +115,8 @@ export const HeroSection: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.42, ease: [0.22, 1, 0.36, 1] }}
           className="mt-[24px] tm-sans text-[17px] sm:text-[19.5px] leading-[1.45] font-normal text-[#6B6F76] max-w-[760px]"
         >
-          O Littera corrige redações no padrão ENEM, nas 5 competências, em segundos — com envios
-          ilimitados e sem custo por folha para escolas e cursinhos pré-vestibular.
+          O Littera corrige redações no padrão ENEM, nas 5 competências, em segundos — com
+          devolutivas completas e sem custo por folha para escolas e cursinhos pré-vestibular.
         </motion.p>
 
         <motion.div
@@ -132,15 +132,6 @@ export const HeroSection: React.FC = () => {
             href="#calculadora"
           />
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-[14px] tm-sans text-[13.5px] text-[#8E929B]"
-        >
-          Reunião de 30 minutos, com a simulação da sua escola ou cursinho.
-        </motion.p>
       </div>
 
       {/* Full DOM-as-Illustration Dashboard Mockup (app.littera.com.br) */}

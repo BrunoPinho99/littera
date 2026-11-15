@@ -15,7 +15,7 @@ const SCHOOL_BADGES: MarqueeBadge[] = [
   { text: '5 competências', fontFamily: TILLMORN_FONT_FAMILIES.display },
   { text: 'Nota de 0 a 1000', fontFamily: TILLMORN_FONT_FAMILIES.sans },
   { text: 'Devolutiva em segundos', fontFamily: TILLMORN_FONT_FAMILIES.sans, isAccent: true },
-  { text: 'Envios ilimitados', fontFamily: TILLMORN_FONT_FAMILIES.display },
+  { text: 'Sem custo por folha', fontFamily: TILLMORN_FONT_FAMILIES.display },
   { text: 'Adequado à LGPD', fontFamily: TILLMORN_FONT_FAMILIES.sans },
 ];
 

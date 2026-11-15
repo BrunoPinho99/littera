@@ -24,7 +24,7 @@ const FAQ_ITEMS: FaqEntry[] = [
   {
     question: 'Quanto custa?',
     answer:
-      'Um valor fixo por aluno, em contrato anual, com correções ilimitadas. Apresentamos a proposta na reunião, já com a simulação da calculadora para a sua escola ou cursinho.',
+      'Um valor fixo por aluno, em contrato anual, com previsibilidade total de custos. Apresentamos a proposta na reunião, já com a simulação da calculadora para a sua escola ou cursinho.',
   },
   {
     question: 'Dá para testar antes de contratar?',

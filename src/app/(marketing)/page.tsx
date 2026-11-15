@@ -44,12 +44,6 @@ export const MarketingPageContent: React.FC = () => {
         {/* Dobra 8: Integrações e segurança (#integracoes - Encaixa na rotina da escola.) */}
         <IntegrationsBentoSection />
 
-        {/* Dobra 9: Depoimento em destaque + 3 métricas */}
-        <EditorialQuoteSection />
-
-        {/* Dobra 10: Resultados por escola (#escolas - Escolas que pararam de contar folhas.) */}
-        <CustomerStoriesSection />
-
         {/* Dobra 11: Como contratar (#como-contratar - Um valor fixo.) */}
         <PricingSection />
 

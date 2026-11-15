@@ -1140,6 +1140,14 @@ export const ParticleTerrainCanvas: React.FC<ParticleTerrainCanvasProps> = ({
     };
 
     let inside = false;
+    const isMobileDevice = () => {
+      if (typeof window === 'undefined') return false;
+      return (
+        window.innerWidth < 1024 ||
+        window.matchMedia('(max-width: 1023px), (hover: none) and (pointer: coarse)').matches
+      );
+    };
+
     const handlePointerLeave = () => {
       inside = false;
       engine.leave();
@@ -1147,6 +1155,10 @@ export const ParticleTerrainCanvas: React.FC<ParticleTerrainCanvasProps> = ({
     };
 
     const handlePointerMove = (e: PointerEvent) => {
+      if (e.pointerType === 'touch' || isMobileDevice()) {
+        if (inside) handlePointerLeave();
+        return;
+      }
       const pt = toLocalCoords(e);
       if (!pt) {
         if (inside) handlePointerLeave();
@@ -1158,7 +1170,7 @@ export const ParticleTerrainCanvas: React.FC<ParticleTerrainCanvasProps> = ({
     };
 
     const handlePointerDown = (e: PointerEvent) => {
-      if (reducedMotion) return;
+      if (reducedMotion || e.pointerType === 'touch' || isMobileDevice()) return;
       const pt = toLocalCoords(e);
       if (!pt) return;
       engine.click(pt.x, pt.y);

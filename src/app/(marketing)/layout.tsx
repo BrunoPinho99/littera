@@ -17,7 +17,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
     if (metaDesc) {
       metaDesc.setAttribute(
         'content',
-        'Correções ilimitadas de redação no padrão ENEM, em segundos. Menos custo com banca corretora, mais evolução para seus alunos.'
+        'Correção de redação no padrão ENEM, em segundos. Menos custo com banca corretora, mais evolução para seus alunos.'
       );
     }
   }, []);

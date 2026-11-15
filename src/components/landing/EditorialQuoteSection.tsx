@@ -127,7 +127,7 @@ export const EditorialQuoteSection: React.FC = () => {
           transition={{ duration: 0.75, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
           className="mt-[64px] lg:mt-[80px] w-full max-w-[980px] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[#0A0A0B]/[0.08]"
         >
-          <ProofCountUpKpi staticDisplay="Ilimitadas" label="redações por aluno" />
+          <ProofCountUpKpi target={5} decimals={0} suffix=" comp." label="matriz ENEM oficial" />
           <ProofCountUpKpi target={14} decimals={0} suffix=" s" label="de devolutiva" />
           <ProofCountUpKpi target={24} decimals={0} suffix="/7" label="sempre disponível" />
         </motion.div>
