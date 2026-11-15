@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
 interface LoginViewProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (session?: any) => Promise<void> | void;
   onEnterDemo: (type: 'student' | 'teacher' | 'school_admin') => void;
 }
 
@@ -42,9 +42,9 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
     try {
       if (isLogin) {
         // --- FLUXO DE LOGIN ---
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        onLoginSuccess();
+        await onLoginSuccess(data?.session);
       } else {
         // --- FLUXO DE CADASTRO / RESGATE ---
 

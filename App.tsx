@@ -48,7 +48,16 @@ const INITIAL_TOPIC: Topic = {
   supportTexts: SAFE_TOPICS[INITIAL_INDEX].supportTexts || []
 };
 
-// Helper: retorna o pathname atual sem barra final
+// Helper: timeout defensivo para chamadas assíncronas
+function withTimeout<T>(promise: PromiseLike<T>, ms = 2500, fallback: T): Promise<T> {
+  let timer: any;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([Promise.resolve(promise), timeoutPromise]).finally(() => {
+    clearTimeout(timer);
+  });
+}
 
 // --- APP COMPONENT ---
 const App: React.FC = () => {
@@ -60,6 +69,14 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isDemoMode, setIsDemoMode] = useState(() => localStorage.getItem('littera_demo_mode') === 'true');
 
+  // Hard safety timeout: garante que a tela "Carregando Littera..." nunca fica travada por mais de 2.5s
+  useEffect(() => {
+    const safetyTimer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 2500);
+    return () => clearTimeout(safetyTimer);
+  }, []);
+
   // Writing flow
   const [topic, setTopic] = useState<Topic>(INITIAL_TOPIC);
   const [writingTopicTitle, setWritingTopicTitle] = useState('');
@@ -69,8 +86,6 @@ const App: React.FC = () => {
   const [isCorrecting, setIsCorrecting] = useState(false);
   const [isLoading, _setIsLoading] = useState(false);
 
-
-
   // Banner de redação em andamento
   const [essayDraft, setEssayDraft] = useState<{ topicTitle: string; startTime: number } | null>(null);
   const [schoolStatus, setSchoolStatus] = useState<string | null>(null);
@@ -78,16 +93,24 @@ const App: React.FC = () => {
 
   // Resolve school_id + subscription_status (fail-closed: qualquer falha => 'inactive')
   const resolveSchoolStatus = async (s: any): Promise<void> => {
+    if (!s?.user) {
+      setSchoolStatus('inactive');
+      return;
+    }
     try {
       let sid: string | null = s.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
       if (!sid) {
-        const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', s.user.id).single();
+        const profilePromise = supabase.from('profiles').select('school_id').eq('id', s.user.id).maybeSingle();
+        const { data: profile } = await withTimeout(profilePromise, 2000, { data: null, error: null } as any);
         sid = profile?.school_id || null;
       }
       setSchoolId(sid);
-      if (!sid) { setSchoolStatus('inactive'); return; }
-      const { data: school, error } = await supabase
-        .from('schools').select('subscription_status').eq('id', sid).single();
+      if (!sid) {
+        setSchoolStatus('inactive');
+        return;
+      }
+      const schoolPromise = supabase.from('schools').select('subscription_status').eq('id', sid).maybeSingle();
+      const { data: school, error } = await withTimeout(schoolPromise, 2000, { data: null, error: null } as any);
       const status = !error && school?.subscription_status ? String(school.subscription_status).toLowerCase() : 'inactive';
       setSchoolStatus(prev => (prev === status ? prev : status));
     } catch {
@@ -164,11 +187,17 @@ const App: React.FC = () => {
   
   // 1. Initialize Session
   useEffect(() => {
+    let isMounted = true;
 
     const init = async () => {
       try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
+        const { data } = await withTimeout(
+          supabase.auth.getSession(),
+          2500,
+          { data: { session: null }, error: null } as any
+        );
+        if (!isMounted) return;
+        if (data?.session) {
           setSession(data.session);
           const metaType = data.session.user.user_metadata?.user_type;
           if (metaType) localStorage.setItem('littera_user_type', metaType);
@@ -176,14 +205,16 @@ const App: React.FC = () => {
           setUserType(resolvedType);
           loadNotifications(data.session.user.id);
 
-          // Paywall: não libera a UI até resolver o status da escola
-          await resolveSchoolStatus(data.session);
+          // Paywall: tenta resolver o status da escola com timeout
+          await withTimeout(resolveSchoolStatus(data.session), 2000, undefined);
         }
       } catch (error) {
         console.error('Init error:', error);
         setSchoolStatus('inactive');
       } finally {
-        setIsInitializing(false);
+        if (isMounted) {
+          setIsInitializing(false);
+        }
       }
     };
     init();
@@ -205,8 +236,10 @@ const App: React.FC = () => {
           }
           loadNotifications(session.user.id);
 
-          if (event === 'SIGNED_IN') setIsInitializing(true);
-          resolveSchoolStatus(session).finally(() => setIsInitializing(false));
+          // Resolve status em background de forma assíncrona sem travar o app em isInitializing
+          resolveSchoolStatus(session).finally(() => {
+            if (isMounted) setIsInitializing(false);
+          });
         }
       } else {
         if (!isDemoMode) {
@@ -214,9 +247,13 @@ const App: React.FC = () => {
           setSession(null);
           setUserType('student');
         }
+        if (isMounted) setIsInitializing(false);
       }
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   // Detecta rascunho de redação em andamento (quando fora da view 'writing')
@@ -461,7 +498,12 @@ const App: React.FC = () => {
 
 
   if (isInitializing) {
-    return <div className="min-h-screen flex items-center justify-center text-gray-400 font-bold">Carregando Littera...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 text-gray-500 font-medium">
+        <div className="w-9 h-9 border-3 border-primary/20 border-t-primary rounded-full animate-spin mb-4" />
+        <span className="text-sm font-semibold tracking-wide text-slate-500 dark:text-slate-400">Carregando Littera...</span>
+      </div>
+    );
   }
 
   // --- TRAVA DE ASSINATURA (PAYWALL B2B) ---
@@ -503,6 +545,10 @@ const App: React.FC = () => {
   };
 
   const renderMainAppLayout = () => {
+    if (!session && !isDemoMode) {
+      return <Navigate to="/login" replace />;
+    }
+
     if (isSuspended) return renderSuspended();
 
     return (
@@ -697,7 +743,20 @@ const App: React.FC = () => {
             <Navigate to={`/app/${getDefaultView(userType)}`} replace />
           ) : (
             <LoginView
-              onLoginSuccess={() => navigate(`/app/${getDefaultView(localStorage.getItem('littera_user_type') || userType)}`)}
+              onLoginSuccess={async (newSession?: any) => {
+                const s = newSession || (await supabase.auth.getSession()).data.session;
+                if (s) {
+                  setSession(s);
+                  const metaType = s.user?.user_metadata?.user_type;
+                  if (metaType) localStorage.setItem('littera_user_type', metaType);
+                  const resolvedType = metaType || localStorage.getItem('littera_user_type') || userType;
+                  setUserType(resolvedType);
+                  await withTimeout(resolveSchoolStatus(s), 2000, undefined);
+                  navigate(`/app/${getDefaultView(resolvedType)}`, { replace: true });
+                } else {
+                  navigate(`/app/${getDefaultView(userType)}`, { replace: true });
+                }
+              }}
               onEnterDemo={handleEnterDemo}
             />
           )

@@ -63,7 +63,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         .from('schools')
         .select('id, name, subscription_status')
         .eq('id', schoolId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Erro ao buscar status da escola:', error);
