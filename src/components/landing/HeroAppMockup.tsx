@@ -320,7 +320,7 @@ export const HeroAppMockup: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
       style={{ perspective: 1200 }}
-      className="w-full min-w-0 max-w-[1280px] mx-auto pt-[56px] md:pt-[68px] px-3 sm:px-6 xl:px-0 relative z-10 overflow-hidden"
+      className="w-full min-w-0 max-w-[1380px] mx-auto pt-[56px] md:pt-[68px] px-3 sm:px-6 xl:px-4 relative z-10 overflow-hidden"
     >
       {/* Frosted Glass Stage Container */}
       <motion.div
@@ -335,12 +335,12 @@ export const HeroAppMockup: React.FC = () => {
                 transformOrigin: '50% 0%',
               }
         }
-        className="relative w-full min-w-0 max-w-full rounded-t-[28px] sm:rounded-t-[36px] bg-white/[0.42] backdrop-blur-[16px] border border-b-0 border-white/80 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_-12px_50px_rgba(10,15,31,0.03)] pt-[28px] sm:pt-[54px] lg:pt-[62px] px-2.5 sm:px-8 lg:px-[70px] overflow-hidden will-change-transform"
+        className="relative w-full min-w-0 max-w-full rounded-t-[28px] sm:rounded-t-[36px] bg-white/[0.42] backdrop-blur-[16px] border border-b-0 border-white/80 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_-12px_50px_rgba(10,15,31,0.03)] pt-[28px] sm:pt-[54px] lg:pt-[62px] px-2.5 sm:px-8 lg:px-[56px] overflow-hidden will-change-transform"
       >
         {/* Inner App Window (app.littera.com.br) */}
         <div
           data-framer-name="App Window"
-          className="w-full min-w-0 max-w-[1140px] mx-auto bg-white rounded-t-[20px] border border-[#E9EBEF] border-b-0 shadow-[0_32px_72px_rgba(10,15,31,0.12)] overflow-hidden text-left"
+          className="w-full min-w-0 max-w-[1240px] mx-auto bg-white rounded-t-[20px] border border-[#E9EBEF] border-b-0 shadow-[0_32px_72px_rgba(10,15,31,0.12)] overflow-hidden text-left"
         >
           {/* Browser Chrome Title Bar */}
           <div className="h-[42px] px-[16px] border-b border-[#E9EBEF] bg-white flex items-center justify-between select-none">
@@ -369,7 +369,7 @@ export const HeroAppMockup: React.FC = () => {
                   <img
                     src="/assets/littera-logo.png"
                     alt="Littera"
-                    className="block h-[21px] w-auto"
+                    className="block h-[24px] w-auto"
                   />
                 </div>
 
@@ -457,10 +457,10 @@ export const HeroAppMockup: React.FC = () => {
               {/* Top Greeting Row */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-[22px]">
                 <div>
-                  <h2 className="tm-display text-[25px] sm:text-[30px] leading-[1.2] font-medium tracking-[-0.03em] text-[#0A0A0B]">
+                  <h2 className="tm-display text-[28px] sm:text-[34px] leading-[1.2] font-medium tracking-[-0.03em] text-[#0A0A0B]">
                     Bom dia, Helena
                   </h2>
-                  <p className="mt-[2px] tm-sans text-[14.5px] sm:text-[15px] leading-[19.5px] text-[#6B6F76]">
+                  <p className="mt-[2px] tm-sans text-[15px] sm:text-[16px] leading-[20px] text-[#6B6F76]">
                     Veja o que o Littera corrigiu desde ontem.
                   </p>
                 </div>

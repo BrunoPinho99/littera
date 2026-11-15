@@ -14,15 +14,15 @@ interface TillmornButtonProps {
 
 const VARIANT_CLASSES: Record<TillmornButtonVariant, string> = {
   primary:
-    'bg-[#0A0A0B] hover:bg-[#2A2B30] text-white px-[22px] py-[14px] text-[15.5px] leading-[1.3] font-medium rounded-full',
+    'bg-[#0A0A0B] hover:bg-[#2A2B30] text-white px-[26px] py-[16px] text-[16.5px] leading-[1.3] font-medium rounded-full',
   secondary:
-    'bg-[#F4F5F7] hover:bg-[#E9EBEF] text-[#0A0A0B] px-[22px] py-[14px] text-[15.5px] leading-[1.3] font-medium rounded-full',
+    'bg-[#F4F5F7] hover:bg-[#E9EBEF] text-[#0A0A0B] px-[26px] py-[16px] text-[16.5px] leading-[1.3] font-medium rounded-full',
   compact:
-    'bg-[#0A0A0B] hover:bg-[#2A2B30] text-white px-[18px] py-[11px] text-[15.5px] leading-[1.3] font-medium rounded-full',
+    'bg-[#0A0A0B] hover:bg-[#2A2B30] text-white px-[21px] py-[12.5px] text-[16px] leading-[1.3] font-medium rounded-full',
   ghost:
-    'bg-transparent hover:bg-[#0A0A0B]/[0.05] text-[#0A0A0B] px-[18px] py-[11px] text-[15px] leading-[1.3] font-medium rounded-full',
+    'bg-transparent hover:bg-[#0A0A0B]/[0.05] text-[#0A0A0B] px-[20px] py-[12px] text-[16px] leading-[1.3] font-medium rounded-full',
   white:
-    'bg-white hover:bg-[#F4F5F7] text-[#0A0A0B] px-[22px] py-[14px] text-[15.5px] leading-[1.3] font-medium rounded-full',
+    'bg-white hover:bg-[#F4F5F7] text-[#0A0A0B] px-[26px] py-[16px] text-[16.5px] leading-[1.3] font-medium rounded-full',
 };
 
 export const TillmornButton: React.FC<TillmornButtonProps> = ({

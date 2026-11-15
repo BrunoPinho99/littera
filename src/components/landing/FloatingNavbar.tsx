@@ -92,27 +92,27 @@ export const FloatingNavbar: React.FC = () => {
           : 'backdrop-blur-[6px] bg-white/40 border-b border-transparent'
       }`}
     >
-      <div className="max-w-[1440px] mx-auto h-[66px] px-5 md:px-[40px] flex items-center justify-between relative">
+      <div className="max-w-[1440px] mx-auto h-[72px] px-5 md:px-[44px] flex items-center justify-between relative">
         {/* Brand Wordmark */}
         <a
           href="/"
           className="inline-flex items-center justify-center text-[#0A0A0B] select-none shrink-0"
           aria-label="Littera Início"
         >
-          <img src="/assets/littera-logo.png" alt="Littera" className="block h-6 lg:h-[26px] w-auto" />
+          <img src="/assets/littera-logo.png" alt="Littera" className="block h-7 lg:h-[34px] w-auto" />
         </a>
 
         {/* Centered Desktop Navigation */}
         <nav
           aria-label="Navegação principal"
-          className="hidden lg:flex items-center gap-[32px] absolute left-1/2 -translate-x-1/2"
+          className="hidden lg:flex items-center gap-[36px] absolute left-1/2 -translate-x-1/2"
         >
           {DESKTOP_NAV_LINKS.map((item) => (
             <a
               key={item.href}
               href={item.href}
               onClick={(e) => handleAnchorClick(e, item.href)}
-              className="tm-sans text-[15px] leading-[19.5px] font-medium text-[#6B6F76] hover:text-[#0A0A0B] transition-colors duration-200 whitespace-nowrap"
+              className="tm-sans text-[16px] leading-[21px] font-medium text-[#6B6F76] hover:text-[#0A0A0B] transition-colors duration-200 whitespace-nowrap"
             >
               {item.label}
             </a>

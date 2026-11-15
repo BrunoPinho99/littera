@@ -57,7 +57,7 @@ export const CtaAndFooterSection: React.FC = () => {
               className="inline-flex items-center justify-center text-[#0A0A0B]"
               aria-label="Littera Início"
             >
-              <img src="/assets/littera-logo.png" alt="Littera" className="block h-6 lg:h-[26px] w-auto" />
+              <img src="/assets/littera-logo.png" alt="Littera" className="block h-7 lg:h-8 w-auto" />
             </a>
 
             <nav

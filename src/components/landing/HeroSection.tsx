@@ -81,8 +81,8 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Hero Copy & CTAs */}
-      <div className="relative z-10 max-w-[1100px] mx-auto px-5 text-center flex flex-col items-center">
-        <h1 className="tm-display text-[32px] sm:text-[44px] md:text-[54px] lg:text-[64px] xl:text-[72px] font-medium leading-[1.08] tracking-[-0.035em] text-[#0A0A0B] whitespace-normal md:whitespace-nowrap">
+      <div className="relative z-10 max-w-[1160px] mx-auto px-5 text-center flex flex-col items-center">
+        <h1 className="tm-display text-[38px] sm:text-[54px] md:text-[64px] lg:text-[74px] xl:text-[82px] font-medium leading-[1.04] tracking-[-0.04em] text-[#0A0A0B] whitespace-normal md:whitespace-nowrap">
           {HERO_TITLE_LINES.map((line, lineIdx) => (
             <span key={lineIdx} className="block whitespace-nowrap">
               {line.map((word, idxInLine) => {
@@ -113,7 +113,7 @@ export const HeroSection: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.42, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-[24px] tm-sans text-[17px] sm:text-[19.5px] leading-[1.45] font-normal text-[#6B6F76] max-w-[760px]"
+          className="mt-[26px] tm-sans text-[18px] sm:text-[21.5px] leading-[1.45] font-normal text-[#6B6F76] max-w-[840px]"
         >
           O Littera corrige redações no padrão ENEM, nas 5 competências, em segundos — com
           devolutivas completas e sem custo por folha para escolas e cursinhos pré-vestibular.
@@ -123,7 +123,7 @@ export const HeroSection: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.54, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-[32px] flex flex-wrap items-center justify-center gap-[10px]"
+          className="mt-[36px] flex flex-wrap items-center justify-center gap-[12px]"
         >
           <TillmornButton label="Agendar demonstração" variant="primary" href="#waitlist" />
           <TillmornButton
