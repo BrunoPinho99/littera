@@ -127,7 +127,7 @@ export const FloatingNavbar: React.FC = () => {
             href="/login"
             onClick={(e) => {
               e.preventDefault();
-              navigate('/login');
+              window.location.assign('/login');
             }}
           />
           <TillmornButton label="Agendar demonstração" variant="compact" href="#waitlist" />
@@ -196,7 +196,7 @@ export const FloatingNavbar: React.FC = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     setMobileOpen(false);
-                    navigate('/login');
+                    window.location.assign('/login');
                   }}
                   className="flex-1"
                 />
