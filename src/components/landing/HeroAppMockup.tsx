@@ -320,7 +320,7 @@ export const HeroAppMockup: React.FC = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
       style={{ perspective: 1200 }}
-      className="w-full min-w-0 max-w-[1380px] mx-auto pt-[56px] md:pt-[68px] px-3 sm:px-6 xl:px-4 relative z-10 overflow-hidden"
+      className="w-full min-w-0 max-w-[1380px] mx-auto pt-[24px] sm:pt-[44px] md:pt-[68px] px-2 sm:px-6 xl:px-4 relative z-10 overflow-hidden"
     >
       {/* Frosted Glass Stage Container */}
       <motion.div
@@ -335,28 +335,28 @@ export const HeroAppMockup: React.FC = () => {
                 transformOrigin: '50% 0%',
               }
         }
-        className="relative w-full min-w-0 max-w-full rounded-t-[28px] sm:rounded-t-[36px] bg-white/[0.42] backdrop-blur-[16px] border border-b-0 border-white/80 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_-12px_50px_rgba(10,15,31,0.03)] pt-[28px] sm:pt-[54px] lg:pt-[62px] px-2.5 sm:px-8 lg:px-[56px] overflow-hidden will-change-transform"
+        className="relative w-full min-w-0 max-w-full rounded-t-[20px] sm:rounded-t-[36px] bg-white/[0.42] backdrop-blur-[16px] border border-b-0 border-white/80 shadow-[0_1px_0_rgba(255,255,255,0.9)_inset,0_-12px_50px_rgba(10,15,31,0.03)] pt-[14px] sm:pt-[54px] lg:pt-[62px] px-2 sm:px-8 lg:px-[56px] overflow-hidden will-change-transform"
       >
         {/* Inner App Window (app.littera.com.br) */}
         <div
           data-framer-name="App Window"
-          className="w-full min-w-0 max-w-[1240px] mx-auto bg-white rounded-t-[20px] border border-[#E9EBEF] border-b-0 shadow-[0_32px_72px_rgba(10,15,31,0.12)] overflow-hidden text-left"
+          className="w-full min-w-0 max-w-[1240px] mx-auto bg-white rounded-t-[18px] sm:rounded-t-[20px] border border-[#E9EBEF] border-b-0 shadow-[0_32px_72px_rgba(10,15,31,0.12)] overflow-hidden text-left"
         >
           {/* Browser Chrome Title Bar */}
-          <div className="h-[42px] px-[16px] border-b border-[#E9EBEF] bg-white flex items-center justify-between select-none">
-            <div className="flex items-center gap-[6px] w-[48px]">
-              <span className="w-[9px] h-[9px] rounded-full bg-[#E9EBEF]" />
-              <span className="w-[9px] h-[9px] rounded-full bg-[#E9EBEF]" />
-              <span className="w-[9px] h-[9px] rounded-full bg-[#E9EBEF]" />
+          <div className="h-[40px] sm:h-[42px] px-[12px] sm:px-[16px] border-b border-[#E9EBEF] bg-white flex items-center justify-between select-none">
+            <div className="flex items-center gap-[5px] sm:gap-[6px] shrink-0">
+              <span className="w-[8px] sm:w-[9px] h-[8px] sm:h-[9px] rounded-full bg-[#E9EBEF]" />
+              <span className="w-[8px] sm:w-[9px] h-[8px] sm:h-[9px] rounded-full bg-[#E9EBEF]" />
+              <span className="w-[8px] sm:w-[9px] h-[8px] sm:h-[9px] rounded-full bg-[#E9EBEF]" />
             </div>
 
-            <div className="w-[210px] sm:w-[252px] h-[23px] rounded-[7px] bg-[#F4F5F7] flex items-center justify-center">
-              <span className="tm-sans text-[12.5px] leading-[15px] text-[#6B6F76]">
+            <div className="flex-1 max-w-[180px] xs:max-w-[210px] sm:max-w-[252px] mx-2 h-[22px] sm:h-[23px] rounded-[7px] bg-[#F4F5F7] flex items-center justify-center px-2">
+              <span className="tm-sans text-[11px] sm:text-[12.5px] leading-[15px] text-[#6B6F76] truncate">
                 app.littera.com.br
               </span>
             </div>
 
-            <div className="w-[48px]" />
+            <div className="w-[34px] sm:w-[48px] shrink-0" />
           </div>
 
           {/* Dashboard Workspace Body */}
@@ -453,61 +453,61 @@ export const HeroAppMockup: React.FC = () => {
             </aside>
 
             {/* Center & Right Main Workspace */}
-            <div className="flex-1 min-w-0 bg-white p-[16px] sm:p-[28px_30px_34px]">
+            <div className="flex-1 min-w-0 bg-white p-[10px] xs:p-[14px] sm:p-[28px_30px_34px]">
               {/* Top Greeting Row */}
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-[22px]">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-[12px] sm:mb-[22px]">
                 <div>
-                  <h2 className="tm-display text-[28px] sm:text-[34px] leading-[1.2] font-medium tracking-[-0.03em] text-[#0A0A0B]">
+                  <h2 className="tm-display text-[19px] xs:text-[23px] sm:text-[34px] leading-[1.2] font-medium tracking-[-0.03em] text-[#0A0A0B]">
                     Bom dia, Helena
                   </h2>
-                  <p className="mt-[2px] tm-sans text-[15px] sm:text-[16px] leading-[20px] text-[#6B6F76]">
+                  <p className="mt-[2px] tm-sans text-[12.5px] xs:text-[14px] sm:text-[16px] leading-[18px] sm:leading-[20px] text-[#6B6F76]">
                     Veja o que o Littera corrigiu desde ontem.
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-end gap-[8px]">
-                  <span className="inline-flex items-center px-[13px] py-[7px] rounded-full border border-[#E9EBEF] bg-white tm-sans text-[13px] leading-[15.6px] font-medium text-[#0A0A0B] tabular-nums">
+                <div className="hidden sm:flex flex-wrap items-center justify-end gap-[6px] sm:gap-[8px]">
+                  <span className="inline-flex items-center px-[10px] sm:px-[13px] py-[5px] sm:py-[7px] rounded-full border border-[#E9EBEF] bg-white tm-sans text-[12px] sm:text-[13px] leading-[15.6px] font-medium text-[#0A0A0B] tabular-nums">
                     Seg, 16 mar
                   </span>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-[6px] px-[14px] py-[7.5px] rounded-full bg-[#0A0A0B] hover:bg-[#2A2B30] transition-colors tm-sans text-[13px] leading-[15.6px] font-medium text-white cursor-pointer"
+                    className="inline-flex items-center gap-[5px] sm:gap-[6px] px-[12px] sm:px-[14px] py-[6px] sm:py-[7.5px] rounded-full bg-[#0A0A0B] hover:bg-[#2A2B30] transition-colors tm-sans text-[12px] sm:text-[13px] leading-[15.6px] font-medium text-white cursor-pointer"
                   >
-                    <PlusIcon className="w-[12px] h-[12px]" />
+                    <PlusIcon className="w-[11px] sm:w-[12px] h-[11px] sm:h-[12px]" />
                     <span>Novo tema</span>
                   </button>
                 </div>
               </div>
 
-              {/* 4 KPI Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-[12px] mb-[14px]">
+              {/* 4 KPI Cards - 2x2 grid on mobile matching Tillmorn */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-[8px] sm:gap-[12px] mb-[10px] sm:mb-[14px]">
                 {KPI_ITEMS.map((kpi) => (
                   <div
                     key={kpi.id}
-                    className="rounded-[16px] border border-[#E9EBEF] bg-white p-[15px] flex flex-col justify-between min-h-[106px]"
+                    className="rounded-[14px] sm:rounded-[16px] border border-[#E9EBEF] bg-white p-[10px_12px] sm:p-[15px] flex flex-col justify-between min-h-[78px] xs:min-h-[86px] sm:min-h-[106px]"
                   >
-                    <span className="tm-sans text-[13px] leading-[16.9px] text-[#6B6F76]">
+                    <span className="tm-sans text-[11.5px] sm:text-[13px] leading-[14px] sm:leading-[16.9px] text-[#6B6F76] truncate">
                       <span className="hidden sm:inline">{kpi.label}</span>
                       <span className="sm:hidden">{kpi.mobileLabel}</span>
                     </span>
 
-                    <div className="mt-[6px] flex items-end justify-between gap-2">
+                    <div className="mt-[4px] sm:mt-[6px] flex items-end justify-between gap-1 sm:gap-2">
                       <div className="flex flex-col items-start">
                         <CountUpValue
                           target={kpi.target}
                           prefix={kpi.prefix}
                           suffix={kpi.suffix}
                           usePtBrGrouping={kpi.usePtBrGrouping}
-                          className="tm-display text-[28px] sm:text-[30px] leading-[34.5px] font-medium tracking-[-0.03em] text-[#0A0A0B]"
+                          className="tm-display text-[19px] xs:text-[22px] sm:text-[30px] leading-[23px] xs:leading-[27px] sm:leading-[34.5px] font-medium tracking-[-0.03em] text-[#0A0A0B]"
                         />
-                        <span className="mt-[6px] inline-flex items-center px-[8px] py-[2px] rounded-full bg-[#35D07F]/[0.16] text-[#178047] tm-sans text-[12px] leading-[15px] font-medium tabular-nums">
+                        <span className="mt-[2px] sm:mt-[6px] inline-flex items-center px-[6px] sm:px-[8px] py-[1.5px] sm:py-[2px] rounded-full bg-[#35D07F]/[0.16] text-[#178047] tm-sans text-[10px] sm:text-[12px] leading-[12px] sm:leading-[15px] font-medium tabular-nums">
                           {kpi.delta}
                         </span>
                       </div>
 
-                      {/* Mini 7-bar Spark Histogram */}
+                      {/* Mini 7-bar Spark Histogram (hidden on mobile, visible on md+) */}
                       <div
-                        className="flex items-end gap-[3.5px] h-[36px] pb-[1px]"
+                        className="hidden md:flex items-end gap-[3.5px] h-[36px] pb-[1px]"
                         aria-hidden="true"
                       >
                         {kpi.bars.map((barHeight, idx) => {
@@ -539,22 +539,22 @@ export const HeroAppMockup: React.FC = () => {
                 ))}
               </div>
 
-              {/* Lower Split: Live Activity + Today / Reescrita */}
+              {/* Lower Split: Live Activity (3 items on mobile) + Today / Reescrita (desktop only) */}
               <div className="grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-[14px]">
                 {/* Live Activity Feed */}
                 <div
                   ref={activityRef}
                   onPointerEnter={() => setPaused(true)}
                   onPointerLeave={() => setPaused(false)}
-                  className="rounded-[16px] border border-[#E9EBEF] bg-white overflow-hidden"
+                  className="rounded-[14px] sm:rounded-[16px] border border-[#E9EBEF] bg-white overflow-hidden relative"
                 >
-                  <div className="h-[46px] px-[18px] flex items-center justify-between">
-                    <span className="tm-sans text-[15px] leading-[19.5px] font-medium text-[#0A0A0B]">
+                  <div className="h-[38px] sm:h-[46px] px-[12px] sm:px-[18px] flex items-center justify-between">
+                    <span className="tm-sans text-[13px] sm:text-[15px] leading-[19.5px] font-medium text-[#0A0A0B]">
                       <span className="hidden sm:inline">Atividade ao vivo</span>
-                      <span className="sm:hidden">Ao vivo</span>
+                      <span className="sm:hidden">Atividade recente</span>
                     </span>
-                    <span className="inline-flex items-center gap-[5px] px-[9px] py-[3px] rounded-full bg-[#35D07F]/[0.16] text-[#178047] tm-sans text-[11.5px] leading-[13.8px] font-medium">
-                      <span className="w-[5px] h-[5px] rounded-full bg-[#35D07F] animate-pulse" />
+                    <span className="inline-flex items-center gap-[4px] sm:gap-[5px] px-[8px] sm:px-[9px] py-[2px] sm:py-[3px] rounded-full bg-[#35D07F]/[0.16] text-[#178047] tm-sans text-[10.5px] sm:text-[11.5px] leading-[13.8px] font-medium">
+                      <span className="w-[4px] sm:w-[5px] h-[4px] sm:h-[5px] rounded-full bg-[#35D07F] animate-pulse" />
                       <span>Ao vivo</span>
                     </span>
                   </div>
@@ -567,31 +567,33 @@ export const HeroAppMockup: React.FC = () => {
                         initial={{ opacity: 0, y: -18 }}
                         animate={{ opacity: ROW_OPACITIES[idx] ?? 0.3, y: 0 }}
                         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                        className="h-[51px] px-[12px] sm:px-[18px] flex items-center justify-between gap-3 bg-white min-w-0"
+                        className={`h-[48px] sm:h-[51px] px-[10px] sm:px-[18px] flex items-center justify-between gap-2 sm:gap-3 bg-white min-w-0 ${
+                          idx >= 3 ? 'hidden sm:flex' : ''
+                        }`}
                       >
-                        <div className="flex items-center gap-[11px] min-w-0 flex-1">
+                        <div className="flex items-center gap-[9px] sm:gap-[11px] min-w-0 flex-1">
                           <span
                             style={{ backgroundColor: lead.avatarBg }}
-                            className="w-[29px] h-[29px] rounded-full flex items-center justify-center shrink-0 tm-sans text-[11.5px] leading-none font-medium text-[#0A0A0B]"
+                            className="w-[26px] sm:w-[29px] h-[26px] sm:h-[29px] rounded-full flex items-center justify-center shrink-0 tm-sans text-[10.5px] sm:text-[11.5px] leading-none font-medium text-[#0A0A0B]"
                           >
                             {lead.initials}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="tm-sans text-[14px] leading-[17.5px] font-medium text-[#0A0A0B] truncate">
+                            <p className="tm-sans text-[13px] sm:text-[14px] leading-[16px] sm:leading-[17.5px] font-medium text-[#0A0A0B] truncate">
                               {lead.title}
                             </p>
-                            <p className="tm-sans text-[13px] leading-[16.5px] text-[#6B6F76] truncate">
+                            <p className="tm-sans text-[11.5px] sm:text-[13px] leading-[14px] sm:leading-[16.5px] text-[#6B6F76] truncate">
                               {lead.detail}
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-[10px] shrink-0">
-                          <span className="tm-sans text-[12px] leading-[15.6px] text-[#6B6F76] tabular-nums">
+                        <div className="flex items-center gap-[6px] sm:gap-[10px] shrink-0">
+                          <span className="hidden xs:inline tm-sans text-[11px] sm:text-[12px] leading-[15.6px] text-[#6B6F76] tabular-nums">
                             {lead.time}
                           </span>
                           <span
-                            className={`inline-flex items-center justify-center px-[9px] py-[2.5px] rounded-full tm-sans text-[12px] leading-[15px] font-medium ${STATUS_STYLES[lead.status]}`}
+                            className={`inline-flex items-center justify-center px-[7px] sm:px-[9px] py-[1.5px] sm:py-[2.5px] rounded-full tm-sans text-[10.5px] sm:text-[12px] leading-[14px] sm:leading-[15px] font-medium ${STATUS_STYLES[lead.status]}`}
                           >
                             {lead.status}
                           </span>
@@ -601,8 +603,8 @@ export const HeroAppMockup: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Right Column: Hoje · 3 plantões + Taxa de reescrita */}
-                <div className="flex flex-col gap-[14px]">
+                {/* Right Column: Hoje · 3 plantões + Taxa de reescrita (hidden on mobile, visible on desktop) */}
+                <div className="hidden lg:flex flex-col gap-[14px]">
                   {/* Hoje · 3 plantões */}
                   <div className="rounded-[16px] border border-[#E9EBEF] bg-white p-[16px]">
                     <div className="flex items-center justify-between mb-[12px]">
@@ -692,7 +694,7 @@ export const HeroAppMockup: React.FC = () => {
         {/* Bottom Editorial Fade Overlay */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-[135px] bg-gradient-to-b from-white/0 via-white/75 to-white z-20"
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-[60px] sm:h-[135px] bg-gradient-to-b from-white/0 via-white/75 to-white z-20"
         />
       </motion.div>
     </motion.div>

@@ -45,7 +45,7 @@ const HiringStep: React.FC<HiringStepProps> = ({
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true, margin: '-80px' }}
     transition={{ type: 'spring', stiffness: 260, damping: 28, delay }}
-    className="relative flex flex-col justify-between overflow-hidden rounded-[28px] p-[32px] sm:p-[36px] bg-[#F4F5F7] text-[#0A0A0B] border border-black/[0.04] transition-all duration-300"
+    className="relative flex flex-col justify-between overflow-hidden rounded-[28px] p-[22px] sm:p-[36px] bg-[#F4F5F7] text-[#0A0A0B] border border-black/[0.04] transition-all duration-300"
   >
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3">
@@ -57,16 +57,16 @@ const HiringStep: React.FC<HiringStepProps> = ({
         </span>
       </div>
 
-      <div className="mt-[26px]">
-        <h3 className="tm-display text-[26px] font-medium leading-[1.2] tracking-[-0.025em] text-[#0A0A0B]">
+      <div className="mt-[20px] sm:mt-[26px]">
+        <h3 className="tm-display text-[22px] sm:text-[26px] font-medium leading-[1.2] tracking-[-0.025em] text-[#0A0A0B]">
           {title}
         </h3>
-        <p className="mt-[10px] tm-sans text-[15px] leading-[1.45] text-[#6B6F76]">
+        <p className="mt-[8px] sm:mt-[10px] tm-sans text-[14.5px] sm:text-[15px] leading-[1.45] text-[#6B6F76]">
           {description}
         </p>
       </div>
 
-      <div className="my-[24px] h-[1px] w-full bg-[#0A0A0B]/[0.06]" />
+      <div className="my-[20px] sm:my-[24px] h-[1px] w-full bg-[#0A0A0B]/[0.06]" />
 
       <ul className="flex flex-col gap-[12px]">
         {items.map((item) => (
@@ -74,7 +74,7 @@ const HiringStep: React.FC<HiringStepProps> = ({
             <span className="mt-[2px] flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-[#2F5BFF]/10 text-[#2F5BFF]">
               <CheckTimelineIcon className="h-[10.5px] w-[10.5px]" />
             </span>
-            <span className="tm-sans text-[14.5px] leading-[1.35] text-[#374151]">
+            <span className="tm-sans text-[14px] sm:text-[14.5px] leading-[1.35] text-[#374151]">
               {item}
             </span>
           </li>
@@ -89,7 +89,7 @@ export const PricingSection: React.FC = () => {
     <section
       id="como-contratar"
       data-framer-name="Como Funciona a Contratação"
-      className="w-full bg-white px-5 pb-[40px] pt-[120px] sm:px-[40px] lg:pt-[150px]"
+      className="w-full bg-white px-4 pb-[40px] pt-[80px] sm:px-[40px] sm:pt-[120px] lg:pt-[150px]"
     >
       <div className="mx-auto flex max-w-[1200px] flex-col items-center gap-[36px] lg:gap-[44px]">
         <div className="flex max-w-[860px] flex-col items-center gap-[16px] text-center">
@@ -131,14 +131,14 @@ export const PricingSection: React.FC = () => {
         </div>
 
         {/* Único CTA centralizado para a jornada completa */}
-        <div className="flex flex-col items-center gap-[12px] pt-[16px]">
+        <div className="flex flex-col items-center gap-[12px] pt-[16px] w-full max-w-[380px] sm:max-w-none">
           <TillmornButton
             label="Agendar conversa de diagnóstico"
             variant="primary"
             href="#waitlist"
-            className="px-[34px] py-[16px] text-[16px]"
+            className="w-full sm:w-auto px-[24px] sm:px-[34px] py-[14px] sm:py-[16px] text-[15px] sm:text-[16px]"
           />
-          <p className="text-center tm-sans text-[14px] text-[#6B6F76]">
+          <p className="text-center tm-sans text-[13.5px] sm:text-[14px] text-[#6B6F76]">
             Da primeira conversa à primeira correção em até 24 horas.
           </p>
         </div>

@@ -143,9 +143,9 @@ export const HowItWorksSection: React.FC = () => {
     <section
       id="como-funciona"
       data-framer-name="Como Funciona"
-      className="w-full bg-white pt-[140px] lg:pt-[160px] pb-[40px] px-5 sm:px-[40px]"
+      className="w-full bg-white pt-[80px] sm:pt-[140px] lg:pt-[160px] pb-[32px] sm:pb-[40px] px-4 sm:px-[40px]"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[52px] lg:gap-[64px]">
+      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] sm:gap-[52px] lg:gap-[64px]">
         <SectionHeading lines={['O ciclo completo', 'da redação.']} />
 
         <div className="w-full grid grid-cols-1 lg:grid-cols-3 gap-[24px]">
@@ -201,16 +201,16 @@ export const HowItWorksSection: React.FC = () => {
               </div>
             </div>
 
-            <div className="px-[28px] pb-[30px] flex flex-col gap-[8px]">
+            <div className="px-[20px] sm:px-[28px] pb-[24px] sm:pb-[30px] flex flex-col gap-[8px]">
               <div className="flex items-center justify-between">
-                <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
+                <h3 className="tm-display text-[22px] sm:text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                   Envia
                 </h3>
                 <span className="rounded-full bg-white px-[10px] py-[4px] tm-sans text-[12px] font-medium text-[#6B6F76] shadow-sm">
                   100% digital
                 </span>
               </div>
-              <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
+              <p className="tm-sans text-[15px] sm:text-[15.5px] leading-[1.42] text-[#6B6F76]">
                 O aluno envia seu texto pelo próprio navegador — sem papel e sem complicação.
               </p>
             </div>
@@ -227,21 +227,21 @@ export const HowItWorksSection: React.FC = () => {
           >
             <div
               data-framer-name="Visual"
-              className="pt-[32px] px-[20px] sm:px-[28px] h-[300px] w-full flex flex-col items-center"
+              className="pt-[32px] px-[16px] sm:px-[28px] h-[300px] w-full flex flex-col items-center"
             >
               <DevolutivaCard />
             </div>
 
-            <div className="px-[28px] pb-[30px] flex flex-col gap-[8px]">
+            <div className="px-[20px] sm:px-[28px] pb-[24px] sm:pb-[30px] flex flex-col gap-[8px]">
               <div className="flex items-center justify-between">
-                <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
+                <h3 className="tm-display text-[22px] sm:text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                   Corrige
                 </h3>
                 <span className="rounded-full bg-[#2F5BFF]/10 px-[10px] py-[4px] tm-sans text-[12px] font-medium text-[#2F5BFF]">
                   Corrigida em 11 s
                 </span>
               </div>
-              <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
+              <p className="tm-sans text-[15px] sm:text-[15.5px] leading-[1.42] text-[#6B6F76]">
                 Avalia as 5 competências do ENEM e explica cada nota.
               </p>
             </div>
@@ -258,11 +258,11 @@ export const HowItWorksSection: React.FC = () => {
           >
             <div
               data-framer-name="Visual"
-              className="pt-[36px] px-[24px] sm:px-[28px] h-[300px] w-full flex flex-col items-center"
+              className="pt-[36px] px-[16px] sm:px-[28px] h-[300px] w-full flex flex-col items-center"
             >
               <div
                 data-framer-name="Linha do dia"
-                className="w-full max-w-[328px] rounded-[20px] bg-white shadow-[0_10px_12px_rgba(10,15,31,0.06)] p-[16px] flex flex-col gap-[8px]"
+                className="w-full max-w-[328px] rounded-[20px] bg-white shadow-[0_10px_12px_rgba(10,15,31,0.06)] p-[14px] sm:p-[16px] flex flex-col gap-[8px]"
               >
                 <div className="flex items-center justify-between w-full pb-[2px]">
                   <span className="tm-sans text-[14px] font-medium text-[#0A0A0B]">
@@ -325,7 +325,7 @@ export const HowItWorksSection: React.FC = () => {
               </div>
             </div>
 
-            <div className="px-[28px] pb-[30px] flex flex-col gap-[8px]">
+            <div className="px-[20px] sm:px-[28px] pb-[24px] sm:pb-[30px] flex flex-col gap-[8px]">
               <div className="flex items-center justify-between">
                 <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                   Evolui

@@ -118,11 +118,11 @@ export const FaqSection: React.FC = () => {
     <section
       id="duvidas"
       data-framer-name="Dúvidas"
-      className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[40px] px-5 sm:px-[40px]"
+      className="w-full bg-white pt-[80px] sm:pt-[120px] lg:pt-[150px] pb-[40px] px-4 sm:px-[40px]"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row items-start justify-between gap-[44px] lg:gap-[48px]">
+      <div className="max-w-[1200px] mx-auto flex flex-col lg:flex-row items-start justify-between gap-[36px] sm:gap-[44px] lg:gap-[48px]">
         {/* Left Column: Heading + Ask Littera Portrait Card */}
-        <div className="w-full lg:w-[464px] shrink-0 flex flex-col items-start gap-[36px]">
+        <div className="w-full lg:w-[464px] shrink-0 flex flex-col items-start gap-[28px] sm:gap-[36px]">
           <SectionHeading lines={['Dúvidas,', 'respondidas.']} className="!text-left" />
 
           <motion.div
@@ -131,7 +131,7 @@ export const FaqSection: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-            className="w-full h-[460px] sm:h-[494px] rounded-[28px] bg-[#F4F5F7] relative overflow-hidden p-[20px] flex flex-col justify-end gap-[12px]"
+            className="w-full h-[400px] sm:h-[494px] rounded-[28px] bg-[#F4F5F7] relative overflow-hidden p-[16px] sm:p-[20px] flex flex-col justify-end gap-[12px]"
           >
             <img
               src="https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=85"
@@ -148,13 +148,13 @@ export const FaqSection: React.FC = () => {
             {/* Floating Greeting Bubble */}
             <div
               data-framer-name="Mensagem"
-              className="relative z-10 rounded-[18px] bg-white px-[16px] py-[13px] shadow-[0_10px_24px_rgba(10,15,31,0.12)] w-max max-w-full flex flex-col gap-[3px]"
+              className="relative z-10 rounded-[18px] bg-white px-[14px] sm:px-[16px] py-[11px] sm:py-[13px] shadow-[0_10px_24px_rgba(10,15,31,0.12)] w-full max-w-full flex flex-col gap-[3px]"
             >
               <div className="inline-flex items-center gap-[7px]">
                 <span className="w-[6.5px] h-[6.5px] rounded-full bg-[#35D07F] shrink-0" />
                 <span className="tm-sans text-[13px] font-medium text-[#0A0A0B]">Littera</span>
               </div>
-              <span className="tm-sans text-[13.5px] text-[#6B6F76]">
+              <span className="tm-sans text-[13px] sm:text-[13.5px] text-[#6B6F76]">
                 Oi! Pergunte como eu corrigiria as redações dos seus alunos.
               </span>
             </div>
@@ -184,17 +184,17 @@ export const FaqSection: React.FC = () => {
                   type="button"
                   aria-expanded={isOpen}
                   onClick={() => setOpenIdx(isOpen ? null : idx)}
-                  className="w-full py-[24px] flex items-center justify-between gap-[20px] text-left cursor-pointer group"
+                  className="w-full py-[18px] sm:py-[24px] flex items-center justify-between gap-[16px] sm:gap-[20px] text-left cursor-pointer group"
                 >
-                  <h3 className="tm-sans text-[17.5px] sm:text-[19px] font-medium leading-[1.35] tracking-[-0.01em] text-[#0A0A0B]">
+                  <h3 className="tm-sans text-[16px] sm:text-[19px] font-medium leading-[1.35] tracking-[-0.01em] text-[#0A0A0B]">
                     {item.question}
                   </h3>
                   <span
-                    className={`w-[36px] h-[36px] rounded-full bg-[#F4F5F7] group-hover:bg-[#E9EBEF] text-[#0A0A0B] flex items-center justify-center shrink-0 transition-all duration-300 ${
+                    className={`w-[32px] sm:w-[36px] h-[32px] sm:h-[36px] rounded-full bg-[#F4F5F7] group-hover:bg-[#E9EBEF] text-[#0A0A0B] flex items-center justify-center shrink-0 transition-all duration-300 ${
                       isOpen ? 'rotate-45' : 'rotate-0'
                     }`}
                   >
-                    <PlusIcon className="w-[14px] h-[14px]" />
+                    <PlusIcon className="w-[13px] sm:w-[14px] h-[13px] sm:h-[14px]" />
                   </span>
                 </button>
 
@@ -208,7 +208,7 @@ export const FaqSection: React.FC = () => {
                       transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
                       className="overflow-hidden"
                     >
-                      <p className="pb-[24px] pr-[36px] tm-sans text-[15.5px] leading-[1.55] text-[#6B6F76]">
+                      <p className="pb-[20px] sm:pb-[24px] pr-0 sm:pr-[36px] tm-sans text-[14.5px] sm:text-[15.5px] leading-[1.55] text-[#6B6F76]">
                         {item.answer}
                       </p>
                     </motion.div>

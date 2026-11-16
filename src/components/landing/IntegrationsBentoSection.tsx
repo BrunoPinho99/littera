@@ -241,9 +241,9 @@ export const IntegrationsBentoSection: React.FC = () => {
     <section
       id="integracoes"
       data-framer-name="Integrações"
-      className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[40px] px-5 sm:px-[40px]"
+      className="w-full bg-white pt-[80px] sm:pt-[120px] lg:pt-[150px] pb-[40px] px-4 sm:px-[40px]"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[52px] lg:gap-[64px]">
+      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] sm:gap-[52px] lg:gap-[64px]">
         <SectionHeading lines={['Encaixa na rotina', 'da sua instituição.']} />
 
         <div className="w-full flex flex-col gap-[24px]">
@@ -256,13 +256,13 @@ export const IntegrationsBentoSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-              className="flex-1 h-[460px] lg:h-[520px] rounded-[28px] bg-[#F4F5F7] pt-[36px] px-[28px] sm:px-[36px] pb-[18px] flex flex-col justify-between overflow-hidden relative"
+              className="flex-1 h-[420px] sm:h-[460px] lg:h-[520px] rounded-[28px] bg-[#F4F5F7] pt-[28px] sm:pt-[36px] px-[20px] sm:px-[36px] pb-[18px] flex flex-col justify-between overflow-hidden relative"
             >
               <div className="relative z-20 flex flex-col gap-[6px] pointer-events-none">
-                <h3 className="tm-display text-[26px] sm:text-[28px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
+                <h3 className="tm-display text-[22px] xs:text-[24px] sm:text-[28px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                   Simplicidade total. Sem burocracia técnica.
                 </h3>
-                <p className="tm-sans text-[15.5px] leading-[1.42] text-[#6B6F76]">
+                <p className="tm-sans text-[14.5px] sm:text-[15.5px] leading-[1.42] text-[#6B6F76]">
                   Acesso 100% pelo navegador para alunos e professores. Sem instalações complexas.
                 </p>
               </div>
@@ -277,7 +277,7 @@ export const IntegrationsBentoSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.08 }}
-              className="w-full lg:w-[384px] h-[480px] lg:h-[520px] rounded-[28px] p-[24px] sm:p-[28px] relative overflow-hidden flex flex-col justify-between shrink-0 bg-[#1B1D21]"
+              className="w-full lg:w-[384px] h-[440px] sm:h-[480px] lg:h-[520px] rounded-[28px] p-[20px] sm:p-[28px] relative overflow-hidden flex flex-col justify-between shrink-0 bg-[#1B1D21]"
             >
               <img
                 src="/assets/landing/diretora-littera.jpg"
@@ -338,7 +338,7 @@ export const IntegrationsBentoSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.04 }}
-              className="rounded-[28px] bg-[#F4F5F7] p-[32px] min-h-[268px] flex flex-col justify-between gap-[20px]"
+              className="rounded-[28px] bg-[#F4F5F7] p-[20px] sm:p-[32px] min-h-[268px] flex flex-col justify-between gap-[20px]"
             >
               <div className="w-[46px] h-[46px] rounded-full bg-white shadow-[0_4px_10px_rgba(10,15,31,0.06)] flex items-center justify-center text-[#2F5BFF]">
                 <svg className="w-[21px] h-[21px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -347,10 +347,10 @@ export const IntegrationsBentoSection: React.FC = () => {
               </div>
 
               <div className="flex flex-col gap-[8px]">
-                <h3 className="tm-display text-[24px] sm:text-[25px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
+                <h3 className="tm-display text-[22px] sm:text-[25px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                   Autonomia que gera nota 900+
                 </h3>
-                <p className="tm-sans text-[14.5px] sm:text-[15px] leading-[1.45] text-[#6B6F76]">
+                <p className="tm-sans text-[14px] sm:text-[15px] leading-[1.45] text-[#6B6F76]">
                   O estudante recebe feedback na hora, corrige os próprios desvios e reescreve até dominar a redação nota mil.
                 </p>
               </div>
@@ -374,13 +374,13 @@ export const IntegrationsBentoSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.1 }}
-              className="rounded-[28px] bg-[#F4F5F7] p-[32px] min-h-[268px] flex flex-col justify-between gap-[20px]"
+              className="rounded-[28px] bg-[#F4F5F7] p-[20px] sm:p-[32px] min-h-[268px] flex flex-col justify-between gap-[20px]"
             >
               <div className="flex flex-col gap-[8px]">
-                <div className="tm-display text-[46px] sm:text-[54px] font-medium leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
+                <div className="tm-display text-[38px] xs:text-[46px] sm:text-[54px] font-medium leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
                   5 competências
                 </div>
-                <p className="tm-sans text-[15px] leading-[1.35] text-[#6B6F76]">
+                <p className="tm-sans text-[14.5px] sm:text-[15px] leading-[1.35] text-[#6B6F76]">
                   Nota de 0 a 1000 em cada redação
                 </p>
               </div>
@@ -400,7 +400,7 @@ export const IntegrationsBentoSection: React.FC = () => {
                     className="h-full rounded-full bg-[#2F5BFF] origin-left"
                   />
                 </div>
-                <p className="tm-sans text-[13.5px] leading-[1.4] text-[#6B6F76]">
+                <p className="tm-sans text-[13px] sm:text-[13.5px] leading-[1.4] text-[#6B6F76]">
                   Matriz de referência ENEM — avaliada linha por linha.
                 </p>
               </div>
@@ -413,7 +413,7 @@ export const IntegrationsBentoSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.16 }}
-              className="rounded-[28px] bg-[#F4F5F7] p-[32px] min-h-[268px] flex flex-col justify-between gap-[18px]"
+              className="rounded-[28px] bg-[#F4F5F7] p-[20px] sm:p-[32px] min-h-[268px] flex flex-col justify-between gap-[18px]"
             >
               <h3 className="tm-display text-[24px] sm:text-[25px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                 Devolutiva instantânea ao aluno

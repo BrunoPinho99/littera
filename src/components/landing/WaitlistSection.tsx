@@ -79,14 +79,14 @@ export const WaitlistSection: React.FC = () => {
     <section
       id="waitlist"
       data-framer-name="Agendamento"
-      className="w-full bg-white pt-[110px] lg:pt-[140px] pb-[40px] px-5 sm:px-[40px]"
+      className="w-full bg-white pt-[80px] sm:pt-[110px] lg:pt-[140px] pb-[40px] px-4 sm:px-[40px]"
     >
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-80px' }}
         transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-        className="max-w-[1080px] mx-auto rounded-[36px] bg-[#0A1B3F] text-white p-[36px] sm:p-[60px] lg:p-[72px] flex flex-col items-center text-center gap-[32px] relative overflow-hidden shadow-[0_24px_60px_rgba(10,27,63,0.35)]"
+        className="max-w-[1080px] mx-auto rounded-[28px] sm:rounded-[36px] bg-[#0A1B3F] text-white p-[20px] xs:p-[28px] sm:p-[60px] lg:p-[72px] flex flex-col items-center text-center gap-[24px] sm:gap-[32px] relative overflow-hidden shadow-[0_24px_60px_rgba(10,27,63,0.35)]"
       >
         {/* Glow de fundo orgânico azul elétrico */}
         <div
@@ -98,20 +98,20 @@ export const WaitlistSection: React.FC = () => {
           className="absolute -bottom-[80px] right-[-40px] w-[350px] h-[250px] bg-[#2F5BFF]/25 blur-[80px] rounded-full pointer-events-none"
         />
 
-        <div className="relative z-10 w-full max-w-[720px] flex flex-col items-center gap-[20px]">
-          <h2 className="tm-display text-[38px] sm:text-[52px] lg:text-[62px] font-semibold leading-[1.06] tracking-[-0.035em] text-white">
+        <div className="relative z-10 w-full max-w-[720px] flex flex-col items-center gap-[18px] sm:gap-[20px]">
+          <h2 className="tm-display text-[26px] xs:text-[34px] sm:text-[52px] lg:text-[62px] font-semibold leading-[1.08] tracking-[-0.035em] text-white">
             Agende uma conversa com nosso time.
             <span className="block text-[#60A5FA]">Conheça o Littera na prática.</span>
           </h2>
 
-          <p className="tm-sans text-[16.5px] sm:text-[18.5px] leading-[1.5] text-white/80 max-w-[600px]">
+          <p className="tm-sans text-[15px] sm:text-[18.5px] leading-[1.5] text-white/80 max-w-[600px]">
             Em 20 minutos, entendemos o volume da sua instituição, tiramos dúvidas sobre o método de correção e montamos a proposta ideal para a sua escola ou cursinho.
           </p>
 
           {/* Form Multicampo: Nome, Email, WhatsApp */}
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-[580px] rounded-[24px] bg-white p-[16px] sm:p-[20px] shadow-[0_16px_40px_rgba(0,0,0,0.3)] flex flex-col gap-[12px] text-left"
+            className="w-full max-w-[580px] rounded-[20px] sm:rounded-[24px] bg-white p-[14px] xs:p-[16px] sm:p-[20px] shadow-[0_16px_40px_rgba(0,0,0,0.3)] flex flex-col gap-[12px] text-left"
           >
             {/* Hidden fields storing simulation inputs */}
             <input type="hidden" name="sim_alunos" value={alunos} />
@@ -197,7 +197,7 @@ export const WaitlistSection: React.FC = () => {
           )}
 
           {/* Avatares + Prova Social */}
-          <div className="pt-[6px] flex items-center justify-center gap-[14px]">
+          <div className="pt-[6px] flex flex-col sm:flex-row items-center justify-center gap-[12px] sm:gap-[14px] text-center sm:text-left">
             <div className="flex items-center -space-x-[10px]">
               {WAITLIST_AVATARS.map((src, idx) => (
                 <img

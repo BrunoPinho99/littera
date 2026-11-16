@@ -143,9 +143,9 @@ export const WhileYouSleepSection: React.FC = () => {
   return (
     <section
       data-framer-name="Rotina Noturna"
-      className="w-full bg-white pt-[140px] lg:pt-[160px] pb-[40px] px-3 sm:px-[20px]"
+      className="w-full bg-white pt-[80px] sm:pt-[140px] lg:pt-[160px] pb-[32px] sm:pb-[40px] px-3 sm:px-[20px]"
     >
-      <div className="max-w-[1200px] mx-auto mb-[52px] lg:mb-[64px] px-2">
+      <div className="max-w-[1200px] mx-auto mb-[36px] sm:mb-[52px] lg:mb-[64px] px-2">
         <SectionHeading lines={['Sua instituição fecha.', 'A correção não.']} />
       </div>
 
@@ -351,7 +351,7 @@ export const WhileYouSleepSection: React.FC = () => {
       {/* Mobile / Tablet Night Timeline (< 1024px) */}
       <div
         data-framer-name="Timeline · Mobile"
-        className="lg:hidden max-w-[760px] mx-auto rounded-[28px] overflow-hidden bg-[#050814] p-6 sm:p-8 relative text-white shadow-[0_20px_50px_rgba(5,8,20,0.18)]"
+        className="lg:hidden max-w-[760px] mx-auto rounded-[24px] sm:rounded-[28px] overflow-hidden bg-[#050814] p-4 xs:p-6 sm:p-8 relative text-white shadow-[0_20px_50px_rgba(5,8,20,0.18)]"
       >
         <img
           src="https://framerusercontent.com/images/Yauq7SLjbx0zFq7OVVy3sY9rwU.jpg?width=2400&height=1345"
@@ -406,7 +406,7 @@ export const WhileYouSleepSection: React.FC = () => {
                     }`}
                   />
                   <div
-                    className={`w-full rounded-[18px] bg-white/[0.94] backdrop-blur-[10px] p-3.5 flex items-center gap-3 shadow-lg ${
+                    className={`w-full rounded-[16px] sm:rounded-[18px] bg-white/[0.94] backdrop-blur-[10px] p-2.5 xs:p-3.5 flex items-center gap-2.5 sm:gap-3 shadow-lg ${
                       isHighlighted ? 'border border-[#2F5BFF]' : 'border border-white/70'
                     }`}
                   >

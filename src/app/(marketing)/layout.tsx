@@ -33,7 +33,7 @@ export const MarketingLayout: React.FC<MarketingLayoutProps> = ({ children }) =>
     >
       <TillmornFonts />
       <LayoutGroup>
-        <div className="tm-root min-h-screen bg-white text-[#0A0A0B] antialiased selection:bg-[#2F5BFF]/15 selection:text-[#0A0A0B]">
+        <div className="tm-root min-h-screen bg-white text-[#0A0A0B] antialiased selection:bg-[#2F5BFF]/15 selection:text-[#0A0A0B] overflow-x-hidden w-full max-w-full">
           {children}
         </div>
       </LayoutGroup>

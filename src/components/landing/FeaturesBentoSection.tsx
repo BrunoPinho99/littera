@@ -42,8 +42,9 @@ const SchoolIntegrationsOrbit: React.FC = () => {
     if (!container || typeof window === 'undefined') return;
 
     const prefersReduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const rx = 132;
-    const ry = 88;
+    const isMobile = window.innerWidth < 480;
+    const rx = isMobile ? 94 : 132;
+    const ry = isMobile ? 62 : 88;
 
     const applyPositions = (angleDelta: number, ramp: number) => {
       SCHOOL_ORBIT_TOOLS.forEach((tool, idx) => {
@@ -124,21 +125,21 @@ const SchoolIntegrationsOrbit: React.FC = () => {
     <div
       ref={containerRef}
       data-framer-name="Integrations Orbit"
-      className="relative w-[340px] h-[236px] shrink-0 max-w-full flex items-center justify-center select-none"
+      className="relative w-[280px] xs:w-[320px] sm:w-[340px] h-[190px] sm:h-[236px] shrink-0 max-w-full flex items-center justify-center select-none"
     >
       {/* Dashed Elliptical Ring */}
       <div
         data-framer-name="Ring"
         aria-hidden="true"
-        className="w-[264px] sm:w-[292px] h-[176px] sm:h-[194px] rounded-[50%] border border-dashed border-[#0A0A0B]/[0.14] absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+        className="w-[200px] xs:w-[240px] sm:w-[292px] h-[130px] xs:h-[156px] sm:h-[194px] rounded-[50%] border border-dashed border-[#0A0A0B]/[0.14] absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
       />
 
       {/* Central Littera Core */}
       <div
         data-framer-name="Core"
-        className="w-[72px] h-[72px] rounded-[24px] bg-[#0A0A0B] text-white shadow-[0_12px_15px_rgba(10,15,31,0.2)] flex items-center justify-center relative z-10"
+        className="w-[56px] sm:w-[72px] h-[56px] sm:h-[72px] rounded-[18px] sm:rounded-[24px] bg-[#0A0A0B] text-white shadow-[0_12px_15px_rgba(10,15,31,0.2)] flex items-center justify-center relative z-10"
       >
-        <ChevronDownMarkIcon className="w-[24px] h-[24px]" strokeWidth={2.5} />
+        <ChevronDownMarkIcon className="w-[20px] sm:w-[24px] h-[20px] sm:h-[24px]" strokeWidth={2.5} />
       </div>
 
       {/* 6 Orbiting Stack Pills */}
@@ -156,14 +157,14 @@ const SchoolIntegrationsOrbit: React.FC = () => {
               132 * Math.cos(tool.initialAngle)
             ).toFixed(1)}px, ${(88 * Math.sin(tool.initialAngle)).toFixed(1)}px, 0)`,
           }}
-          className="absolute z-20 rounded-full bg-white shadow-[0_6px_8px_rgba(10,15,31,0.08)] py-[7px] pl-[8px] pr-[12px] flex items-center gap-[7px] will-change-transform whitespace-nowrap"
+          className="absolute z-20 rounded-full bg-white shadow-[0_6px_8px_rgba(10,15,31,0.08)] py-[5px] sm:py-[7px] pl-[6px] sm:pl-[8px] pr-[10px] sm:pr-[12px] flex items-center gap-[5px] sm:gap-[7px] will-change-transform whitespace-nowrap"
         >
           <span
             aria-hidden="true"
-            className="w-[14px] h-[14px] rounded-full shrink-0"
+            className="w-[12px] sm:w-[14px] h-[12px] sm:h-[14px] rounded-full shrink-0"
             style={{ backgroundColor: tool.dotColor }}
           />
-          <span className="tm-sans text-[12.5px] font-medium leading-none text-[#0A0A0B]">
+          <span className="tm-sans text-[11px] sm:text-[12.5px] font-medium leading-none text-[#0A0A0B]">
             {tool.name}
           </span>
         </div>
@@ -200,9 +201,9 @@ export const FeaturesBentoSection: React.FC = () => {
     <section
       id="recursos"
       data-framer-name="Recursos"
-      className="w-full bg-white pt-[140px] lg:pt-[160px] pb-[40px] px-5 sm:px-[40px]"
+      className="w-full bg-white pt-[80px] sm:pt-[140px] lg:pt-[160px] pb-[40px] px-4 sm:px-[40px]"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[52px] lg:gap-[64px]">
+      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] sm:gap-[52px] lg:gap-[64px]">
         <SectionHeading
           lines={['Avaliação linha por linha.', 'Em segundos.']}
           mobileLines={['Avaliação linha por linha.']}
@@ -219,7 +220,7 @@ export const FeaturesBentoSection: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full lg:w-[521px] h-[520px] lg:h-[640px] rounded-[28px] p-[28px] relative overflow-hidden flex flex-col justify-end shrink-0 bg-[#1C1917] cursor-pointer"
+            className="w-full lg:w-[521px] h-[460px] sm:h-[520px] lg:h-[640px] rounded-[28px] p-[20px] sm:p-[28px] relative overflow-hidden flex flex-col justify-end shrink-0 bg-[#1C1917] cursor-pointer"
           >
             {/* Scroll-Linked Zoom Photo Background (Professora em ambiente escolar / notebook) */}
             <motion.img
@@ -245,7 +246,7 @@ export const FeaturesBentoSection: React.FC = () => {
                 y: showReviewToast ? 0 : -8,
               }}
               transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute top-[28px] left-[28px] right-[28px] sm:right-auto z-20 rounded-full bg-white/[0.95] backdrop-blur-[10px] py-[9px] pl-[12px] pr-[16px] shadow-[0_12px_24px_rgba(10,15,31,0.14)] flex items-center gap-[9px] pointer-events-none"
+              className="absolute top-[20px] sm:top-[28px] left-[20px] sm:left-[28px] right-[20px] sm:right-auto z-20 rounded-full bg-white/[0.95] backdrop-blur-[10px] py-[9px] pl-[12px] pr-[16px] shadow-[0_12px_24px_rgba(10,15,31,0.14)] flex items-center gap-[9px] pointer-events-none"
             >
               <div className="w-[20px] h-[20px] rounded-full bg-[#2F5BFF] text-white flex items-center justify-center shrink-0">
                 <OverviewIcon className="w-[11px] h-[11px]" />
@@ -264,12 +265,12 @@ export const FeaturesBentoSection: React.FC = () => {
                   ? '0 28px 48px rgba(10, 10, 11, 0.28)'
                   : '0 18px 32px rgba(10, 15, 31, 0.16)',
               }}
-              className="relative z-20 w-full rounded-[22px] bg-white border border-black/[0.06] py-[22px] px-[24px] flex flex-col gap-[8px] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] shadow-xl"
+              className="relative z-20 w-full rounded-[22px] bg-white border border-black/[0.06] py-[18px] sm:py-[22px] px-[18px] sm:px-[24px] flex flex-col gap-[8px] transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] shadow-xl"
             >
-              <h3 className="tm-display text-[24px] font-semibold leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
+              <h3 className="tm-display text-[22px] sm:text-[24px] font-semibold leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
                 Sabe quando chamar o professor
               </h3>
-              <p className="tm-sans text-[15.5px] leading-[1.45] text-[#4A4F59] font-normal">
+              <p className="tm-sans text-[14.5px] sm:text-[15.5px] leading-[1.45] text-[#4A4F59] font-normal">
                 <span className="hidden sm:inline">
                   Casos sensíveis vão para a fila do professor — com o trecho marcado e o motivo.
                 </span>
@@ -287,7 +288,7 @@ export const FeaturesBentoSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.08 }}
-              className="flex-1 min-h-[280px] lg:h-[308px] rounded-[28px] bg-[#F4F5F7] p-[28px] sm:p-[36px] flex flex-col sm:flex-row items-center justify-between gap-[28px] sm:gap-[32px]"
+              className="flex-1 min-h-[280px] lg:h-[308px] rounded-[28px] bg-[#F4F5F7] p-[20px] sm:p-[36px] flex flex-col sm:flex-row items-center justify-between gap-[24px] sm:gap-[32px]"
             >
               <div className="w-full sm:w-[230px] shrink-0 flex flex-col gap-[8px]">
                 <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">
@@ -343,7 +344,7 @@ export const FeaturesBentoSection: React.FC = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-80px' }}
               transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.16 }}
-              className="flex-1 min-h-[300px] lg:h-[308px] rounded-[28px] bg-[#F4F5F7] p-[28px] sm:p-[36px] flex flex-col sm:flex-row items-center justify-between gap-[24px] sm:gap-[32px] overflow-hidden"
+              className="flex-1 min-h-[300px] lg:h-[308px] rounded-[28px] bg-[#F4F5F7] p-[20px] sm:p-[36px] flex flex-col sm:flex-row items-center justify-between gap-[20px] sm:gap-[32px] overflow-hidden"
             >
               <div className="w-full sm:w-[220px] shrink-0 flex flex-col gap-[8px]">
                 <h3 className="tm-display text-[24px] font-medium leading-[1.2] tracking-[-0.02em] text-[#0A0A0B]">

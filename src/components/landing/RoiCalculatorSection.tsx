@@ -139,15 +139,15 @@ export const RoiCalculatorSection: React.FC = () => {
     <section
       id="calculadora"
       data-framer-name="Calculadora"
-      className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[40px] px-5 sm:px-[40px]"
+      className="w-full bg-white pt-[80px] sm:pt-[120px] lg:pt-[150px] pb-[40px] px-4 sm:px-[40px]"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[44px] lg:gap-[56px]">
-        <div className="flex flex-col items-center gap-[16px] text-center max-w-[840px]">
+      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] sm:gap-[44px] lg:gap-[56px]">
+        <div className="flex flex-col items-center gap-[14px] sm:gap-[16px] text-center max-w-[840px]">
           <SectionHeading
             lines={['Quanto custa corrigir redações', 'na sua escola ou cursinho?']}
             mobileLines={['Quanto custa sua correção?']}
           />
-          <p className="tm-sans text-[16.5px] sm:text-[18.5px] leading-[1.45] text-[#6B6F76] max-w-[680px]">
+          <p className="tm-sans text-[15px] sm:text-[18.5px] leading-[1.45] text-[#6B6F76] max-w-[680px]">
             Mova os controles. Em 20 segundos, você vê um custo que hoje não aparece na planilha.
           </p>
         </div>
@@ -160,7 +160,7 @@ export const RoiCalculatorSection: React.FC = () => {
           className="w-full flex flex-col lg:flex-row gap-[24px] items-stretch"
         >
           {/* Left Controls Card */}
-          <div className="flex-1 min-w-0 rounded-[28px] bg-[#F4F5F7] p-[28px] sm:p-[44px] flex flex-col gap-[32px] sm:gap-[38px]">
+          <div className="flex-1 min-w-0 rounded-[28px] bg-[#F4F5F7] p-[20px] xs:p-[28px] sm:p-[44px] flex flex-col gap-[28px] sm:gap-[38px]">
             {/* Controle 1: Alunos */}
             <RoiSlider
               label="Quantidade de alunos"
@@ -217,7 +217,7 @@ export const RoiCalculatorSection: React.FC = () => {
               <div
                 role="radiogroup"
                 aria-label="Quem corrige hoje?"
-                className="relative flex flex-wrap sm:flex-nowrap gap-[4px] p-[4px] rounded-[18px] sm:rounded-full bg-white shadow-sm"
+                className="relative grid grid-cols-1 xs:grid-cols-3 gap-[4px] p-[4px] rounded-[18px] sm:rounded-full bg-white shadow-sm"
               >
                 {(
                   [
@@ -234,7 +234,7 @@ export const RoiCalculatorSection: React.FC = () => {
                       role="radio"
                       aria-checked={active}
                       onClick={() => setQuemCorrige(opt.id)}
-                      className={`relative flex-1 py-[10px] px-2 rounded-full cursor-pointer tm-sans text-[13px] sm:text-[14px] font-medium transition-colors duration-200 text-center ${
+                      className={`relative w-full py-[10px] px-2 rounded-full cursor-pointer tm-sans text-[12.5px] sm:text-[14px] font-medium transition-colors duration-200 text-center ${
                         active ? 'text-white' : 'text-[#6B6F76] hover:text-[#0A0A0B]'
                       }`}
                     >
@@ -245,7 +245,7 @@ export const RoiCalculatorSection: React.FC = () => {
                           className="absolute inset-0 rounded-full bg-[#0A0A0B]"
                         />
                       )}
-                      <span className="relative z-10 whitespace-nowrap">{opt.label}</span>
+                      <span className="relative z-10 whitespace-normal sm:whitespace-nowrap">{opt.label}</span>
                     </button>
                   );
                 })}
@@ -301,7 +301,7 @@ export const RoiCalculatorSection: React.FC = () => {
           <div
             ref={resultCardRef}
             onPointerMove={handlePointerMove}
-            className="flex-1 min-w-0 rounded-[28px] bg-[#2F5BFF] text-white p-[28px] sm:p-[44px] relative overflow-hidden flex flex-col justify-between gap-[24px]"
+            className="flex-1 min-w-0 rounded-[28px] bg-[#2F5BFF] text-white p-[20px] xs:p-[28px] sm:p-[44px] relative overflow-hidden flex flex-col justify-between gap-[24px]"
           >
             {/* Pointer-follow radial highlight */}
             <div
@@ -315,20 +315,20 @@ export const RoiCalculatorSection: React.FC = () => {
             />
 
             <div className="relative z-10 flex flex-col gap-[8px]">
-              <span className="tm-sans text-[16px] text-white/80">Hoje, sua instituição gasta</span>
+              <span className="tm-sans text-[15px] sm:text-[16px] text-white/80">Hoje, sua instituição gasta</span>
 
               <div className="flex flex-col">
                 <div className="flex items-baseline gap-[12px] flex-wrap">
-                  <span className="tm-display text-[58px] sm:text-[76px] xl:text-[88px] font-medium leading-[0.92] tracking-[-0.04em] tabular-nums">
+                  <span className="tm-display text-[36px] xs:text-[46px] sm:text-[76px] xl:text-[88px] font-medium leading-[0.95] tracking-[-0.04em] tabular-nums break-words">
                     {formatCurrencyFullPtBr(gastoMensal)}
                   </span>
                 </div>
-                <span className="tm-sans text-[15px] sm:text-[16px] text-white/85 mt-2">
+                <span className="tm-sans text-[14px] sm:text-[16px] text-white/85 mt-2">
                   {bigNumberLegend}
                 </span>
 
                 {calloutText && (
-                  <p className="mt-3 p-3 rounded-[12px] bg-white/[0.12] backdrop-blur-sm tm-sans text-[13.5px] leading-snug text-white/95">
+                  <p className="mt-3 p-3 rounded-[12px] bg-white/[0.12] backdrop-blur-sm tm-sans text-[13px] sm:text-[13.5px] leading-snug text-white/95">
                     {calloutText}
                   </p>
                 )}
@@ -338,26 +338,26 @@ export const RoiCalculatorSection: React.FC = () => {
             <div className="relative z-10 h-[1px] w-full bg-white/[0.22]" />
 
             {/* 3 Secondary metrics */}
-            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-[18px]">
+            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-[14px] sm:gap-[18px]">
               <div className="flex flex-col gap-[3px]">
-                <span className="tm-display text-[26px] sm:text-[30px] font-medium leading-tight tracking-[-0.02em] tabular-nums">
+                <span className="tm-display text-[22px] xs:text-[26px] sm:text-[30px] font-medium leading-tight tracking-[-0.02em] tabular-nums">
                   {formatCurrencyAnnualPtBr(gastoAnual)}
                 </span>
-                <span className="tm-sans text-[12.5px] text-white/75">por ano letivo</span>
+                <span className="tm-sans text-[12px] sm:text-[12.5px] text-white/75">por ano letivo</span>
               </div>
 
               <div className="flex flex-col gap-[3px]">
-                <span className="tm-display text-[26px] sm:text-[30px] font-medium leading-tight tracking-[-0.02em] tabular-nums">
+                <span className="tm-display text-[22px] xs:text-[26px] sm:text-[30px] font-medium leading-tight tracking-[-0.02em] tabular-nums">
                   {formatCurrencyUnitPtBr(custoUnitario)}
                 </span>
-                <span className="tm-sans text-[12.5px] text-white/75">por redação corrigida</span>
+                <span className="tm-sans text-[12px] sm:text-[12.5px] text-white/75">por redação corrigida</span>
               </div>
 
               <div className="flex flex-col gap-[3px]">
-                <span className="tm-display text-[26px] sm:text-[30px] font-medium leading-tight tracking-[-0.02em] tabular-nums">
+                <span className="tm-display text-[22px] xs:text-[26px] sm:text-[30px] font-medium leading-tight tracking-[-0.02em] tabular-nums">
                   {horasSemana} h
                 </span>
-                <span className="tm-sans text-[12.5px] text-white/75">
+                <span className="tm-sans text-[12px] sm:text-[12.5px] text-white/75">
                   de leitura, toda semana
                 </span>
               </div>

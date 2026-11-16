@@ -81,10 +81,10 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Hero Copy & CTAs */}
-      <div className="relative z-10 max-w-[1160px] mx-auto px-5 text-center flex flex-col items-center">
-        <h1 className="tm-display text-[38px] sm:text-[54px] md:text-[64px] lg:text-[74px] xl:text-[82px] font-medium leading-[1.04] tracking-[-0.04em] text-[#0A0A0B] whitespace-normal md:whitespace-nowrap">
+      <div className="relative z-10 max-w-[1160px] mx-auto px-4 sm:px-5 text-center flex flex-col items-center">
+        <h1 className="tm-display text-[23px] min-[360px]:text-[26px] min-[390px]:text-[29px] sm:text-[48px] md:text-[62px] lg:text-[74px] xl:text-[82px] font-medium leading-[1.12] sm:leading-[1.04] tracking-[-0.03em] sm:tracking-[-0.04em] text-[#0A0A0B] whitespace-normal sm:whitespace-nowrap max-w-full">
           {HERO_TITLE_LINES.map((line, lineIdx) => (
-            <span key={lineIdx} className="block whitespace-nowrap">
+            <span key={lineIdx} className="block whitespace-normal sm:whitespace-nowrap">
               {line.map((word, idxInLine) => {
                 const currentWordIdx = wordCounter++;
                 return (
@@ -113,7 +113,7 @@ export const HeroSection: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.42, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-[26px] tm-sans text-[18px] sm:text-[21.5px] leading-[1.45] font-normal text-[#6B6F76] max-w-[840px]"
+          className="mt-[20px] sm:mt-[26px] tm-sans text-[16px] xs:text-[17px] sm:text-[21.5px] leading-[1.45] font-normal text-[#6B6F76] max-w-[840px] px-2 sm:px-0"
         >
           O Littera corrige redações no padrão ENEM, nas 5 competências, em segundos — com
           devolutivas completas e sem custo por folha para escolas e cursinhos pré-vestibular.
@@ -123,13 +123,14 @@ export const HeroSection: React.FC = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.54, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-[36px] flex flex-wrap items-center justify-center gap-[12px]"
+          className="mt-[28px] sm:mt-[36px] flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-[12px] w-full max-w-[360px] sm:max-w-none"
         >
-          <TillmornButton label="Agendar demonstração" variant="primary" href="#waitlist" />
+          <TillmornButton label="Agendar demonstração" variant="primary" href="#waitlist" className="w-full sm:w-auto" />
           <TillmornButton
             label="Calcular minha economia"
             variant="secondary"
             href="#calculadora"
+            className="w-full sm:w-auto"
           />
         </motion.div>
       </div>

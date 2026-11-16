@@ -46,9 +46,9 @@ export const ComparisonSection: React.FC = () => {
   return (
     <section
       data-framer-name="Comparativo Antes e Depois"
-      className="w-full bg-white pt-[120px] lg:pt-[150px] pb-[40px] px-5 sm:px-[40px]"
+      className="w-full bg-white pt-[80px] sm:pt-[120px] lg:pt-[150px] pb-[40px] px-4 sm:px-[40px]"
     >
-      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[44px] lg:gap-[56px]">
+      <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] sm:gap-[44px] lg:gap-[56px]">
         <SectionHeading lines={['Menos pilhas de papel.', 'Mais foco no que importa.']} />
 
         {/* Mobile Toggle Tabs */}
@@ -105,7 +105,7 @@ export const ComparisonSection: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-            className={`rounded-[28px] bg-[#F4F5F7] p-[28px] sm:p-[40px] min-h-[580px] lg:min-h-[620px] flex-col justify-between overflow-hidden ${
+            className={`rounded-[28px] bg-[#F4F5F7] p-[20px] sm:p-[40px] min-h-[500px] sm:min-h-[580px] lg:min-h-[620px] flex-col justify-between overflow-hidden ${
               mobileTab === 'hoje' ? 'flex' : 'hidden lg:flex'
             }`}
           >
@@ -114,10 +114,10 @@ export const ComparisonSection: React.FC = () => {
                 Sua equipe hoje
               </span>
 
-              <div className="mt-[24px] tm-display text-[48px] sm:text-[62px] font-medium leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
+              <div className="mt-[20px] sm:mt-[24px] tm-display text-[36px] xs:text-[44px] sm:text-[62px] font-medium leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
                 37 h 15 min
               </div>
-              <p className="mt-[10px] tm-sans text-[15.5px] leading-[1.4] text-[#6B6F76]">
+              <p className="mt-[10px] tm-sans text-[15px] sm:text-[15.5px] leading-[1.4] text-[#6B6F76]">
                 de correção manual, toda semana
               </p>
             </div>
@@ -155,7 +155,7 @@ export const ComparisonSection: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: '-80px' }}
             transition={{ type: 'spring', stiffness: 260, damping: 28, delay: 0.08 }}
-            className={`rounded-[28px] bg-[#DCE5F7] p-[28px] sm:p-[40px] min-h-[580px] lg:min-h-[620px] relative overflow-hidden flex-col justify-between ${
+            className={`rounded-[28px] bg-[#DCE5F7] p-[20px] sm:p-[40px] min-h-[500px] sm:min-h-[580px] lg:min-h-[620px] relative overflow-hidden flex-col justify-between ${
               mobileTab === 'littera' ? 'flex' : 'hidden lg:flex'
             }`}
           >
@@ -179,11 +179,11 @@ export const ComparisonSection: React.FC = () => {
                 Com o Littera
               </span>
 
-              <div className="mt-[20px] rounded-[18px] bg-white/70 backdrop-blur-md px-[16px] py-[10px] -ml-[16px] border border-white/80 shadow-[0_4px_20px_rgba(47,91,255,0.06)] inline-flex flex-col">
-                <div className="tm-display text-[48px] sm:text-[58px] font-semibold leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
+              <div className="mt-[16px] sm:mt-[20px] rounded-[18px] bg-white/70 backdrop-blur-md px-[16px] py-[10px] ml-0 sm:-ml-[16px] border border-white/80 shadow-[0_4px_20px_rgba(47,91,255,0.06)] inline-flex flex-col">
+                <div className="tm-display text-[36px] xs:text-[44px] sm:text-[58px] font-semibold leading-none tracking-[-0.04em] text-[#0A0A0B] tabular-nums">
                   Segundos
                 </div>
-                <p className="mt-[8px] tm-sans text-[15px] font-medium leading-[1.35] text-[#2D333F]">
+                <p className="mt-[8px] tm-sans text-[14px] sm:text-[15px] font-medium leading-[1.35] text-[#2D333F]">
                   para corrigir cada redação com rigor ENEM.
                 </p>
               </div>
