@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Notification } from '../types';
 import { getUserStats, calculateUserRank } from '../services/databaseService';
@@ -15,33 +14,45 @@ interface NavbarProps {
   onOpenChallenge?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, userType, user, notifications, onMarkAsRead: _onMarkAsRead, activeChallengesCount: _activeChallengesCount, onOpenChallenge: _onOpenChallenge }) => {
+const Navbar: React.FC<NavbarProps> = ({
+  currentView,
+  onViewChange,
+  onLogout,
+  userType,
+  user,
+  notifications,
+  onMarkAsRead: _onMarkAsRead,
+  activeChallengesCount: _activeChallengesCount,
+  onOpenChallenge: _onOpenChallenge,
+}) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [userRank, setUserRank] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const isDemoMode = localStorage.getItem('littera_demo_mode') === 'true';
 
-  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || "Usuário";
-  const photoUrl = user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${firstName}&background=004ac6&color=fff`;
+  const firstName =
+    user?.user_metadata?.full_name?.split(' ')[0] ||
+    user?.email?.split('@')[0] ||
+    'Usuário';
+  const photoUrl =
+    user?.user_metadata?.avatar_url ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(firstName)}&background=2563eb&color=fff`;
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-
     if (user?.id && userType === 'student') {
-      getUserStats(user.id).then(stats => {
+      getUserStats(user.id).then((stats) => {
         setUserRank(calculateUserRank(stats.totalEssays));
       });
     }
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setIsMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
-      window.removeEventListener('scroll', handleScroll);
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [user?.id, userType]);
@@ -58,171 +69,269 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
   const getNavItems = () => {
     if (userType === 'student') {
       return [
-        { id: 'practice', label: 'Praticar', icon: 'edit_note' },
-        { id: 'performance', label: 'Evolução', icon: 'insights' },
-        { id: 'explore', label: 'Temas', icon: 'explore' },
-        { id: 'ranking', label: 'Comunidade', icon: 'groups' },
+        {
+          id: 'practice',
+          label: 'Praticar',
+          renderIcon: (active: boolean) => (
+            <svg
+              className={`w-3.5 h-3.5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-500'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M4 6h16M4 12h10M4 18h7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ),
+        },
+        {
+          id: 'performance',
+          label: 'Evolução',
+          renderIcon: (active: boolean) => (
+            <svg
+              className={`w-3.5 h-3.5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-500'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ),
+        },
+        {
+          id: 'explore',
+          label: 'Temas',
+          renderIcon: (active: boolean) => (
+            <svg
+              className={`w-3.5 h-3.5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-500'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" />
+            </svg>
+          ),
+        },
+        {
+          id: 'ranking',
+          label: 'Comunidade',
+          renderIcon: (active: boolean) => (
+            <svg
+              className={`w-3.5 h-3.5 flex-shrink-0 ${active ? 'text-blue-600' : 'text-slate-500'}`}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ),
+        },
       ];
-    } else {
-      // Admin e Teacher usam apenas os Maxi Cards dentro do próprio InstitutionDashboard para navegação unificada e mais simples
-      return [];
     }
+    return [];
   };
 
   const navItems = getNavItems();
 
   return (
     <>
-      {/* ═══ TOP BAR ═══ */}
-      <header className={`fixed w-full top-0 z-[100] transition-all duration-500 px-3 sm:px-6 ${scrolled ? 'pt-2 sm:pt-4' : 'pt-3 sm:pt-6'}`}>
-        <div className={`max-w-[1400px] mx-auto transition-all duration-500 ${scrolled
-            ? 'bg-surface/80 backdrop-blur-2xl shadow-ambient rounded-pill'
-            : 'bg-transparent'
-          }`}>
-          <nav className="h-14 sm:h-20 flex items-center justify-between px-4 sm:px-8">
+      {/* ═══ TOP BAR (Proportional & Compact Stitch Design) ═══ */}
+      <header className="fixed w-full top-0 z-[100] px-3 sm:px-6 pt-2.5 sm:pt-3.5 pb-2 pointer-events-none">
+        <div className="w-full max-w-6xl mx-auto pointer-events-auto">
+          <nav
+            aria-label="Navegação Principal"
+            className="bg-white/95 backdrop-blur-md rounded-full px-4 sm:px-5 py-1.5 sm:py-2 shadow-[0_4px_20px_-2px_rgba(15,23,42,0.06)] border border-slate-100 flex items-center justify-between transition-all duration-200"
+          >
+            {/* Brand & Mode Tag Section */}
+            <div className="flex items-center gap-2.5">
+              <a
+                aria-label="Littera Página Inicial"
+                className="flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-lg pr-1 group cursor-pointer"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleLogoClick();
+                }}
+                href="#"
+              >
+                <img
+                  alt="Littera Logo"
+                  className="w-auto object-contain h-5 sm:h-5.5 md:h-6 transition-transform duration-200 group-hover:scale-[1.02]"
+                  src="/assets/littera-logo.png"
+                />
+              </a>
 
-            {/* Logo */}
-            <div
-              className="flex items-center gap-2 sm:gap-3 cursor-pointer shrink-0 group"
-              onClick={handleLogoClick}
-            >
-              <img
-                src="/assets/littera-logo.png"
-                alt="Littera"
-                className="block h-7 sm:h-8 w-auto object-contain group-hover:scale-[1.02] transition-transform duration-300"
-              />
               {isDemoMode && (
-                <span className="ml-2 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.2em] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-full border border-amber-200 dark:border-amber-800 animate-pulse">
-                  MODO TESTE
+                <span className="px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider bg-amber-50 text-amber-600 rounded-full border border-amber-200/70">
+                  Modo Teste
                 </span>
               )}
             </div>
 
-            {/* Center Navigation — Surface Pill (desktop only) */}
-            <div className="hidden md:flex items-center bg-surface-container-low p-1.5 rounded-pill gap-0.5 lg:gap-1">
-              {navItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => onViewChange(item.id)}
-                  className={`flex items-center gap-1.5 lg:gap-2.5 px-3 lg:px-5 py-2 lg:py-2.5 rounded-pill text-sm lg:text-label-lg font-bold transition-all duration-300 ${currentView === item.id
-                      ? 'bg-surface-container-lowest text-primary shadow-card'
-                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-lowest/60'
-                    }`}
-                >
-                  <span className={`material-icons-outlined text-lg lg:text-xl transition-transform ${currentView === item.id ? 'scale-110' : ''}`}>
-                    {item.icon}
-                  </span>
-                  <span className="tracking-tight">{item.label}</span>
-                </button>
-              ))}
-            </div>
+            {/* Segmented Central Navigation Pill */}
+            {navItems.length > 0 && (
+              <div className="hidden lg:flex items-center bg-slate-100/80 p-1 rounded-full border border-slate-200/70 gap-0.5 shadow-sm">
+                {navItems.map((item) => {
+                  const isActive = currentView === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => onViewChange(item.id)}
+                      className={`text-xs sm:text-[13px] tracking-tight px-3.5 py-1.5 rounded-full flex items-center gap-1.5 transition-all ${
+                        isActive
+                          ? 'bg-white text-blue-600 shadow-sm font-semibold'
+                          : 'text-slate-600 hover:text-slate-900 font-medium'
+                      }`}
+                    >
+                      {item.renderIcon(isActive)}
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-            {/* Right Section */}
-            <div className="flex items-center gap-2 sm:gap-4">
-
+            {/* Right Action CTAs */}
+            <div className="flex items-center gap-1 sm:gap-1.5">
               {isDemoMode ? (
-                /* ── DEMO MODE: CTA Criar Conta ── */
-                <>
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem('littera_demo_mode');
-                      window.location.href = '/login';
-                    }}
-                    className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-pill bg-primary text-on-primary font-black text-xs sm:text-sm uppercase tracking-widest shadow-glow-sm hover:bg-primary-dark transition-all active:scale-95"
-                  >
-                    <span className="material-icons-outlined text-lg">person_add</span>
-                    <span className="hidden sm:inline">Criar Conta</span>
-                    <span className="sm:hidden">Entrar</span>
-                  </button>
-                  <button
-                    onClick={onLogout}
-                    className="w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl text-on-surface-variant hover:text-rose-500 hover:bg-rose-50 transition-all"
-                    title="Sair do modo teste"
-                  >
-                    <span className="material-icons-outlined text-xl sm:text-2xl">logout</span>
-                  </button>
-                </>
+                /* Demo mode: NO "Criar Conta" button as requested, only exit icon */
+                <button
+                  onClick={onLogout}
+                  aria-label="Sair do modo teste"
+                  title="Sair do modo teste"
+                  className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  type="button"
+                >
+                  <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path
+                      d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </button>
               ) : (
-                /* ── MODO NORMAL ── */
+                /* Authenticated User CTAs */
                 <>
-                  {/* Notification bell */}
+                  {/* Notifications */}
                   <button
                     onClick={() => onViewChange('notifications')}
-                    className={`w-9 h-9 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl transition-all relative group ${currentView === 'notifications'
-                      ? 'bg-primary text-on-primary shadow-glow-sm'
-                      : 'text-on-surface-variant hover:text-primary hover:bg-primary-fixed/30'}`}
+                    aria-label="Notificações"
+                    title="Notificações"
+                    className={`text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full transition-colors relative focus:outline-none focus:ring-2 focus:ring-slate-300 ${
+                      currentView === 'notifications' ? 'bg-slate-100 text-blue-600' : ''
+                    }`}
                   >
-                    <span className="material-icons-outlined text-xl sm:text-2xl">notifications</span>
-                    {notifications.some(n => !n.read) && (
-                      <span className="absolute top-1.5 right-1.5 sm:top-2.5 sm:right-2.5 w-2 h-2 sm:w-2.5 sm:h-2.5 bg-rose-500 rounded-full border-2 border-surface group-hover:scale-125 transition-transform"></span>
+                    <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path
+                        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    {notifications.some((n) => !n.read) && (
+                      <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full border border-white" />
                     )}
                   </button>
 
-                  {/* Separator — uses tonal layering, not a border */}
-                  <div className="h-8 w-px bg-surface-container-high hidden sm:block"></div>
-
-                  {/* User menu */}
+                  {/* User Profile Avatar with Dropdown */}
                   <div className="relative" ref={menuRef}>
                     <button
                       onClick={() => setIsMenuOpen(!isMenuOpen)}
-                      className="flex items-center gap-2 lg:gap-3 p-1 lg:p-1.5 rounded-xl transition-all hover:bg-surface-container-low group"
+                      className="flex items-center p-0.5 rounded-full hover:ring-2 hover:ring-slate-200 transition-all focus:outline-none"
+                      aria-label="Menu do Usuário"
                     >
-                      <div className="text-right hidden lg:block pr-1">
-                        <p className="text-label-md text-on-surface leading-none mb-1 group-hover:text-primary transition-colors">{firstName}</p>
-                        <div className="flex items-center justify-end gap-1.5">
-                          {userRank && userType === 'student' && (
-                            <span className={`material-icons-outlined text-[12px] ${userRank.color}`}>{userRank.icon}</span>
-                          )}
-                          <p className="text-label-sm text-on-surface-variant uppercase tracking-widest">
-                            {userType === 'teacher' ? 'Docente' : userType === 'school_admin' ? 'Admin' : (userRank ? userRank.label : userType)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="relative">
-                        <img src={photoUrl} className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl p-0.5 object-cover shadow-card ghost-border group-hover:shadow-glow-sm transition-all" alt="User" />
-                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-primary text-on-primary rounded-full flex items-center justify-center border-2 border-surface">
-                          <span className="material-icons-outlined text-[8px] sm:text-10px font-bold">expand_more</span>
-                        </div>
-                      </div>
+                      <img
+                        src={photoUrl}
+                        className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-full object-cover border border-slate-200"
+                        alt={firstName}
+                      />
                     </button>
 
-                    {/* Dropdown — Ambient shadow, surface-container-lowest, no borders */}
+                    {/* Dropdown Menu */}
                     {isMenuOpen && (
-                      <div className="absolute right-0 mt-4 w-64 bg-surface-container-lowest rounded-card shadow-ambient-lg py-3 animate-fade-in-up">
-                        <div className="px-6 py-4 mb-2">
-                          <p className="text-label-sm text-on-surface-variant uppercase tracking-widest mb-1">Logado como</p>
-                          <p className="text-body-sm font-bold text-on-surface truncate">{user?.email}</p>
+                      <div className="absolute right-0 mt-2.5 w-56 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-scale-up">
+                        <div className="px-3.5 py-1.5 border-b border-slate-100 mb-1">
+                          <p className="text-[11px] text-slate-400 font-medium">Logado como</p>
+                          <p className="text-xs font-bold text-slate-800 truncate">{user?.email || firstName}</p>
+                          {userRank && userType === 'student' && (
+                            <span className="inline-block mt-0.5 text-[10px] font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                              {userRank.label}
+                            </span>
+                          )}
                         </div>
 
-                        <div className="h-px bg-surface-container-high mx-4 mb-1"></div>
-
-                        <button onClick={() => { onViewChange('profile'); setIsMenuOpen(false); }} className="w-full px-6 py-3 text-left text-body-sm font-bold text-on-surface-variant hover:bg-surface-container-low hover:text-primary flex items-center gap-4 transition-colors group">
-                          <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center group-hover:bg-primary-fixed/40 transition-colors">
-                            <span className="material-icons-outlined text-xl">person_outline</span>
-                          </div>
+                        <button
+                          onClick={() => {
+                            onViewChange('profile');
+                            setIsMenuOpen(false);
+                          }}
+                          className="w-full px-3.5 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                            <circle cx="12" cy="7" r="4" />
+                          </svg>
                           Meu Perfil
                         </button>
 
                         {userType === 'student' && (
-                          <button onClick={() => { onViewChange('performance'); setIsMenuOpen(false); }} className="w-full px-6 py-3 text-left text-body-sm font-bold text-on-surface-variant hover:bg-surface-container-low hover:text-primary flex items-center gap-4 transition-colors group">
-                            <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center group-hover:bg-primary-fixed/40 transition-colors">
-                              <span className="material-icons-outlined text-xl">emoji_events</span>
-                            </div>
+                          <button
+                            onClick={() => {
+                              onViewChange('performance');
+                              setIsMenuOpen(false);
+                            }}
+                            className="w-full px-3.5 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
                             Minha Jornada
                           </button>
                         )}
 
-                        <div className="h-px bg-surface-container-high my-1 mx-4"></div>
+                        <div className="border-t border-slate-100 my-1" />
 
-                        <button onClick={onLogout} className="w-full px-6 py-3 text-left text-body-sm font-black text-rose-500 hover:bg-rose-50 flex items-center gap-4 transition-colors group">
-                          <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
-                            <span className="material-icons-outlined text-xl">logout</span>
-                          </div>
+                        <button
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            onLogout();
+                          }}
+                          className="w-full px-3.5 py-1.5 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 flex items-center gap-2 transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
                           Encerrar Sessão
                         </button>
                       </div>
                     )}
                   </div>
+
+                  {/* Stitch Direct Logout / Exit Button */}
+                  <button
+                    onClick={onLogout}
+                    aria-label="Sair"
+                    title="Encerrar sessão"
+                    className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 p-1.5 sm:p-2 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+                    type="button"
+                  >
+                    <svg className="w-4 h-4 sm:w-4.5 sm:h-4.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </button>
                 </>
               )}
             </div>
@@ -232,36 +341,32 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onViewChange, onLogout, us
 
       {/* ═══ MOBILE BOTTOM TAB BAR ═══ */}
       {navItems.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 z-[100] md:hidden">
-          <div className="bg-surface/90 backdrop-blur-2xl border-t border-surface-container-high/50 shadow-[0_-4px_20px_rgba(19,27,46,0.06)]">
-            <div className="flex items-center justify-around px-2 py-1.5 max-w-lg mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-[100] lg:hidden">
+          <div className="bg-white/95 backdrop-blur-xl border-t border-slate-200/80 shadow-[0_-4px_20px_rgba(15,23,42,0.06)]">
+            <div className="flex items-center justify-around px-2 py-1 max-w-lg mx-auto">
               {navItems.map((item) => {
                 const isActive = currentView === item.id;
                 return (
                   <button
                     key={item.id}
                     onClick={() => onViewChange(item.id)}
-                    className={`flex flex-col items-center gap-0.5 py-1.5 px-3 rounded-2xl transition-all duration-300 min-w-[60px] ${
-                      isActive 
-                        ? 'text-primary' 
-                        : 'text-on-surface-variant/60'
+                    className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-2xl transition-all duration-200 min-w-[60px] ${
+                      isActive ? 'text-blue-600 font-bold' : 'text-slate-500 font-medium'
                     }`}
                   >
-                    <div className={`w-10 h-7 flex items-center justify-center rounded-pill transition-all duration-300 ${
-                      isActive ? 'bg-primary-fixed/60 scale-100' : 'scale-90'
-                    }`}>
-                      <span className={`material-icons-outlined text-xl transition-all ${isActive ? 'text-primary' : ''}`}>
-                        {item.icon}
-                      </span>
+                    <div
+                      className={`p-1 rounded-full transition-all duration-200 ${
+                        isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-500'
+                      }`}
+                    >
+                      {item.renderIcon(isActive)}
                     </div>
-                    <span className={`text-[10px] font-bold tracking-tight transition-all ${isActive ? 'text-primary' : ''}`}>
-                      {item.label}
-                    </span>
+                    <span className="text-[10.5px] tracking-tight">{item.label}</span>
                   </button>
                 );
               })}
             </div>
-            {/* Safe area for iPhones with home indicator */}
+            {/* Safe area for mobile home indicators */}
             <div className="h-[env(safe-area-inset-bottom,0px)]" />
           </div>
         </div>

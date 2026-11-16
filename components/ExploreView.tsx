@@ -1,33 +1,97 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
-import { exploreTopics } from '../data/exploreTopics';
+import { exploreTopics, ExploreTopic } from '../data/exploreTopics';
 
 interface ExploreViewProps {
   onSelectTopic: (topicTitle: string) => void;
 }
 
-const categories = ["Todos", "Sociedade", "Meio Ambiente", "Tecnologia", "Educação", "Saúde", "Cultura", "Política", "Economia"];
+const categories = [
+  'Todos',
+  'Sociedade',
+  'Meio Ambiente',
+  'Tecnologia',
+  'Educação',
+  'Saúde',
+  'Cultura',
+  'Política',
+  'Economia',
+];
 const ITEMS_PER_PAGE = 9;
 
-const PROJECT_COVERS = [
-  '/assets/covers/cover-1.jpg',
-  '/assets/covers/cover-2.jpg',
-  '/assets/covers/cover-3.jpg',
-  '/assets/covers/cover-4.jpg',
-  '/assets/covers/cover-5.jpg',
+// Mapeamento de capas fotográficas reais por categoria temática
+const CATEGORY_COVERS: Record<string, string> = {
+  Sociedade: '/assets/covers/cover-sociedade.jpg',
+  'Meio Ambiente': '/assets/covers/cover-meio-ambiente.jpg',
+  Tecnologia: '/assets/covers/cover-tecnologia.jpg',
+  Educação: '/assets/covers/cover-educacao.jpg',
+  Saúde: '/assets/covers/cover-saude.jpg',
+  Cultura: '/assets/covers/cover-cultura.jpg',
+  Política: '/assets/covers/cover-politica.jpg',
+  Economia: '/assets/covers/cover-economia.jpg',
+};
+
+// Fotos editoriais e fotojornalísticas reais por palavras-chave do ENEM
+const THEMATIC_PHOTOS: { keywords: string[]; url: string }[] = [
+  {
+    keywords: ['amazônia', 'floresta', 'clima', 'desmatamento', 'ambiental', 'indígena', 'queimadas', 'sustentabilidade'],
+    url: '/assets/covers/cover-meio-ambiente.jpg',
+  },
+  {
+    keywords: ['fome', 'alimentar', 'insegurança', 'rua', 'pobreza', 'desigualdade', 'moradia', 'social', 'cidadania', 'violência', 'mulher'],
+    url: '/assets/covers/cover-sociedade.jpg',
+  },
+  {
+    keywords: ['inteligência artificial', 'ia', 'algoritmo', 'tecnologia', 'digital', 'dados', 'internet', 'redes sociais', 'telas', 'cibernético'],
+    url: '/assets/covers/cover-tecnologia.jpg',
+  },
+  {
+    keywords: ['educação', 'escola', 'ensino', 'leitura', 'professores', 'alfabetização', 'livro', 'aluno', 'evasão'],
+    url: '/assets/covers/cover-educacao.jpg',
+  },
+  {
+    keywords: ['saúde', 'sus', 'mental', 'vacina', 'médic', 'hospital', 'ansiedade', 'doença', 'obesidade'],
+    url: '/assets/covers/cover-saude.jpg',
+  },
+  {
+    keywords: ['cultura', 'cinema', 'arte', 'teatro', 'patrimônio', 'literatura', 'música', 'história', 'tradição'],
+    url: '/assets/covers/cover-cultura.jpg',
+  },
+  {
+    keywords: ['política', 'democracia', 'cidadania', 'voto', 'justiça', 'direitos', 'eleiç', 'leis', 'corrupção', 'transparência'],
+    url: '/assets/covers/cover-politica.jpg',
+  },
+  {
+    keywords: ['economia', 'dívida', 'trabalho', 'emprego', 'renda', 'financeir', 'inflação', 'mercado', 'consumo', 'empreendedorismo'],
+    url: '/assets/covers/cover-economia.jpg',
+  },
 ];
 
-const getProjectCover = (id: string, index: number) => {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
+const getTopicCover = (topic: { title: string; category?: string }, index = 0): string => {
+  const lowerTitle = (topic.title || '').toLowerCase();
+  for (const item of THEMATIC_PHOTOS) {
+    if (item.keywords.some((kw) => lowerTitle.includes(kw))) {
+      return item.url;
+    }
   }
-  return PROJECT_COVERS[(hash + index) % PROJECT_COVERS.length];
+  if (topic.category && CATEGORY_COVERS[topic.category]) {
+    return CATEGORY_COVERS[topic.category];
+  }
+  const fallbackList = [
+    '/assets/covers/cover-sociedade.jpg',
+    '/assets/covers/cover-educacao.jpg',
+    '/assets/covers/cover-meio-ambiente.jpg',
+    '/assets/covers/cover-tecnologia.jpg',
+    '/assets/covers/cover-saude.jpg',
+    '/assets/covers/cover-cultura.jpg',
+    '/assets/covers/cover-politica.jpg',
+    '/assets/covers/cover-economia.jpg',
+  ];
+  return fallbackList[index % fallbackList.length];
 };
 
 const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [currentPage, setCurrentPage] = useState(1);
 
   // Resetar para página 1 quando filtros mudam
@@ -35,17 +99,21 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory]);
 
-  // Desafio da Semana (simulando um tema em destaque)
-  const featuredTopic = exploreTopics.find(t => t.difficulty === 'Difícil') || exploreTopics[0];
+  // Desafio em Destaque
+  const featuredTopic: ExploreTopic =
+    exploreTopics.find((t) => t.difficulty === 'Difícil') || exploreTopics[0];
 
   const filteredTopics = useMemo(() => {
-    return exploreTopics.filter(topic => {
-      // Remover o tópico em destaque do grid se estivermos na visualização 'Todos' sem busca, para não duplicar
-      const isFeatured = topic.id === featuredTopic.id && selectedCategory === 'Todos' && !searchTerm;
+    return exploreTopics.filter((topic) => {
+      const isFeatured =
+        topic.id === featuredTopic.id && selectedCategory === 'Todos' && !searchTerm;
       if (isFeatured) return false;
 
-      const matchesSearch = topic.title.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "Todos" || topic.category === selectedCategory;
+      const matchesSearch = topic.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'Todos' || topic.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [searchTerm, selectedCategory, featuredTopic.id]);
@@ -64,41 +132,42 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
   };
 
   return (
-    <div className="animate-fade-in pb-24 md:pb-20">
-      
-      {/* Header Section */}
+    <div className="animate-fade-in pb-24 md:pb-20 max-w-7xl mx-auto">
+      {/* Header Section — Tipografia Editorial Sólida Sem Gradiente de IA */}
       <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-on-surface tracking-tighter mb-4">
-          Central de <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Missões</span>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-3">
+          Central de Missões
         </h1>
-        <p className="text-sm sm:text-lg text-on-surface-variant font-medium px-2">
-          Escolha seu desafio, acumule XP e domine a arte da redação.
+        <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 font-medium px-2 max-w-xl mx-auto leading-relaxed">
+          Temas reais no padrão ENEM para praticar sua redação, repertório sociocultural e proposta de intervenção.
         </p>
       </div>
 
       {/* Search & Filter Bar */}
-      <div className="sticky top-16 sm:top-24 z-40 bg-surface/80 backdrop-blur-xl p-3 sm:p-4 rounded-2xl sm:rounded-3xl ghost-border shadow-ambient mb-6 sm:mb-12">
-        <div className="flex flex-col lg:flex-row gap-4">
+      <div className="sticky top-16 sm:top-20 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-sm mb-8 sm:mb-10">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4">
           <div className="relative flex-1">
-            <span className="material-icons-outlined absolute left-5 top-1/2 -translate-y-1/2 text-primary text-2xl">search</span>
+            <span className="material-icons-outlined absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 text-slate-400 text-xl sm:text-2xl">
+              search
+            </span>
             <input
               type="text"
-              placeholder="Busque por 'Inteligência Artificial'..."
+              placeholder="Buscar tema (ex: 'Inteligência Artificial', 'Fome', 'Amazônia')..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-11 sm:pl-14 pr-4 sm:pr-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-surface-container-low border-transparent focus:bg-white dark:focus:bg-black focus:border-primary/20 focus:ring-4 focus:ring-primary/10 text-on-surface font-bold transition-all outline-none text-sm sm:text-base uppercase tracking-wider"
+              className="w-full pl-11 sm:pl-13 pr-4 sm:pr-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-slate-100/80 dark:bg-slate-800/80 border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 text-slate-900 dark:text-white font-semibold transition-all outline-none text-xs sm:text-sm tracking-wide"
             />
           </div>
-          
-          <div className="flex gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide items-center">
-            {categories.slice(0, 5).map(category => (
+
+          <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1 lg:pb-0 scrollbar-hide items-center">
+            {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`whitespace-nowrap px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl text-xs sm:text-sm font-black transition-all border ${
-                  selectedCategory === category 
-                    ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 border-transparent shadow-lg transform scale-105" 
-                    : "bg-transparent text-on-surface-variant dark:text-on-surface-variant ghost-border hover:border-gray-300 dark:hover:border-slate-600"
+                className={`whitespace-nowrap px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all ${
+                  selectedCategory === category
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
                 {category}
@@ -108,79 +177,95 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
         </div>
       </div>
 
-      {/* Desafio da Semana (Hero Banner) */}
+      {/* Desafio da Semana (Foto Documental em Destaque) */}
       {selectedCategory === 'Todos' && !searchTerm && currentPage === 1 && (
         <div
-          className="mb-10 relative overflow-hidden group rounded-[28px] cursor-pointer min-h-[260px] sm:min-h-[300px] p-6 sm:p-10 flex flex-col justify-between shadow-ambient border border-white/10 transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl"
+          className="mb-8 sm:mb-10 relative overflow-hidden group rounded-3xl cursor-pointer min-h-[260px] sm:min-h-[320px] p-6 sm:p-10 flex flex-col justify-between shadow-lg border border-slate-200/40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
           onClick={() => onSelectTopic(featuredTopic.title)}
         >
-          {/* Background Cover Image */}
+          {/* Foto Real de Fundo */}
           <img
-            src={getProjectCover(featuredTopic.id, 0)}
-            alt=""
+            src={getTopicCover(featuredTopic, 0)}
+            alt={featuredTopic.title}
             className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none"
           />
 
-          {/* Scrim Overlay */}
+          {/* Scrim Escuro Fotográfico para Alto Contraste */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/25 pointer-events-none"
+            className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/30 pointer-events-none group-hover:from-black/90 transition-colors"
           />
 
-          {/* Top: Logo Pequena */}
-          <div className="relative z-10 flex items-center">
-            <img
-              src="/assets/littera-logo.png"
-              alt="Littera"
-              className="h-4 sm:h-5 w-auto brightness-0 invert opacity-80 group-hover:opacity-100 transition-opacity"
-            />
+          {/* Top: Categoria e Destaque */}
+          <div className="relative z-10 flex items-center justify-between">
+            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/20 backdrop-blur-md text-white border border-white/20">
+              Tema em Destaque • {featuredTopic.category}
+            </span>
+            <span className="text-white/80 text-xs font-semibold flex items-center gap-1 bg-black/30 px-3 py-1 rounded-full backdrop-blur-md">
+              <span className="material-icons-outlined text-sm">stars</span>
+              {featuredTopic.difficulty}
+            </span>
           </div>
 
-          {/* Bottom: Apenas o Título */}
+          {/* Bottom: Título e Ação */}
           <div className="relative z-10 max-w-3xl">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight text-white group-hover:text-blue-100 transition-colors drop-shadow-md">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold leading-tight text-white group-hover:text-blue-100 transition-colors drop-shadow-md mb-3">
               {featuredTopic.title}
             </h2>
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-blue-200 group-hover:text-white transition-colors">
+              <span className="material-icons-outlined text-base">edit_note</span>
+              <span>Iniciar Redação sobre este Tema &rarr;</span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Grid de Cards (Capas de Projetos) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-7 mb-12">
+      {/* Grid de Cards Temáticos (Fotos Reais que Condizem com a Redação) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 sm:gap-6 mb-12">
         {currentTopics.map((topic, index) => (
-          <div 
+          <div
             key={topic.id}
             onClick={() => onSelectTopic(topic.title)}
-            className="group relative rounded-[26px] overflow-hidden cursor-pointer h-[360px] sm:h-[400px] p-6 sm:p-7 flex flex-col justify-between transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl shadow-ambient border border-white/10"
-            style={{ animationDelay: `${index * 50}ms` }}
+            className="group relative rounded-2xl sm:rounded-3xl overflow-hidden cursor-pointer h-[320px] sm:h-[360px] p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl border border-slate-200/40 shadow-sm"
+            style={{ animationDelay: `${index * 40}ms` }}
           >
-            {/* Background Cover Image */}
+            {/* Foto Real de Fundo Correspondente ao Tema */}
             <img
-              src={getProjectCover(topic.id, index)}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 pointer-events-none"
+              src={getTopicCover(topic, index)}
+              alt={topic.title}
+              className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105 pointer-events-none"
             />
 
-            {/* Scrim Overlay for Contrast */}
+            {/* Scrim Escuro Fotográfico Suave */}
             <div
               aria-hidden="true"
-              className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/40 to-black/20 group-hover:from-black/90 transition-colors pointer-events-none"
+              className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-black/25 group-hover:from-black/90 transition-colors pointer-events-none"
             />
 
-            {/* Top: Logo Pequena */}
+            {/* Top: Categoria */}
             <div className="relative z-10 flex items-center justify-between">
-              <img
-                src="/assets/littera-logo.png"
-                alt="Littera"
-                className="h-3.5 sm:h-4 w-auto brightness-0 invert opacity-75 group-hover:opacity-100 transition-opacity"
-              />
+              <span className="px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-black/50 backdrop-blur-md text-white/90 border border-white/15">
+                {topic.category}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/15 text-white/90 backdrop-blur-md">
+                {topic.difficulty}
+              </span>
             </div>
 
-            {/* Bottom: Apenas o Título */}
+            {/* Bottom: Título e CTA de Escrita */}
             <div className="relative z-10">
-              <h3 className="text-base sm:text-lg font-bold text-white leading-snug line-clamp-4 group-hover:text-blue-100 transition-colors drop-shadow-md">
+              <h3 className="text-base sm:text-lg font-bold text-white leading-snug line-clamp-3 group-hover:text-blue-200 transition-colors drop-shadow-sm mb-3">
                 {topic.title}
               </h3>
+              <div className="pt-2.5 border-t border-white/15 flex items-center justify-between text-xs text-white/80 font-medium">
+                <span className="inline-flex items-center gap-1.5 text-blue-300 font-semibold group-hover:text-white transition-colors">
+                  <span className="material-icons-outlined text-sm">edit_note</span>
+                  <span>Escrever Redação</span>
+                </span>
+                <span className="material-icons-outlined text-base transform group-hover:translate-x-1 transition-transform">
+                  arrow_forward
+                </span>
+              </div>
             </div>
           </div>
         ))}
@@ -188,40 +273,39 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4">
-          <button 
+        <div className="flex justify-center items-center gap-3">
+          <button
             onClick={() => handlePageChange(currentPage - 1)}
             disabled={currentPage === 1}
-            className="w-12 h-12 rounded-2xl bg-surface-container-lowest ghost-border flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/30 disabled:opacity-30 disabled:hover:text-on-surface-variant transition-all shadow-sm"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 disabled:opacity-30 transition-all shadow-sm"
           >
-            <span className="material-icons-outlined">chevron_left</span>
+            <span className="material-icons-outlined text-lg">chevron_left</span>
           </button>
-          
-          <div className="px-6 py-3 bg-surface-container-lowest rounded-2xl ghost-border shadow-sm">
-            <span className="text-sm font-black text-on-surface">
-              Página <span className="text-primary">{currentPage}</span> de {totalPages}
+
+          <div className="px-5 py-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white">
+              Página <span className="text-blue-600">{currentPage}</span> de {totalPages}
             </span>
           </div>
 
-          <button 
+          <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={currentPage === totalPages}
-            className="w-12 h-12 rounded-2xl bg-surface-container-lowest ghost-border flex items-center justify-center text-on-surface-variant hover:text-primary hover:border-primary/30 disabled:opacity-30 disabled:hover:text-on-surface-variant transition-all shadow-sm"
+            className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-blue-600 disabled:opacity-30 transition-all shadow-sm"
           >
-            <span className="material-icons-outlined">chevron_right</span>
+            <span className="material-icons-outlined text-lg">chevron_right</span>
           </button>
         </div>
       )}
 
       {filteredTopics.length === 0 && (
-         <div className="text-center py-20 opacity-50">
-           <p className="text-xl font-bold">Nenhum tema encontrado.</p>
-           <p className="text-sm">Tente buscar com outros termos.</p>
-         </div>
+        <div className="text-center py-20 text-slate-500">
+          <p className="text-lg font-bold">Nenhum tema encontrado.</p>
+          <p className="text-sm">Tente buscar por outras palavras-chave.</p>
+        </div>
       )}
     </div>
   );
 };
 
 export default ExploreView;
-    

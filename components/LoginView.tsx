@@ -126,14 +126,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
   };
 
   return (
-    <div className="bg-[#f6f8fb] min-h-screen flex items-center justify-center p-4 md:p-8 font-sans antialiased text-slate-800">
+    <div className="bg-[#f6f8fb] min-h-screen flex items-center justify-center p-3 sm:p-6 md:p-8 font-sans antialiased text-slate-800">
       {/* Container Principal do Card de Autenticação */}
       <main
-        className="w-full max-w-[1020px] bg-white rounded-[32px] p-3 sm:p-4 auth-card-shadow flex flex-col md:flex-row items-stretch border border-slate-100/80"
+        className="w-full max-w-[1020px] bg-white rounded-3xl md:rounded-[32px] p-4 sm:p-5 md:p-4 auth-card-shadow flex flex-col md:flex-row items-stretch border border-slate-100/80"
         data-purpose="auth-container"
       >
-        {/* Banner Esquerdo - Identidade Visual & Mensagem Conceitual */}
-        <div className="w-full md:w-[46%] rounded-[24px] bg-gradient-to-b from-[#2563EB] via-[#1D4ED8] to-[#1E3A8A] p-7 md:p-10 flex flex-col justify-between relative overflow-hidden shrink-0 min-h-[380px] md:min-h-[580px]">
+        {/* Banner Esquerdo - Identidade Visual & Mensagem Conceitual (Oculto no mobile conforme solicitado) */}
+        <div className="hidden md:flex md:w-[46%] rounded-[24px] bg-gradient-to-b from-[#2563EB] via-[#1D4ED8] to-[#1E3A8A] p-7 md:p-10 flex-col justify-between relative overflow-hidden shrink-0 min-h-[580px]">
           {/* Logo / Link Home */}
           <div className="relative z-10 flex items-center justify-between">
             <a
@@ -179,23 +179,38 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
         </div>
 
         {/* Lado Direito - Painel de Acesso / Formulário */}
-        <div className="w-full md:w-[54%] py-8 px-5 sm:px-8 md:py-10 md:px-12 flex flex-col justify-center">
+        <div className="w-full md:w-[54%] py-2 px-1 sm:px-4 md:py-10 md:px-12 flex flex-col justify-center">
+          {/* Logo no Mobile */}
+          <div className="flex md:hidden items-center justify-between mb-4">
+            <a
+              href="/"
+              className="inline-flex items-center focus:outline-none"
+              title="Voltar para a página inicial"
+            >
+              <img
+                src="/assets/littera-logo.png"
+                alt="Littera"
+                className="h-7 w-auto object-contain"
+              />
+            </a>
+          </div>
+
           {/* Segmented Tabs / Seletor de Perfil */}
-          <div className="mb-6" data-purpose="role-selector">
-            <div className="inline-flex bg-[#f1f4f9] p-1.5 rounded-2xl w-full justify-between gap-1 border border-slate-200/50">
+          <div className="mb-4 sm:mb-6" data-purpose="role-selector">
+            <div className="inline-flex bg-[#f1f4f9] p-1 rounded-2xl w-full justify-between gap-1 border border-slate-200/50">
               {/* Aluno */}
               <button
                 type="button"
                 aria-selected={userType === 'student'}
                 onClick={() => setUserType('student')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:py-2.5 sm:px-3 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-200 min-w-0 ${
                   userType === 'student'
                     ? 'bg-white pill-shadow text-[#2F5BFF]'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <svg
-                  className={`w-4 h-4 ${userType === 'student' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
+                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${userType === 'student' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
                   fill="none"
                   stroke="currentColor"
                   strokeLinecap="round"
@@ -206,7 +221,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                   <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
                   <path d="M6 12v5c3 3 9 3 12 0v-5" />
                 </svg>
-                <span>Aluno</span>
+                <span className="truncate">Aluno</span>
               </button>
 
               {/* Professor */}
@@ -214,14 +229,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 type="button"
                 aria-selected={userType === 'teacher'}
                 onClick={() => setUserType('teacher')}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:py-2.5 sm:px-3 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-200 min-w-0 ${
                   userType === 'teacher'
                     ? 'bg-white pill-shadow text-[#2F5BFF]'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <svg
-                  className={`w-4 h-4 ${userType === 'teacher' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
+                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${userType === 'teacher' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
                   fill="none"
                   stroke="currentColor"
                   strokeLinecap="round"
@@ -233,7 +248,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                   <circle cx="12" cy="10" r="3" />
                   <path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
                 </svg>
-                <span>Professor</span>
+                <span className="truncate">Professor</span>
               </button>
 
               {/* Escola */}
@@ -247,14 +262,14 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                   }
                   setUserType('school_admin');
                 }}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                className={`flex-1 flex items-center justify-center gap-1 sm:gap-1.5 py-2 px-1.5 sm:py-2.5 sm:px-3 rounded-xl text-xs sm:text-[13px] font-semibold transition-all duration-200 min-w-0 ${
                   userType === 'school_admin'
                     ? 'bg-white pill-shadow text-[#2F5BFF]'
                     : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <svg
-                  className={`w-4 h-4 ${userType === 'school_admin' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
+                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${userType === 'school_admin' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
                   fill="none"
                   stroke="currentColor"
                   strokeLinecap="round"
@@ -271,19 +286,19 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                   <path d="M9 18h1" />
                   <path d="M14 18h1" />
                 </svg>
-                <span>Escola</span>
+                <span className="truncate">Escola</span>
               </button>
             </div>
           </div>
 
           {/* Cabeçalho da Seção */}
-          <div className="mb-6" data-purpose="form-header">
-            <h2 className="text-2xl md:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
+          <div className="mb-4 sm:mb-6" data-purpose="form-header">
+            <h2 className="text-xl sm:text-2xl md:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
               {isLogin ? 'Acessar sua conta' : 'Resgatar Convite'}
             </h2>
-            <p className="text-[13px] text-slate-500 mt-1.5 leading-relaxed">
+            <p className="text-xs sm:text-[13px] text-slate-500 mt-1 leading-relaxed">
               {isLogin
-                ? 'Acesse suas redações, anotações e atividades a qualquer momento e continue de onde parou.'
+                ? 'Acesse suas redações, anotações e atividades a qualquer momento.'
                 : 'Defina sua senha de acesso vinculada ao convite recebido da sua instituição.'}
             </p>
           </div>

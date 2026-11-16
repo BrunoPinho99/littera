@@ -170,15 +170,15 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
 
           <div className="p-5 sm:p-6 md:p-8 flex flex-col items-center text-center relative z-20">
 
-            {/* Floating badge — Secondary button style */}
-            <div className="mb-3 sm:mb-4 animate-float">
+            {/* Badge estático — Gerar Novo Tema */}
+            <div className="mb-3 sm:mb-4">
               <button
                 onClick={onRefresh}
                 disabled={isLoading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-surface-container-lowest rounded-pill shadow-card ghost-border text-primary hover:bg-primary hover:text-on-primary transition-all duration-300 group/badge"
+                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-surface-container-lowest rounded-pill shadow-sm border border-slate-200/80 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group/badge"
               >
-                <span className={`material-icons-outlined text-sm transition-transform duration-700 ${isLoading ? 'animate-spin' : 'group-hover/badge:rotate-180'}`}>autorenew</span>
-                <span className="text-label-sm uppercase tracking-widest">Gerar Novo Tema</span>
+                <span className={`material-icons-outlined text-sm transition-transform duration-500 ${isLoading ? 'animate-spin' : 'group-hover/badge:rotate-180 text-blue-600'}`}>autorenew</span>
+                <span className="text-label-sm uppercase tracking-widest font-bold">Gerar Novo Tema</span>
               </button>
             </div>
 
