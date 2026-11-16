@@ -99,7 +99,7 @@ export const FloatingNavbar: React.FC = () => {
           className="inline-flex items-center justify-center text-[#0A0A0B] select-none shrink-0"
           aria-label="Littera Início"
         >
-          <img src="/assets/littera-logo.png" alt="Littera" className="block h-7 lg:h-[34px] w-auto" />
+          <img src="/assets/littera-logo.png" alt="Littera" className="block h-[20px] sm:h-[22px] lg:h-[23px] w-auto object-contain transition-transform duration-200 hover:scale-[1.02]" />
         </a>
 
         {/* Centered Desktop Navigation */}

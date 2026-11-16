@@ -163,7 +163,7 @@ const Navbar: React.FC<NavbarProps> = ({
               >
                 <img
                   alt="Littera Logo"
-                  className="w-auto object-contain h-5 sm:h-5.5 md:h-6 transition-transform duration-200 group-hover:scale-[1.02]"
+                  className="w-auto object-contain h-[20px] sm:h-[22px] md:h-[24px] transition-transform duration-200 group-hover:scale-[1.02]"
                   src="/assets/littera-logo.png"
                 />
               </a>

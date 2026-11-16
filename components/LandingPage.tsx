@@ -65,7 +65,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onDemoClick: _onDemoClick, on
                 transition: 'all 0.4s ease',
             }}>
                 <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 16px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <img src="/assets/littera-logo.png" alt="Littera" style={{ display: 'block', height: 32, width: 'auto' }} />
+                    <img src="/assets/littera-logo.png" alt="Littera" style={{ display: 'block', height: 24, width: 'auto' }} />
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <button className="sl-btn-secondary" onClick={() => navigate('/login')}>Entrar</button>
