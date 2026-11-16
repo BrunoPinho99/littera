@@ -297,30 +297,6 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, onRefresh, isLoading, onWr
           </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes scaleUp {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .animate-scale-up {
-          animation: scaleUp 0.3s ease-out forwards;
-        }
-        @keyframes countdownNumberPop {
-          0% { opacity: 0; transform: scale(0.3) rotate(-10deg); }
-          60% { opacity: 1; transform: scale(1.1) rotate(2deg); }
-          100% { opacity: 1; transform: scale(1) rotate(0deg); }
-        }
-        @keyframes countdownGoFlash {
-          0% { opacity: 0; transform: scale(0.5); }
-          50% { opacity: 1; transform: scale(1.2); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        @keyframes countdownPulseGlow {
-          0%, 100% { opacity: 0.5; transform: scale(1); }
-          50% { opacity: 1; transform: scale(1.05); }
-        }
-      `}</style>
     </>
   );
 };
