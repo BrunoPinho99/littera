@@ -85,16 +85,22 @@ Deno.serve(async (req: Request) => {
     const planPrice = isYearly ? monthlyTotal * 12 : monthlyTotal
 
     // 2. Buscar ou Criar Customer no Asaas
+    const cleanCnpj = cnpj ? String(cnpj).replace(/\D/g, '') : ''
+    const cleanCpf = cpf ? String(cpf).replace(/\D/g, '') : ''
+    const asaasCpfCnpj = cleanCnpj || cleanCpf
+
     let asaasCustomerId = null
-    const searchRes = await fetch(`${ASAAS_BASE}/customers?cpfCnpj=${cnpj}`, { headers: asaasHeaders })
-    if (searchRes.ok) {
-      const searchData = await searchRes.json()
-      if (searchData.data?.length > 0) asaasCustomerId = searchData.data[0].id
+    if (asaasCpfCnpj) {
+      const searchRes = await fetch(`${ASAAS_BASE}/customers?cpfCnpj=${asaasCpfCnpj}`, { headers: asaasHeaders })
+      if (searchRes.ok) {
+        const searchData = await searchRes.json()
+        if (searchData.data?.length > 0) asaasCustomerId = searchData.data[0].id
+      }
     }
 
     const customerPayload = {
       name: schoolName,
-      cpfCnpj: cpf || cnpj,
+      cpfCnpj: asaasCpfCnpj,
       email: email,
       phone: whatsapp,
       mobilePhone: whatsapp,
@@ -177,21 +183,37 @@ Deno.serve(async (req: Request) => {
     // 5. Verificar se o usuário já tem uma escola vinculada
     const { data: existingProfile } = await supabase.from('profiles').select('school_id').eq('id', createdAuthUserId).single();
     let createdSchoolId = existingProfile?.school_id;
+    const normalizedBillingCycle = isYearly ? 'YEARLY' : 'MONTHLY';
 
     if (!createdSchoolId) {
-      // Verificar se já existe escola com este CNPJ (tentativa anterior)
+      // Verificar se já existe escola com este CNPJ
       const { data: existingSchool } = await supabase
         .from('schools')
-        .select('id')
-        .eq('cnpj', cnpj)
-        .single()
+        .select('id, subscription_status')
+        .eq('cnpj', cleanCnpj || cnpj)
+        .maybeSingle()
 
       if (existingSchool) {
-        // Escola já existe — atualizar dados (cliente Asaas)
+        // Verificar se a escola já pertence a outro usuário/dono ou já tem assinatura ativa
+        const { data: existingOwners } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('school_id', existingSchool.id)
+          .in('role', ['owner', 'school_admin'])
+
+        const hasOtherOwner = (existingOwners || []).some((o: { id: string }) => o.id !== createdAuthUserId)
+        if (hasOtherOwner || existingSchool.subscription_status === 'active') {
+          return jsonResponse({
+            error: 'Já existe uma instituição cadastrada com este CNPJ. Faça login com a conta da diretoria ou entre em contato com o suporte.'
+          }, 409)
+        }
+
+        // Escola sem outro dono e não ativa (tentativa interrompida do mesmo usuário)
         createdSchoolId = existingSchool.id
         await supabase.from('schools').update({
           asaas_customer_id: asaasCustomerId,
           student_count: studentCount,
+          billing_cycle: normalizedBillingCycle,
           subscription_status: 'inactive'
         }).eq('id', createdSchoolId)
       } else {
@@ -200,9 +222,10 @@ Deno.serve(async (req: Request) => {
           .from('schools')
           .insert({
             name: schoolName.trim(),
-            cnpj: cnpj,
+            cnpj: cleanCnpj || cnpj,
             email: email.toLowerCase().trim(),
             student_count: studentCount,
+            billing_cycle: normalizedBillingCycle,
             asaas_customer_id: asaasCustomerId,
             subscription_status: 'inactive',
             cep: postalCode?.replace(/\D/g, ''),
@@ -221,9 +244,10 @@ Deno.serve(async (req: Request) => {
         createdSchoolId = schoolData.id
       }
     } else {
-      // Usuário já tem escola, apenas atualizamos a referência do Asaas
+      // Usuário já tem escola, atualizamos a referência do Asaas e o ciclo sem rebaixar status ativo
       await supabase.from('schools').update({
         asaas_customer_id: asaasCustomerId,
+        billing_cycle: normalizedBillingCycle,
       }).eq('id', createdSchoolId);
     }
 

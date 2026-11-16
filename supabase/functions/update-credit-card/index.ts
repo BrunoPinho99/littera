@@ -43,24 +43,34 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    let profileSchoolId = user.user_metadata?.school_id
-    if (!profileSchoolId) {
-      const { data: profile } = await supabaseAdmin
-        .from('profiles')
-        .select('school_id')
-        .eq('id', user.id)
-        .single()
-      profileSchoolId = profile?.school_id
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('school_id, role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !profile?.school_id) {
+      return new Response(JSON.stringify({ error: 'Usuário não vinculado a uma escola.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    const targetSchoolId = requestedSchoolId || profileSchoolId
-    if (!targetSchoolId) {
-      throw new Error('Parâmetro schoolId obrigatório.')
+    if (!['owner', 'school_admin'].includes(profile.role || '')) {
+      return new Response(JSON.stringify({ error: 'Permissão negada. Apenas administradores da escola podem acessar faturas e cartão.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
-    if (profileSchoolId && requestedSchoolId && profileSchoolId !== requestedSchoolId) {
-      throw new Error('Permissão negada.')
+    if (requestedSchoolId && requestedSchoolId !== profile.school_id) {
+      return new Response(JSON.stringify({ error: 'Permissão negada.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
+
+    const targetSchoolId = profile.school_id
 
     const { data: school, error: schoolError } = await supabaseAdmin
       .from('schools')

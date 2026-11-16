@@ -140,10 +140,10 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
         return;
       }
 
-      window.open('/checkout', '_blank', 'noopener,noreferrer');
+      window.open('/cadastro', '_blank', 'noopener,noreferrer');
     } catch (err) {
       console.error('Erro ao buscar fatura Asaas:', err);
-      window.open('/checkout', '_blank', 'noopener,noreferrer');
+      window.open('/cadastro', '_blank', 'noopener,noreferrer');
     } finally {
       setIsOpeningInvoice(false);
     }

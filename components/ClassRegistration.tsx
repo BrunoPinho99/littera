@@ -134,7 +134,7 @@ const ClassRegistration: React.FC = () => {
                             </div>
                             <h2 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Cadastro Concluído!</h2>
                             <p style={{ color: '#475569', fontSize: 16, lineHeight: 1.6 }}>
-                                Enviamos um e-mail para <strong>{email}</strong> com o seu link mágico de acesso à plataforma.
+                                Enviamos um e-mail para <strong>{email}</strong> com o seu link de ativação de acesso à plataforma.
                             </p>
                             <p style={{ color: '#64748b', fontSize: 14, marginTop: 16 }}>
                                 Verifique também sua caixa de spam ou lixo eletrônico.

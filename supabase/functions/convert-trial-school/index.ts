@@ -23,20 +23,26 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Authenticate the request comes from an admin
-    const authHeader = req.headers.get('Authorization')
+    // Authenticate the request comes from an immutable app_metadata littera_admin
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: corsHeaders })
     }
 
-    const supabaseClient = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
     )
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user || user.user_metadata?.role !== 'littera_admin') {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+    if (userError || !user || user.app_metadata?.role !== 'littera_admin') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 403, headers: corsHeaders })
     }
 
@@ -49,18 +55,6 @@ Deno.serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-
-    // Use service role to bypass RLS for updates
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    )
 
     // 1. Update school
     const { error: schoolError } = await supabaseAdmin

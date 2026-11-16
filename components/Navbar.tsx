@@ -22,13 +22,15 @@ const Navbar: React.FC<NavbarProps> = ({
   user,
   notifications,
   onMarkAsRead: _onMarkAsRead,
-  activeChallengesCount: _activeChallengesCount,
-  onOpenChallenge: _onOpenChallenge,
+  activeChallengesCount = 0,
+  onOpenChallenge,
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userRank, setUserRank] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const isDemoMode = localStorage.getItem('littera_demo_mode') === 'true';
+  const isDemoMode =
+    localStorage.getItem('littera_demo_mode') === 'true' &&
+    (!user?.id || String(user.id).startsWith('demo'));
 
   const firstName =
     user?.user_metadata?.full_name?.split(' ')[0] ||
@@ -60,7 +62,7 @@ const Navbar: React.FC<NavbarProps> = ({
   const handleLogoClick = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (userType === 'school_admin' || userType === 'teacher') {
-      onViewChange('inst-students');
+      onViewChange('inst-overview');
     } else {
       onViewChange('practice');
     }
@@ -200,6 +202,21 @@ const Navbar: React.FC<NavbarProps> = ({
 
             {/* Right Action CTAs */}
             <div className="flex items-center gap-1 sm:gap-1.5">
+              {userType === 'student' && activeChallengesCount > 0 && onOpenChallenge && (
+                <button
+                  onClick={onOpenChallenge}
+                  aria-label="Desafios do Professor"
+                  title="Abrir Desafio do Professor"
+                  type="button"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200/80 text-[11px] font-bold transition-colors mr-0.5"
+                >
+                  <span className="material-icons-outlined text-[15px]">emoji_events</span>
+                  <span className="hidden sm:inline">Desafios</span>
+                  <span className="px-1.5 py-0.2 bg-amber-500 text-white rounded-full text-[9.5px] font-black leading-tight">
+                    {activeChallengesCount}
+                  </span>
+                </button>
+              )}
               {isDemoMode ? (
                 /* Demo mode: NO "Criar Conta" button as requested, only exit icon */
                 <button
@@ -267,7 +284,32 @@ const Navbar: React.FC<NavbarProps> = ({
                               {userRank.label}
                             </span>
                           )}
+                          {userType === 'school_admin' && (
+                            <span className="inline-block mt-0.5 text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                              Administrador Escolar
+                            </span>
+                          )}
+                          {userType === 'teacher' && (
+                            <span className="inline-block mt-0.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                              Professor(a)
+                            </span>
+                          )}
                         </div>
+
+                        {(userType === 'school_admin' || userType === 'teacher') && (
+                          <button
+                            onClick={() => {
+                              onViewChange('inst-overview');
+                              setIsMenuOpen(false);
+                            }}
+                            className="w-full px-3.5 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-2 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                            </svg>
+                            Painel de Controle
+                          </button>
+                        )}
 
                         <button
                           onClick={() => {

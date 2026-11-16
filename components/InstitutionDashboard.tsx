@@ -12,6 +12,7 @@ import {
   createClass,
   createProfessor,
   createStudent,
+  createStudentsBulk,
   createAssignment,
   revokeInvite
 } from '../services/databaseService';
@@ -20,7 +21,7 @@ import RankingView from './RankingView';
 import { LegalModal } from './LegalModal';
 
 interface InstitutionDashboardProps {
-  initialTab?: 'overview' | 'students' | 'essays' | 'ranking' | 'classes' | 'staff' | 'settings' | 'subscription';
+  initialTab?: 'overview' | 'students' | 'essays' | 'ranking' | 'classes' | 'staff' | 'settings' | 'subscription' | 'profile';
   userType?: 'teacher' | 'school_admin';
 }
 
@@ -30,7 +31,14 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const navigate = useNavigate();
 
   // Helper: busca o school_id real do usuário (metadados ou tabela profiles)
-  const getResolvedSchoolId = async (session: any): Promise<string> => {
+  const getResolvedSchoolId = async (session: any): Promise<string | null> => {
+    const isDemo = Boolean(
+      session?.user?.id?.startsWith('demo') ||
+      (localStorage.getItem('littera_demo_mode') === 'true' && !session?.user?.id)
+    );
+    if (isDemo) {
+      return 'demo-school';
+    }
     const fromMeta = session?.user?.user_metadata?.school_id;
     if (fromMeta) return fromMeta;
     if (session?.user?.id) {
@@ -38,10 +46,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         .from('profiles')
         .select('school_id')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
       if (data?.school_id) return data.school_id;
     }
-    return 'demo-school';
+    return null;
   };
   const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
@@ -99,10 +107,17 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
   const [isLegalModalOpen, setIsLegalModalOpen] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<'termos' | 'privacidade' | 'lgpd' | 'seguranca'>('termos');
 
+  // States for Essay Detail Modal
+  const [selectedEssay, setSelectedEssay] = useState<SavedEssay | null>(null);
+
   // Sync activeTab with prop when it changes (navigation from sidebar/navbar)
   useEffect(() => {
+    if (initialTab === 'profile') {
+      navigate('/app/profile');
+      return;
+    }
     setActiveTab(initialTab);
-  }, [initialTab]);
+  }, [initialTab, navigate]);
 
   // Reset page when tab changes
   useEffect(() => {
@@ -118,40 +133,51 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           setUserEmail(session.user.email);
         }
         const userMetadata = session?.user?.user_metadata;
-        const userRole = userMetadata?.user_type || 'student';
-        const classId = userRole === 'teacher' ? userMetadata?.class_id : undefined;
+        const userRole = userType || userMetadata?.user_type || 'school_admin';
 
-        // Busca o school_id dos metadados OU direto da tabela profiles (fallback para novos usuários)
-        let schoolId = userMetadata?.school_id;
+        const isDemo = Boolean(
+          session?.user?.id?.startsWith('demo') ||
+          (localStorage.getItem('littera_demo_mode') === 'true' && !session?.user?.id)
+        );
 
-        // Fallback 1: localStorage (logo após o cadastro, antes do metadata propagar)
-        if (!schoolId) {
-          schoolId = localStorage.getItem('checkout_schoolId') || undefined;
-        }
+        let schoolId: string | null = isDemo ? 'demo-school' : (userMetadata?.school_id || null);
+        let classId: string | undefined =
+          userRole === 'teacher'
+            ? (userMetadata?.class_id || (isDemo ? 'turma-demo-1' : undefined))
+            : undefined;
 
-        // Fallback 2: tabela profiles
-        if (!schoolId && session?.user?.id) {
+        // Fallback: tabela profiles (para school_id e class_id quando metadados ainda não propagaram)
+        if (!isDemo && session?.user?.id && (!schoolId || (userRole === 'teacher' && !classId))) {
           const { data: profileData } = await supabase
             .from('profiles')
-            .select('school_id')
+            .select('school_id, class_id')
             .eq('id', session.user.id)
-            .single();
-          schoolId = profileData?.school_id;
+            .maybeSingle();
+          if (!schoolId && profileData?.school_id) schoolId = profileData.school_id;
+          if (userRole === 'teacher' && !classId && profileData?.class_id) {
+            classId = profileData.class_id;
+          }
         }
 
-        // Só usa 'demo-school' se não houver sessão real
-        if (!schoolId) schoolId = session ? null : 'demo-school';
+        // Fallback adicional: checkout_schoolId apenas se ainda sem schoolId
+        if (!schoolId && !isDemo) {
+          schoolId = localStorage.getItem('checkout_schoolId') || null;
+        }
 
         // Se ainda não temos school_id com sessão real, forçar refresh da sessão e tentar novamente
-        if (!schoolId && session) {
+        if (!schoolId && session && !isDemo) {
           const { data: refreshed } = await supabase.auth.refreshSession();
-          schoolId = refreshed?.session?.user?.user_metadata?.school_id;
+          schoolId = refreshed?.session?.user?.user_metadata?.school_id || null;
         }
 
         if (!schoolId) {
-          console.warn('[InstitutionDashboard] school_id não encontrado. Aguardando...');
+          console.warn('[InstitutionDashboard] school_id não encontrado.');
           setLoading(false);
           return;
+        }
+
+        if (isDemo && !session?.user?.email) {
+          setUserEmail(userRole === 'teacher' ? 'professor.demo@littera.com' : 'coordenacao.demo@littera.com');
         }
 
         const [schoolData, classesData, professorsData, studentsData, essaysData] = await Promise.all([
@@ -190,6 +216,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const schoolId = await getResolvedSchoolId(session);
+      if (!schoolId) {
+        showToast('error', 'Escola não identificada', 'Recarregue a página ou faça login novamente.');
+        return;
+      }
 
       const createdClass = await createClass({
         name: newClass.name,
@@ -224,6 +254,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const schoolId = await getResolvedSchoolId(session);
+      if (!schoolId) {
+        showToast('error', 'Escola não identificada', 'Recarregue a página ou faça login novamente.');
+        return;
+      }
 
       const createdProf = await createProfessor({
         name: newProfessor.name,
@@ -266,6 +300,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const schoolId = await getResolvedSchoolId(session);
+      if (!schoolId) {
+        showToast('error', 'Escola não identificada', 'Recarregue a página ou faça login novamente.');
+        return;
+      }
 
       const createdStudent = await createStudent({
         name: newStudent.name,
@@ -391,7 +429,24 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const schoolId = await getResolvedSchoolId(session);
+      if (!schoolId) {
+        showToast('error', 'Escola não identificada', 'Recarregue a página ou faça login novamente.');
+        return;
+      }
       
+      if (schoolId === 'demo-school') {
+        const demoRes = await createStudentsBulk(usersToRegister, 'demo-school');
+        const updatedStudents = await getStudentsByContext(schoolId);
+        setStudents(updatedStudents);
+        showToast('success', '✅ Lote Processado (Demo)!', `${demoRes.success.length} alunos cadastrados em modo demonstração.`);
+        setIsStudentModalOpen(false);
+        setBulkEmails('');
+        setBulkFile(null);
+        setNewStudent({ name: '', email: '', class_id: '', registration_number: '' });
+        if (activeTab !== 'students') setActiveTab('students');
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('bulk-register', {
         body: {
           users: usersToRegister,
@@ -432,6 +487,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const schoolId = await getResolvedSchoolId(session);
+      if (!schoolId) {
+        showToast('error', 'Escola não identificada', 'Recarregue a página ou faça login novamente.');
+        return;
+      }
       if (role === 'professor') {
         await createProfessor({
           name: person.name,
@@ -515,6 +574,10 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const schoolId = await getResolvedSchoolId(session);
+      if (!schoolId) {
+        showToast('error', 'Escola não identificada', 'Recarregue a página ou faça login novamente.');
+        return;
+      }
 
       await createAssignment({
         title: newAssignment.title,
@@ -588,25 +651,33 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       baseTabs.push({ id: 'subscription', label: 'Assinatura', icon: 'credit_card' });
     }
 
+    baseTabs.push({ id: 'profile', label: 'Meu Perfil', icon: 'account_circle' });
+
     return baseTabs;
   }, [userType, userEmail]);
 
-  const currentStudents = useMemo(() => {
-    let filtered = students;
-
+  const filteredStudents = useMemo(() => {
     if (statusFilter === 'active') {
-      filtered = students.filter(s => s.status === 'active' || s.status === 'risk');
-    } else if (statusFilter === 'invited') {
-      filtered = students.filter(s => s.status === 'invited');
+      return students.filter(s => s.status === 'active' || s.status === 'risk');
     }
+    if (statusFilter === 'invited') {
+      return students.filter(s => s.status === 'invited');
+    }
+    return students;
+  }, [students, statusFilter]);
 
-    return filtered.slice(
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
+
+  const currentStudents = useMemo(() => {
+    return filteredStudents.slice(
       (currentPage - 1) * ITEMS_PER_PAGE,
       currentPage * ITEMS_PER_PAGE
     );
-  }, [students, currentPage, statusFilter]);
+  }, [filteredStudents, currentPage]);
 
-  const studentTotalPages = Math.ceil(students.length / ITEMS_PER_PAGE);
+  const studentTotalPages = Math.ceil(filteredStudents.length / ITEMS_PER_PAGE);
 
   const rankingData = useMemo(() => {
     return students.map(s => {
@@ -764,12 +835,14 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       </div>
 
       <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-6 sm:mt-8 mb-3 sm:mb-4 font-display">Painel de Controle</h2>
-      <div className={`grid grid-cols-2 sm:grid-cols-3 ${userType === 'teacher' ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-2.5 sm:gap-4 mb-6 sm:mb-8`}>
+      <div className={`grid grid-cols-2 sm:grid-cols-3 ${userType === 'teacher' ? 'lg:grid-cols-5' : 'lg:grid-cols-4 xl:grid-cols-8'} gap-2.5 sm:gap-4 mb-6 sm:mb-8`}>
         {availableTabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => {
-              if (tab.id.startsWith('admin/')) {
+              if (tab.id === 'profile') {
+                navigate('/app/profile');
+              } else if (tab.id.startsWith('admin/')) {
                 navigate(`/app/${tab.id}`);
               } else {
                 setActiveTab(tab.id as any);
@@ -1293,11 +1366,15 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        school?.subscription_status === 'active'
+                        school?.subscription_status === 'active' || school?.subscription_status === 'trialing'
                           ? 'bg-emerald-500/20 text-emerald-400'
                           : 'bg-amber-500/20 text-amber-400'
                       }`}>
-                        {school?.subscription_status === 'active' ? 'Assinatura Ativa' : `Status: ${school?.subscription_status || 'Inativa'}`}
+                        {school?.subscription_status === 'active'
+                          ? 'Assinatura Ativa'
+                          : school?.subscription_status === 'trialing'
+                          ? 'Período de Avaliação (Trial)'
+                          : `Status: ${school?.subscription_status || 'Inativa'}`}
                       </span>
                       <h3 className="text-2xl font-black text-white mt-3">Plano Institucional Littera</h3>
                       <p className="text-gray-400 text-sm mt-1">
@@ -1378,9 +1455,9 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                           window.open(savedUrl, '_blank', 'noopener,noreferrer');
                           return;
                         }
-                        navigate('/checkout');
+                        navigate('/cadastro');
                       } catch {
-                        navigate('/checkout');
+                        navigate('/cadastro');
                       }
                     }}
                     className="w-full mt-6 py-4 rounded-xl bg-primary text-white font-black text-xs uppercase tracking-widest hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2"
@@ -1468,7 +1545,11 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           {activeTab === 'essays' && (
             <div className="space-y-4">
               {essays.length > 0 ? essays.map(essay => (
-                <div key={essay.id} className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-ambient border-none shadow-sm hover:shadow-md transition-all flex justify-between items-center group cursor-pointer">
+                <div
+                  key={essay.id}
+                  onClick={() => setSelectedEssay(essay)}
+                  className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-ambient border-none shadow-sm hover:shadow-md transition-all flex justify-between items-center group cursor-pointer"
+                >
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-white ${essay.score >= 800 ? 'bg-green-500' : essay.score >= 600 ? 'bg-primary' : 'bg-amber-500'}`}>
                       {essay.score}
@@ -1476,11 +1557,18 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                     <div>
                       <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-primary transition-colors">{essay.tema}</h4>
                       <p className="text-xs text-gray-500 font-medium mt-1">
-                        {essay.student_name} • {new Date(essay.data_envio).toLocaleDateString()}
+                        {essay.student_name} • {new Date(essay.data_envio).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
-                  <button className="px-4 py-2 text-primary font-bold text-xs uppercase tracking-widest bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedEssay(essay);
+                    }}
+                    className="px-4 py-2 text-primary font-bold text-xs uppercase tracking-widest bg-primary/5 rounded-lg hover:bg-primary/10 transition-colors"
+                  >
                     Ver Correção
                   </button>
                 </div>
@@ -2021,6 +2109,171 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
           </div>
         )
       }
+
+      {/* Modal Detalhes da Correção */}
+      {selectedEssay && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+          <div
+            className="absolute inset-0 bg-slate-950/70 backdrop-blur-md"
+            onClick={() => setSelectedEssay(null)}
+          />
+          <div className="relative bg-white dark:bg-surface-dark w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-scale-in border border-gray-100 dark:border-white/10">
+            {/* Header */}
+            <div className="p-5 sm:p-8 border-b border-gray-100 dark:border-white/10 flex items-start justify-between gap-4 shrink-0 bg-gray-50/70 dark:bg-white/[0.02]">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-primary/10 text-primary">
+                    Correção ENEM
+                  </span>
+                  <span className="text-xs font-bold text-gray-500">
+                    {selectedEssay.student_name || 'Estudante'} •{' '}
+                    {selectedEssay.data_envio ? new Date(selectedEssay.data_envio).toLocaleDateString('pt-BR') : ''}
+                  </span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-snug">
+                  {selectedEssay.tema}
+                </h3>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <div className={`px-4 py-2 rounded-2xl text-center ${
+                  selectedEssay.score >= 800
+                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    : selectedEssay.score >= 600
+                    ? 'bg-primary/15 text-primary'
+                    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                }`}>
+                  <p className="text-[9px] font-black uppercase tracking-widest opacity-80">Nota</p>
+                  <p className="text-2xl font-black leading-none">{selectedEssay.score}</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedEssay(null)}
+                  className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 flex items-center justify-center transition-colors"
+                  aria-label="Fechar correção"
+                >
+                  <span className="material-icons-outlined">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 sm:p-8 overflow-y-auto space-y-6">
+              {selectedEssay.result?.zeroReason && (
+                <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-sm font-bold">
+                  Motivo de Nota Zero: {selectedEssay.result.zeroReason}
+                </div>
+              )}
+
+              {selectedEssay.result?.generalComment && (
+                <div className="p-5 rounded-2xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 space-y-1.5">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary">Comentário Geral da Banca IA</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                    {selectedEssay.result.generalComment}
+                  </p>
+                </div>
+              )}
+
+              {/* Competências */}
+              {Array.isArray(selectedEssay.result?.competencies) && selectedEssay.result!.competencies.length > 0 && (
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">
+                    Desempenho por Competência
+                  </h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    {selectedEssay.result!.competencies.map((comp, idx) => {
+                      const pct = Math.min(100, Math.round(((comp.score || 0) / 200) * 100));
+                      return (
+                        <div
+                          key={idx}
+                          className="p-4 rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 space-y-2"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            <p className="font-bold text-sm text-gray-900 dark:text-white">{comp.name}</p>
+                            <span className="font-black text-sm text-primary shrink-0">{comp.score} / 200</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                comp.score >= 160 ? 'bg-emerald-500' : comp.score >= 120 ? 'bg-primary' : 'bg-amber-500'
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          {comp.feedback && (
+                            <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">{comp.feedback}</p>
+                          )}
+                          {Array.isArray(comp.tips) && comp.tips.length > 0 && (
+                            <ul className="list-disc pl-5 text-xs text-gray-500 dark:text-gray-400 space-y-0.5 pt-1">
+                              {comp.tips.map((tip, ti) => (
+                                <li key={ti}>{tip}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Pontos Fortes e Prioridades de Melhoria */}
+              {((selectedEssay.result?.strengths && selectedEssay.result.strengths.length > 0) ||
+                (selectedEssay.result?.priorityImprovements && selectedEssay.result.priorityImprovements.length > 0)) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {selectedEssay.result?.strengths && selectedEssay.result.strengths.length > 0 && (
+                    <div className="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                        Pontos Fortes
+                      </p>
+                      <ul className="list-disc pl-5 text-xs text-gray-700 dark:text-gray-200 space-y-1">
+                        {selectedEssay.result.strengths.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {selectedEssay.result?.priorityImprovements && selectedEssay.result.priorityImprovements.length > 0 && (
+                    <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                        Prioridades de Melhoria
+                      </p>
+                      <ul className="list-disc pl-5 text-xs text-gray-700 dark:text-gray-200 space-y-1">
+                        {selectedEssay.result.priorityImprovements.map((imp, i) => (
+                          <li key={i}>{imp}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Texto / Transcrição da Redação */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  Texto / Transcrição do Aluno
+                </h4>
+                <div className="p-5 rounded-2xl bg-gray-50 dark:bg-white/[0.03] border border-gray-100 dark:border-white/5 text-sm text-gray-800 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">
+                  {selectedEssay.conteudo || 'Conteúdo da redação indisponível.'}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-gray-100 dark:border-white/10 flex justify-end shrink-0 bg-gray-50/70 dark:bg-white/[0.02]">
+              <button
+                type="button"
+                onClick={() => setSelectedEssay(null)}
+                className="px-6 py-2.5 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-opacity"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <LegalModal
         isOpen={isLegalModalOpen}

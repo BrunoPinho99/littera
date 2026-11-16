@@ -33,7 +33,7 @@ const ActivateTrialDashboard: React.FC = () => {
 
     const checkAdmin = async () => {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session || session.user.user_metadata?.role !== 'littera_admin') {
+        if (!session || session.user.app_metadata?.role !== 'littera_admin') {
             navigate('/app');
         }
     };
@@ -100,7 +100,7 @@ const ActivateTrialDashboard: React.FC = () => {
     };
 
     const copyLink = () => {
-        const link = `https://littera.app.br/trial/${generatedCode}`;
+        const link = `https://littera.app.br/invite/${generatedCode}`;
         navigator.clipboard.writeText(link);
         alert('Link copiado!');
     };
@@ -121,7 +121,7 @@ const ActivateTrialDashboard: React.FC = () => {
                         <p style={{ color: '#64748b', marginBottom: 24 }}>Envie o link abaixo para os alunos desta turma se cadastrarem.</p>
                         
                         <div style={{ display: 'flex', gap: 8, background: '#f8fafc', padding: '12px 16px', borderRadius: 8, border: '1px solid #e2e8f0', marginBottom: 24 }}>
-                            <span style={{ flex: 1, fontFamily: 'monospace', color: '#334155' }}>littera.app.br/trial/{generatedCode}</span>
+                            <span style={{ flex: 1, fontFamily: 'monospace', color: '#334155' }}>littera.app.br/invite/{generatedCode}</span>
                             <button onClick={copyLink} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontWeight: 500 }}>Copiar</button>
                         </div>
                         

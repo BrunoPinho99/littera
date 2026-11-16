@@ -49,30 +49,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    
-    // Auth Validation - Pegar o JWT do header
-    const authHeader = req.headers.get('Authorization')
+
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Cliente temporário apenas para validar o usuário logado
-    const supabaseClient = createClient(
-      supabaseUrl,
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: { headers: { Authorization: authHeader } },
-        auth: { autoRefreshToken: false, persistSession: false },
-      }
-    )
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser()
-    
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -89,7 +69,17 @@ Deno.serve(async (req: Request) => {
       }
     )
 
-    // Validação do School ID
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Sessão inválida' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Validação do School ID e Role
     const { data: callerProfile } = await supabaseAdmin
       .from('profiles')
       .select('school_id, role')
@@ -103,7 +93,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    if (!['owner', 'school_admin'].includes(callerProfile.role)) {
+    if (!['owner', 'school_admin'].includes(String(callerProfile.role))) {
       return new Response(JSON.stringify({ error: 'Apenas administradores podem fazer convites em massa' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -124,7 +114,7 @@ Deno.serve(async (req: Request) => {
         .select('school_id')
         .eq('id', class_id)
         .single()
-        
+
       if (!classData || classData.school_id !== school_id) {
         return new Response(JSON.stringify({ error: 'Operação bloqueada: Esta turma não pertence à sua escola' }), {
           status: 403,
@@ -133,12 +123,19 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Pegar nome e limite de alunos da escola
+    // Pegar nome, status e limite de alunos da escola
     const { data: schoolData } = await supabaseAdmin
       .from('schools')
-      .select('name, student_count')
+      .select('name, student_count, subscription_status, is_trial_school')
       .eq('id', school_id)
       .single()
+
+    if (!schoolData || !['active', 'trialing'].includes(String(schoolData.subscription_status || '').toLowerCase())) {
+      return new Response(JSON.stringify({ error: 'A assinatura da escola precisa estar ativa ou em trial.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     const studentsInBatch = users.filter((u) => u.role === 'student').length
     if (studentsInBatch > 0) {
@@ -163,6 +160,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const school_name = schoolData?.name || 'Escola Parceira'
+    const isTrialSchool = schoolData?.is_trial_school === true || schoolData?.subscription_status === 'trialing'
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
 
@@ -172,66 +170,129 @@ Deno.serve(async (req: Request) => {
       errors: [] as { email: string, reason: string }[]
     }
 
-    // Processar em chunks para não estourar memória / rate limits
-    const CHUNK_SIZE = 10;
-    
+    const CHUNK_SIZE = 10
+
     for (let i = 0; i < users.length; i += CHUNK_SIZE) {
-      const chunk = users.slice(i, i + CHUNK_SIZE);
-      
-      await Promise.all(chunk.map(async (user) => {
+      const chunk = users.slice(i, i + CHUNK_SIZE)
+
+      await Promise.all(chunk.map(async (item) => {
         try {
-          const email = user.email.trim().toLowerCase()
-          const name = user.name.trim()
-          
+          const email = (item.email || '').trim().toLowerCase()
+          const name = (item.name || '').trim() || email.split('@')[0]
+          const userRole: 'student' | 'teacher' = item.role === 'teacher' ? 'teacher' : 'student'
+          const effectiveClassId = userRole === 'student' ? (class_id ?? null) : null
+
           if (!email) throw new Error('E-mail vazio')
 
-          // 1. Generate Magic Link
-          const { data: magicLinkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-            type: 'magiclink',
+          // Check existing profile to prevent cross-tenant hijack
+          const { data: existingProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id, school_id, status, role')
+            .eq('email', email)
+            .maybeSingle()
+
+          if (existingProfile && existingProfile.school_id && existingProfile.school_id !== school_id && existingProfile.status !== 'invited') {
+            throw new Error('Este e-mail já está vinculado a outra instituição.')
+          }
+
+          const userMetadata = {
+            full_name: name,
+            user_type: userRole,
+            school_id: school_id,
+            school_name: school_name,
+            class_id: effectiveClassId,
+            invited_by_school: school_name,
+          }
+
+          let userId: string
+          let actionLink: string
+          let targetStatus: 'invited' | 'active' = 'invited'
+
+          // If pending invite in same school, clean up before recreating invite link
+          if (existingProfile?.status === 'invited' && existingProfile.id) {
+            await supabaseAdmin.auth.admin.deleteUser(existingProfile.id).catch(() => {})
+            await supabaseAdmin.from('profiles').delete().eq('id', existingProfile.id)
+          }
+
+          // 1. Try generating invite link redirecting to /convite so user can define password
+          const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'invite',
             email: email,
             options: {
-              redirectTo: `${siteUrl}/login`,
-              data: {
-                full_name: name,
-              }
+              redirectTo: `${siteUrl}/convite`,
+              data: userMetadata,
             },
           })
 
-          if (linkError) throw linkError
+          if (!inviteError && inviteData?.user?.id) {
+            userId = inviteData.user.id
+            actionLink = inviteData.properties.action_link
+            targetStatus = 'invited'
+          } else if (
+            inviteError?.message?.includes('already been registered') ||
+            inviteError?.message?.includes('already registered') ||
+            inviteError?.code === 'email_exists'
+          ) {
+            if (!existingProfile?.id) {
+              throw new Error('Este e-mail já possui conta registrada.')
+            }
+            userId = existingProfile.id
+            targetStatus = existingProfile.status === 'active' ? 'active' : 'invited'
 
-          const userId = magicLinkData.user.id
-          const actionLink = magicLinkData.properties.action_link
+            const preservedRole = ['owner', 'school_admin'].includes(String(existingProfile.role))
+              ? String(existingProfile.role)
+              : userRole
 
-          // 2. Upsert Profile
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+              user_metadata: {
+                ...userMetadata,
+                user_type: preservedRole === 'owner' ? 'school_admin' : preservedRole,
+              },
+            })
+
+            const { data: magicData, error: magicErr } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'magiclink',
+              email: email,
+              options: {
+                redirectTo: `${siteUrl}/login`,
+                data: {
+                  ...userMetadata,
+                  user_type: preservedRole === 'owner' ? 'school_admin' : preservedRole,
+                },
+              },
+            })
+            if (magicErr) throw magicErr
+            actionLink = magicData.properties.action_link
+          } else {
+            throw inviteError || new Error('Erro ao gerar convite')
+          }
+
+          // Ensure user_metadata is always populated on auth.users
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            user_metadata: userMetadata,
+          }).catch(() => {})
+
+          // 2. Upsert Profile (no non-existent school_teachers/class_students tables)
+          const preservedDbRole = existingProfile && ['owner', 'school_admin'].includes(String(existingProfile.role))
+            ? String(existingProfile.role)
+            : userRole
+
           const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
             id: userId,
-            full_name: name || email.split('@')[0],
+            full_name: name,
             email: email,
-            role: user.role,
+            role: preservedDbRole,
             school_id: school_id,
-            ...(class_id && user.role === 'student' ? { class_id: class_id } : {}),
-            status: 'active'
+            class_id: effectiveClassId,
+            status: targetStatus,
+            is_trial: isTrialSchool,
           }, { onConflict: 'id' })
 
           if (profileError) throw profileError
 
-          // 3. Insert specific relations
-          if (user.role === 'teacher') {
-            await supabaseAdmin.from('school_teachers').upsert({
-              school_id: school_id,
-              teacher_id: userId,
-              status: 'active'
-            }, { onConflict: 'school_id,teacher_id' })
-          } else if (user.role === 'student' && class_id) {
-            await supabaseAdmin.from('class_students').upsert({
-              class_id: class_id,
-              student_id: userId,
-            }, { onConflict: 'class_id,student_id' })
-          }
-
-          // 4. Send Email via Brevo
+          // 3. Send Email via Brevo
           if (brevoApiKey) {
-            const roleLabel = user.role === 'teacher' ? 'Professor(a)' : 'Estudante'
+            const roleLabel = userRole === 'teacher' ? 'Professor(a)' : 'Estudante'
             const emailHtml = `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 12px;">
                 <div style="text-align: center; margin-bottom: 30px;">
@@ -239,7 +300,7 @@ Deno.serve(async (req: Request) => {
                 </div>
                 <div style="background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                   <h2 style="color: #111315; margin-top: 0;">Seja bem-vindo(a) à plataforma</h2>
-                  <p style="color: #4b5563; line-height: 1.6;">Olá, <strong>${name || email}</strong>. Você foi convidado(a) para acessar o ambiente digital de excelência analítica e correção de redações da sua instituição.</p>
+                  <p style="color: #4b5563; line-height: 1.6;">Olá, <strong>${name}</strong>. Você foi convidado(a) para acessar o ambiente digital de excelência analítica e correção de redações da sua instituição.</p>
                   
                   <div style="background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
                     <p style="margin: 0; color: #4b5563; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Instituição de Ensino</p>
@@ -261,7 +322,7 @@ Deno.serve(async (req: Request) => {
                 </div>
               </div>
             `
-            
+
             await fetch('https://api.brevo.com/v3/smtp/email', {
               method: 'POST',
               headers: {
@@ -271,7 +332,7 @@ Deno.serve(async (req: Request) => {
               },
               body: JSON.stringify({
                 sender: { name: 'Littera', email: Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br' },
-                to: [{ email: email, name: name || email }],
+                to: [{ email: email, name: name }],
                 subject: `Convite de acesso - ${school_name} | Littera`,
                 htmlContent: emailHtml
               }),
@@ -282,7 +343,7 @@ Deno.serve(async (req: Request) => {
         } catch (err: unknown) {
           results.failed++
           const errorMsg = err instanceof Error ? err.message : String(err)
-          results.errors.push({ email: user.email, reason: errorMsg || 'Erro desconhecido' })
+          results.errors.push({ email: item.email, reason: errorMsg || 'Erro desconhecido' })
         }
       }))
     }

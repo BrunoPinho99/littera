@@ -1,12 +1,13 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { getUserStats, calculateUserRank, JOURNEY_TIERS } from '../services/databaseService';
-import { SavedEssay } from '../types';
+import { getUserStats, calculateUserRank, JOURNEY_TIERS, getSchoolPeerRankings } from '../services/databaseService';
+import { SavedEssay, RankUser } from '../types';
 import CorrectionResultView from './CorrectionResult';
-import { peerRankings } from '../data/rankingData';
+import { supabase } from '../supabaseClient';
 
 interface PerformanceViewProps {
   userId?: string;
+  schoolId?: string | null;
   isDemo?: boolean;
 }
 
@@ -170,11 +171,12 @@ const EssayCalendar: React.FC<{ history: SavedEssay[] }> = ({ history }) => {
 };
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => {
+const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, schoolId, isDemo }) => {
   const [stats, setStats] = useState<any>({
     totalEssays: 0, averageScore: 0, totalPoints: 0,
     history: [] as SavedEssay[], competencyAverages: []
   });
+  const [peerRankings, setPeerRankings] = useState<RankUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEssay, setSelectedEssay] = useState<SavedEssay | null>(null);
   const [activeBarIdx, setActiveBarIdx] = useState<number | null>(null);
@@ -182,13 +184,40 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
   const [historyPage, setHistoryPage] = useState(1);
   const ITEMS_PER_PAGE = 6;
 
+  const effectiveIsDemo = Boolean(isDemo || !userId || userId === 'demo' || userId.startsWith('demo-'));
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const targetId = userId || 'demo';
+        const targetId = userId || 'demo-anonymous';
         const data = await getUserStats(targetId);
         setStats(data);
+
+        if (!effectiveIsDemo && userId) {
+          let resolvedSchoolId = schoolId || null;
+          if (!resolvedSchoolId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            resolvedSchoolId = session?.user?.user_metadata?.school_id || null;
+            if (!resolvedSchoolId) {
+              const { data: prof } = await supabase
+                .from('profiles')
+                .select('school_id')
+                .eq('id', userId)
+                .maybeSingle();
+              resolvedSchoolId = prof?.school_id || null;
+            }
+          }
+          if (resolvedSchoolId) {
+            const peers = await getSchoolPeerRankings(resolvedSchoolId);
+            setPeerRankings(peers);
+          } else {
+            setPeerRankings([]);
+          }
+        } else {
+          setPeerRankings([]);
+        }
+
         setTimeout(() => setBarsVisible(true), 400);
       } catch (err) {
         console.warn('Erro ao carregar stats:', err);
@@ -197,17 +226,17 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
       }
     };
     fetchData();
-  }, [userId, isDemo]);
+  }, [userId, schoolId, effectiveIsDemo]);
 
   const currentRank = useMemo(() => calculateUserRank(stats.totalEssays), [stats.totalEssays]);
   const hasData = stats.totalEssays > 0;
 
-  // Ranking position from peer data
+  // Ranking position from real school peer data (excluding current user to avoid self-tie)
   const myPoints = stats.totalPoints || 0;
   const rankPosition = useMemo(() => {
-    const allPoints = peerRankings.map(p => p.points);
-    return allPoints.filter(p => p > myPoints).length + 1;
-  }, [myPoints]);
+    const otherPeers = peerRankings.filter((p) => p.id !== userId);
+    return otherPeers.filter((p) => p.points > myPoints).length + 1;
+  }, [myPoints, peerRankings, userId]);
 
   // Last 10 essays for chart
   const chartHistory = useMemo(() => [...stats.history].reverse().slice(0, 12), [stats.history]);
@@ -268,7 +297,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
             Minha <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">Evolução</span>
           </h1>
         </div>
-        {!isDemo && (
+        {!effectiveIsDemo && (
           <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-full text-xs font-black uppercase tracking-wider">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Dados em Tempo Real
@@ -317,7 +346,7 @@ const PerformanceView: React.FC<PerformanceViewProps> = ({ userId, isDemo }) => 
           </div>
           <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Ranking</p>
           <span className="text-2xl sm:text-4xl font-black text-white font-display">#{rankPosition}</span>
-          <p className="text-[10px] text-on-surface-variant font-medium mt-1">posição global</p>
+          <p className="text-[10px] text-on-surface-variant font-medium mt-1">na sua escola</p>
         </div>
       </div>
 

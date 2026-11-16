@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { peerRankings } from '../data/rankingData';
-import { getUserStats } from '../services/databaseService';
+import { getUserStats, getSchoolPeerRankings } from '../services/databaseService';
 import { RankUser } from '../types';
 import { supabase } from '../supabaseClient';
 
@@ -16,6 +15,7 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
   const [filter, setFilter] = useState<'global' | 'school' | 'class'>('global');
   const [userStats, setUserStats] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [peerList, setPeerList] = useState<RankUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -26,14 +26,40 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
         return;
       }
       setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setCurrentUser(session.user);
-        const stats = await getUserStats(session.user.id);
-        setUserStats(stats);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const isDemo = localStorage.getItem('littera_demo_mode') === 'true' && !session?.user?.id;
+
+        if (session?.user && !session.user.id.startsWith('demo')) {
+          setCurrentUser(session.user);
+          let resolvedSchoolId: string | null = session.user.user_metadata?.school_id || null;
+          if (!resolvedSchoolId) {
+            const { data: prof } = await supabase
+              .from('profiles')
+              .select('school_id')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            resolvedSchoolId = prof?.school_id || null;
+          }
+
+          const [stats, peers] = await Promise.all([
+            getUserStats(session.user.id),
+            resolvedSchoolId ? getSchoolPeerRankings(resolvedSchoolId) : Promise.resolve([]),
+          ]);
+          setUserStats(stats);
+          setPeerList(peers);
+        } else if (isDemo || session?.user?.id?.startsWith('demo')) {
+          const demoId = session?.user?.id || 'demo-anonymous';
+          setCurrentUser(session?.user || { id: demoId, user_metadata: { full_name: 'Estudante Demo', school: 'Colégio Littera (Demo)' } });
+          const stats = await getUserStats(demoId);
+          setUserStats(stats);
+          setPeerList([]);
+        }
+      } catch (err) {
+        console.warn('[RankingView] Erro ao carregar ranking:', err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     loadData();
   }, [manualData]);
@@ -50,20 +76,31 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
     }
 
     // Lógica para Aluno: Criar objeto do usuário atual com dados reais
+    const myPeer = peerList.find((p) => p.id === currentUser?.id);
+    const displayName = currentUser?.user_metadata?.full_name || myPeer?.name || "Você";
     const me: RankUser = {
       id: currentUser?.id || "me",
-      name: currentUser?.user_metadata?.full_name || "Você",
-      avatar: currentUser?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=Voce&background=8B5CF6&color=fff`,
-      points: userStats?.history?.reduce((acc: number, curr: any) => acc + curr.score, 0) || 0,
-      essaysCount: userStats?.totalEssays || 0,
-      school: currentUser?.user_metadata?.school || "Colégio Aplicação",
-      className: currentUser?.user_metadata?.class_name || "3º Ano A",
+      name: displayName,
+      avatar:
+        currentUser?.user_metadata?.avatar_url ||
+        myPeer?.avatar ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=8B5CF6&color=fff`,
+      points:
+        userStats?.totalPoints ??
+        userStats?.history?.reduce((acc: number, curr: any) => acc + curr.score, 0) ??
+        myPeer?.points ??
+        0,
+      essaysCount: userStats?.totalEssays ?? myPeer?.essaysCount ?? 0,
+      school: myPeer?.school || currentUser?.user_metadata?.school || currentUser?.user_metadata?.school_name || "Minha Escola",
+      school_id: myPeer?.school_id || currentUser?.user_metadata?.school_id,
+      className: myPeer?.className || currentUser?.user_metadata?.class_name || "Sem Turma",
+      class_id: myPeer?.class_id || currentUser?.user_metadata?.class_id,
       isCurrentUser: true,
       trend: 'neutral'
     };
 
-    // Combinar com os "Peers" simulados
-    let list = [me, ...peerRankings];
+    // Combinar com os colegas reais da escola (sem duplicar o usuário atual)
+    let list = [me, ...peerList.filter((p) => p.id !== me.id)];
 
     // Aplicar Filtros de Contexto (Escola/Turma)
     if (filter === 'school') {
@@ -74,7 +111,7 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
 
     // Ordenar por pontos
     return list.sort((a, b) => b.points - a.points);
-  }, [filter, userStats, currentUser, manualData]);
+  }, [filter, userStats, currentUser, manualData, peerList]);
 
   // Visibilidade: Professor vê tudo; Aluno vê Top 3 + Ele mesmo (na lógica original)
   // Com paginação, vamos mostrar a lista paginada para facilitar a visualização
@@ -106,7 +143,7 @@ const RankingView: React.FC<RankingViewProps> = ({ showAllEntries = false, manua
       <div className="text-center mb-6 sm:mb-12">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full mb-6">
           <span className="material-icons-outlined text-sm">military_tech</span>
-          <span className="text-xs font-black uppercase tracking-widest">Temporada 2024</span>
+          <span className="text-xs font-black uppercase tracking-widest">Temporada {new Date().getFullYear()}</span>
         </div>
         <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-on-surface mb-4 tracking-tighter">
           Ranking de <span className="text-primary">Elite</span>

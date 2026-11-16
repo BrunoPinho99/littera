@@ -18,6 +18,13 @@ interface InvitePayload {
   params?: Record<string, any>;
 }
 
+function jsonResponse(body: Record<string, unknown>, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -25,96 +32,187 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'Method not allowed' }, 405);
+    }
+
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return jsonResponse({ error: 'Não autorizado. Token de autenticação ausente.' }, 401);
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return jsonResponse({ error: 'Configuração do servidor ausente.' }, 500);
+    }
+
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const { data: { user: callerUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    if (authError || !callerUser) {
+      return jsonResponse({ error: 'Sessão inválida ou expirada.' }, 401);
+    }
+
+    const { data: callerProfile, error: callerProfileError } = await supabaseAdmin
+      .from('profiles')
+      .select('school_id, role')
+      .eq('id', callerUser.id)
+      .single();
+
+    if (callerProfileError || !callerProfile) {
+      return jsonResponse({ error: 'Perfil do solicitante não encontrado.' }, 403);
+    }
+
+    const allowedCallerRoles = ['owner', 'school_admin', 'teacher', 'professor'];
+    if (!allowedCallerRoles.includes(String(callerProfile.role))) {
+      return jsonResponse({ error: 'Permissão negada: apenas gestores e professores podem gerenciar convites.' }, 403);
     }
 
     const payload: InvitePayload = await req.json();
-    const { action = 'send', email, name, role, school_id, school_name, class_id, templateId, params } = payload;
-
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    const { action = 'send', name, role, school_id, school_name, class_id, templateId, params } = payload;
+    const normalizedEmail = (payload.email || '').trim().toLowerCase();
 
     if (action === 'revoke') {
-      if (!email) {
-        return new Response(JSON.stringify({ error: 'Missing required field: email for revoke action' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      if (!normalizedEmail) {
+        return jsonResponse({ error: 'Missing required field: email for revoke action' }, 400);
       }
 
-      const { data: profile } = await supabaseAdmin.from('profiles').select('id').eq('email', email).maybeSingle();
-      if (profile?.id) {
-        await supabaseAdmin.auth.admin.deleteUser(profile.id);
+      const { data: targetProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, school_id, status')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (!targetProfile) {
+        return jsonResponse({ error: 'Convite não encontrado para este e-mail.' }, 404);
       }
-      await supabaseAdmin.from('profiles').delete().eq('email', email);
 
-      return new Response(JSON.stringify({ success: true, message: `Convite revogado para ${email}.` }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (!callerProfile.school_id || targetProfile.school_id !== callerProfile.school_id) {
+        return jsonResponse({ error: 'Operação negada: o usuário não pertence à sua instituição.' }, 403);
+      }
+
+      if (targetProfile.status !== 'invited') {
+        return jsonResponse({ error: 'Não é possível revogar: esta conta já foi ativada pelo usuário.' }, 403);
+      }
+
+      await supabaseAdmin.auth.admin.deleteUser(targetProfile.id);
+      await supabaseAdmin.from('profiles').delete().eq('id', targetProfile.id);
+
+      return jsonResponse({ success: true, message: `Convite revogado para ${normalizedEmail}.` }, 200);
     }
 
-    if (!email || !name || !role || !school_id || !school_name) {
-      return new Response(JSON.stringify({ error: 'Missing required fields: email, name, role, school_id, school_name' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (!normalizedEmail || !name || !role || !school_id || !school_name) {
+      return jsonResponse({ error: 'Missing required fields: email, name, role, school_id, school_name' }, 400);
     }
+
+    if (!callerProfile.school_id || callerProfile.school_id !== school_id) {
+      return jsonResponse({ error: 'Operação bloqueada: school_id diverge da instituição do usuário.' }, 403);
+    }
+
+    if (role === 'professor' && !['owner', 'school_admin'].includes(String(callerProfile.role))) {
+      return jsonResponse({ error: 'Apenas administradores da escola podem convidar professores.' }, 403);
+    }
+
+    // Verify school status and seat limits
+    const { data: schoolData, error: schoolError } = await supabaseAdmin
+      .from('schools')
+      .select('id, name, subscription_status, student_count, is_trial_school')
+      .eq('id', school_id)
+      .single();
+
+    if (schoolError || !schoolData) {
+      return jsonResponse({ error: 'Instituição não encontrada.' }, 404);
+    }
+
+    if (!['active', 'trialing'].includes(String(schoolData.subscription_status || '').toLowerCase())) {
+      return jsonResponse({ error: 'A assinatura da escola precisa estar ativa ou em trial para enviar convites.' }, 403);
+    }
+
+    // Validate class belongs to school if provided
+    if (class_id) {
+      const { data: classData } = await supabaseAdmin
+        .from('classes')
+        .select('id, school_id')
+        .eq('id', class_id)
+        .maybeSingle();
+
+      if (!classData || classData.school_id !== school_id) {
+        return jsonResponse({ error: 'Turma inválida ou não pertence à sua escola.' }, 403);
+      }
+    }
+
+    const dbRole = role === 'professor' ? 'teacher' : 'student';
+    const userMetadata = {
+      full_name: name.trim(),
+      user_type: dbRole,
+      school_id: school_id,
+      school_name: school_name,
+      class_id: class_id ?? null,
+      invited_by_school: school_name,
+    };
+
+    // Enforce seat limit on student invites
+    const { data: existingProfileCheck } = await supabaseAdmin
+      .from('profiles')
+      .select('id, status, school_id, role')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (existingProfileCheck && existingProfileCheck.school_id && existingProfileCheck.school_id !== school_id && existingProfileCheck.status !== 'invited') {
+      return jsonResponse({ error: 'Este e-mail já está vinculado a outra instituição.' }, 409);
+    }
+
+    if (dbRole === 'student' && !existingProfileCheck && (schoolData.student_count ?? 0) > 0) {
+      const { count: currentStudentCount } = await supabaseAdmin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('school_id', school_id)
+        .eq('role', 'student');
+
+      if ((currentStudentCount || 0) >= schoolData.student_count) {
+        return jsonResponse({ error: 'Limite de alunos do plano atingido. Aumente o número de alunos na aba Assinatura.' }, 403);
+      }
+    }
+
+    const siteUrl = Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br';
+    const isTrialSchool = schoolData.is_trial_school === true || schoolData.subscription_status === 'trialing';
 
     // Generate action link via Supabase Admin API without sending default SMTP email
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: 'invite',
-      email: email,
+      email: normalizedEmail,
       options: {
-        redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'}/convite`,
-        data: {
-          full_name: name,
-          user_type: role === 'professor' ? 'teacher' : 'student',
-          school_id: school_id,
-          school_name: school_name,
-          class_id: class_id ?? null,
-          invited_by_school: school_name,
-        },
+        redirectTo: `${siteUrl}/convite`,
+        data: userMetadata,
       },
     });
 
-    let actionLink = `${Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'}/login`;
+    let actionLink = `${siteUrl}/login`;
     let userId: string | undefined;
     let alreadyExists = false;
 
     if (error) {
       if (error.message?.includes('already been registered') || error.code === 'email_exists' || error.message?.includes('User already registered')) {
         alreadyExists = true;
-        const { data: existingUser } = await supabaseAdmin.from('profiles').select('id, status').eq('email', email).maybeSingle();
-        
-        if (existingUser?.status === 'invited' && existingUser.id) {
-          // Usuário possui apenas convite pendente e não ativou a conta. Deleta do auth.users e recria um novo convite limpo.
+        const existingUser = existingProfileCheck;
+
+        if (existingUser?.status === 'invited' && existingUser.id && (!existingUser.school_id || existingUser.school_id === school_id)) {
+          // Usuário possui apenas convite pendente nesta escola. Deleta do auth.users e recria um novo convite limpo.
           try {
             await supabaseAdmin.auth.admin.deleteUser(existingUser.id);
             const { data: retryData, error: retryError } = await supabaseAdmin.auth.admin.generateLink({
               type: 'invite',
-              email: email,
+              email: normalizedEmail,
               options: {
-                redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'}/convite`,
-                data: {
-                  full_name: name,
-                  user_type: role === 'professor' ? 'teacher' : 'student',
-                  school_id: school_id,
-                  school_name: school_name,
-                  class_id: class_id ?? null,
-                  invited_by_school: school_name,
-                },
+                redirectTo: `${siteUrl}/convite`,
+                data: userMetadata,
               },
             });
             if (!retryError && retryData?.user?.id) {
@@ -123,39 +221,55 @@ Deno.serve(async (req: Request) => {
                 actionLink = retryData.properties.action_link;
               }
               alreadyExists = false;
-              await supabaseAdmin.from('profiles').delete().eq('email', email);
+              await supabaseAdmin.from('profiles').delete().eq('id', existingUser.id);
               await supabaseAdmin.from('profiles').upsert({
                 id: userId,
-                full_name: name,
-                email: email,
-                role: role === 'professor' ? 'teacher' : 'student',
+                full_name: name.trim(),
+                email: normalizedEmail,
+                role: dbRole,
                 school_id: school_id,
                 class_id: class_id ?? null,
-                status: 'invited'
+                status: 'invited',
+                is_trial: isTrialSchool,
               }, { onConflict: 'id' });
             }
           } catch (delErr) {
-            console.error("Erro ao recriar convite pendente:", delErr);
+            console.error('Erro ao recriar convite pendente:', delErr);
           }
         }
 
         if (alreadyExists) {
+          if (existingUser?.school_id && existingUser.school_id !== school_id) {
+            return jsonResponse({ error: 'Este e-mail já está vinculado a outra instituição.' }, 409);
+          }
+
           if (existingUser?.id) {
             userId = existingUser.id;
+            const preservedRole = ['owner', 'school_admin'].includes(String(existingUser.role))
+              ? String(existingUser.role)
+              : dbRole;
+
             await supabaseAdmin.from('profiles').update({
               school_id: school_id,
               class_id: class_id ?? null,
-              role: role === 'professor' ? 'teacher' : 'student'
+              role: preservedRole,
             }).eq('id', existingUser.id);
+
+            await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+              user_metadata: {
+                ...userMetadata,
+                user_type: preservedRole === 'owner' ? 'school_admin' : preservedRole,
+              },
+            });
           }
 
           try {
             const { data: magicData } = await supabaseAdmin.auth.admin.generateLink({
               type: 'magiclink',
-              email: email,
+              email: normalizedEmail,
               options: {
-                redirectTo: `${Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'}/login`,
-              }
+                redirectTo: `${siteUrl}/login`,
+              },
             });
             if (magicData?.properties?.action_link) {
               actionLink = magicData.properties.action_link;
@@ -166,28 +280,26 @@ Deno.serve(async (req: Request) => {
         }
       } else {
         console.error('generateLink error:', error);
-        return new Response(JSON.stringify({ error: error.message }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        return jsonResponse({ error: error.message }, 400);
       }
     } else {
       userId = data?.user?.id;
       if (data?.properties?.action_link) {
         actionLink = data.properties.action_link;
       }
-      
+
       if (userId) {
         const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
           id: userId,
-          full_name: name,
-          email: email,
-          role: role === 'professor' ? 'teacher' : 'student',
+          full_name: name.trim(),
+          email: normalizedEmail,
+          role: dbRole,
           school_id: school_id,
           class_id: class_id ?? null,
-          status: 'invited'
+          status: 'invited',
+          is_trial: isTrialSchool,
         }, { onConflict: 'id' });
-        
+
         if (profileError) {
           console.error('Error creating provisional profile:', profileError);
         }
@@ -207,13 +319,13 @@ Deno.serve(async (req: Request) => {
       const senderEmail = Deno.env.get('BREVO_SENDER_EMAIL') || 'contato@littera.com.br';
       const senderName = Deno.env.get('BREVO_SENDER_NAME') || 'Littera';
       const roleLabel = role === 'professor' ? 'Professor(a)' : 'Estudante';
-      const subject = alreadyExists 
+      const subject = alreadyExists
         ? `Acesso vinculado à instituição ${school_name} | Littera`
         : `Convite de acesso - ${school_name} | Littera`;
 
       const brevoBody: Record<string, any> = {
         sender: { name: senderName, email: senderEmail },
-        to: [{ email: email, name: name }],
+        to: [{ email: normalizedEmail, name: name }],
         subject: subject,
       };
 
@@ -225,10 +337,10 @@ Deno.serve(async (req: Request) => {
           name,
           role: roleLabel,
           school_name,
-          email,
+          email: normalizedEmail,
           action_link: actionLink,
           already_exists: alreadyExists,
-          ...(params || {})
+          ...(params || {}),
         };
       } else {
         const htmlContent = `<!DOCTYPE html>
@@ -345,7 +457,7 @@ Deno.serve(async (req: Request) => {
         <div class="label">Perfil de Acesso</div>
         <div class="value">${roleLabel}</div>
         <div class="label">E-mail de Acesso</div>
-        <div class="value">${email}</div>
+        <div class="value">${normalizedEmail}</div>
       </div>
 
       <div class="paragraph">
@@ -396,10 +508,10 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    console.log(`Invite processed for ${email} (${name}) - emailSent: ${emailSent}`);
+    console.log(`Invite processed for ${normalizedEmail} (${name}) - emailSent: ${emailSent}`);
 
     if (alreadyExists) {
-      return new Response(JSON.stringify({
+      return jsonResponse({
         success: false,
         alreadyExists: true,
         userId: userId,
@@ -407,30 +519,21 @@ Deno.serve(async (req: Request) => {
         messageId: brevoMessageId,
         emailError: emailError,
         message: 'Este email já possui uma conta ativa na plataforma. Vínculo atualizado e notificação enviada.',
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      }, 200);
     }
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       userId: userId,
       emailSent: emailSent,
       messageId: brevoMessageId,
       emailError: emailError,
-      message: emailSent ? `Convite enviado pelo Brevo para ${email}` : `Convite gerado, mas falhou ao enviar e-mail: ${emailError || 'Verifique BREVO_API_KEY'}`,
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      message: emailSent ? `Convite enviado pelo Brevo para ${normalizedEmail}` : `Convite gerado, mas falhou ao enviar e-mail: ${emailError || 'Verifique BREVO_API_KEY'}`,
+    }, 200);
 
   } catch (err: unknown) {
     console.error('Unexpected error in send-invite:', err);
     const message = err instanceof Error ? err.message : 'Internal server error';
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: message }, 500);
   }
 });

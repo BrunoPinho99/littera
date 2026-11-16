@@ -41,14 +41,23 @@ const FinalizarCadastroView: React.FC = () => {
     setIsLoading(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError('Sessão não encontrada. Utilize o fluxo oficial de cadastro para criar sua conta institucional.');
+        setIsLoading(false);
+        return;
+      }
+
       const asaasCustomerId = localStorage.getItem('littera_asaas_customer');
       const subscriptionId = localStorage.getItem('littera_asaas_subscription');
 
-      // Call the complete-onboarding function
+      // Call the complete-onboarding function with authenticated JWT
       const { data, error: fnError } = await supabase.functions.invoke('complete-onboarding', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: {
           ...formData,
-          password: password,
           asaasCustomerId,
           subscriptionId
         },
@@ -62,12 +71,6 @@ const FinalizarCadastroView: React.FC = () => {
       localStorage.removeItem('littera_onboarding_form');
       localStorage.removeItem('littera_asaas_customer');
       localStorage.removeItem('littera_asaas_subscription');
-
-      // Login and redirect
-      await supabase.auth.signInWithPassword({
-        email: formData.email.toLowerCase().trim(),
-        password: password,
-      });
 
       navigate('/app/inst-overview');
     } catch (err: any) {

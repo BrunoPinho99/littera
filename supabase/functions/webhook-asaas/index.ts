@@ -200,7 +200,21 @@ Deno.serve(async (req: Request) => {
       if (data) schoolId = data.id
     }
 
-    // ── 4. Auto-provisionamento (pagamento de Payment Link sem escola) ────────
+    // ── 4. Idempotência pré-check (somente leitura antes de mutações) ────────
+    if (body.id) {
+      const { data: existingEvent } = await supabase
+        .from('asaas_webhook_events')
+        .select('event_id')
+        .eq('event_id', body.id)
+        .maybeSingle()
+
+      if (existingEvent) {
+        console.log(`[webhook-asaas] Evento ${body.id} (${event}) já processado anteriormente. Ignorando duplicata.`)
+        return new Response('ok', { status: 200, headers: corsHeaders })
+      }
+    }
+
+    // ── 4.5. Auto-provisionamento (pagamento de Payment Link sem escola) ──────
     if (!schoolId && (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED')) {
       schoolId = await autoProvisionSchool(supabase, entity as NonNullable<AsaasWebhookPayload['payment']>)
     }
@@ -208,25 +222,6 @@ Deno.serve(async (req: Request) => {
     if (!schoolId) {
       console.warn('[webhook-asaas] Não foi possível identificar a escola. Ignorando evento.')
       return new Response('ok', { status: 200, headers: corsHeaders })
-    }
-
-    // ── 4.5. Idempotência de Eventos (evitar processamento duplicado) ─────────
-    if (body.id) {
-      const { error: idempError } = await supabase
-        .from('asaas_webhook_events')
-        .insert({
-          event_id: body.id,
-          event_type: event,
-          school_id: schoolId,
-        })
-
-      if (idempError) {
-        if (idempError.code === '23505') {
-          console.log(`[webhook-asaas] Evento ${body.id} (${event}) já processado anteriormente. Ignorando duplicata.`)
-          return new Response('ok', { status: 200, headers: corsHeaders })
-        }
-        console.warn('[webhook-asaas] Aviso ao registrar idempotência:', idempError.message)
-      }
     }
 
     // ── 5. Mapear evento → atualização ────────────────────────────────────────
@@ -247,6 +242,19 @@ Deno.serve(async (req: Request) => {
     // Se SUBSCRIPTION_CREATED chegar atrasado quando a escola já está 'active', NÃO sobrescrever
     if (event === 'SUBSCRIPTION_CREATED' && currentSchool?.subscription_status === 'active') {
       console.log(`[webhook-asaas] Escola ${schoolId} já está 'active'. Ignorando SUBSCRIPTION_CREATED tardio.`)
+      return new Response('ok', { status: 200, headers: corsHeaders })
+    }
+
+    // Se uma cobrança pendente/substituída for deletada no Asaas enquanto a escola já está ativa,
+    // não rebaixar a escola para 'unpaid' (ex.: troca de plano / updatePendingPayments: true).
+    if (event === 'PAYMENT_DELETED' && currentSchool?.subscription_status === 'active') {
+      console.log(`[webhook-asaas] Escola ${schoolId} já está 'active'. Ignorando downgrade por PAYMENT_DELETED (${payment?.id}).`)
+      if (body.id) {
+        await supabase.from('asaas_webhook_events').upsert(
+          { event_id: body.id, event_type: event, school_id: schoolId },
+          { onConflict: 'event_id', ignoreDuplicates: true }
+        )
+      }
       return new Response('ok', { status: 200, headers: corsHeaders })
     }
 
@@ -319,20 +327,63 @@ Deno.serve(async (req: Request) => {
           .select('id')
 
         if (!errById && (!updatedByAsaasId || updatedByAsaasId.length === 0)) {
-          const { error: fallbackPaymentError } = await supabase
+          // Atualiza apenas o registro pendente/em atraso mais recente (nunca sobrescreve registros já 'paid')
+          const { data: latestPending } = await supabase
             .from('payments')
-            .update(paymentStatusUpdate)
+            .select('id')
             .eq('school_id', schoolId)
-            .in('status', ['pending', 'overdue', 'paid'])
+            .in('status', ['pending', 'overdue'])
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
 
-          if (fallbackPaymentError) {
-            console.warn('[webhook-asaas] Falha ao atualizar payments (fallback):', fallbackPaymentError)
+          if (latestPending?.id) {
+            const { error: fallbackPaymentError } = await supabase
+              .from('payments')
+              .update(paymentStatusUpdate)
+              .eq('id', latestPending.id)
+
+            if (fallbackPaymentError) {
+              console.warn('[webhook-asaas] Falha ao atualizar payments (fallback):', fallbackPaymentError)
+            }
+          } else if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
+            // Renovação mensal ou parcela subsequente: inserir novo registro em payments
+            const { error: insertPaymentError } = await supabase
+              .from('payments')
+              .insert({
+                school_id: schoolId,
+                plan: 'school_renewal',
+                amount: payment.value ?? 0,
+                asaas_subscription_id: payment.subscription || payment.installment || null,
+                ...paymentStatusUpdate,
+              })
+
+            if (insertPaymentError) {
+              console.warn('[webhook-asaas] Falha ao inserir pagamento recorrente:', insertPaymentError)
+            }
           }
         } else if (errById) {
           console.warn('[webhook-asaas] Falha ao atualizar payments:', errById)
         } else {
           console.log(`[webhook-asaas] Payments atualizado (${paymentStatusUpdate.status}) para escola ${schoolId}`)
         }
+      }
+    }
+
+    // ── 8. Registrar idempotência somente após conclusão bem-sucedida ─────────
+    if (body.id) {
+      const { error: idempError } = await supabase
+        .from('asaas_webhook_events')
+        .upsert(
+          {
+            event_id: body.id,
+            event_type: event,
+            school_id: schoolId,
+          },
+          { onConflict: 'event_id', ignoreDuplicates: true }
+        )
+      if (idempError) {
+        console.warn('[webhook-asaas] Aviso ao registrar idempotência:', idempError.message)
       }
     }
 
@@ -440,7 +491,7 @@ async function autoProvisionSchool(
         name: name,
         city: 'Não informada',
         subscription_status: 'active',
-        subscription_id: payment.subscription || null,
+        subscription_id: payment.subscription || payment.installment || null,
         asaas_customer_id: customerId,
         plano_ativado_em: new Date().toISOString(),
       })

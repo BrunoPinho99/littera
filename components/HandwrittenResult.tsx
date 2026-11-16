@@ -108,6 +108,13 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
   };
 
   const scorePercent = Math.round((result.totalScore / 1000) * 100);
+  const annotatedSegments = Array.isArray(result.annotatedSegments) ? result.annotatedSegments : [];
+  const hasAnnotatedSegments = annotatedSegments.length > 0;
+  const zeroReason = (result as unknown as { zeroReason?: string | null }).zeroReason;
+  const transcribedDisplay =
+    result.transcribedText && result.transcribedText !== '[Transcrição Oculta - Processado no Backend]'
+      ? result.transcribedText
+      : '';
 
   return (
     <div className="animate-fade-in max-w-4xl mx-auto pb-10 px-4 md:px-0">
@@ -185,6 +192,21 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
           </div>
         </div>
 
+        {/* ── Zero Reason Alert ── */}
+        {zeroReason && (
+          <div className="p-5 sm:p-8 bg-rose-50 dark:bg-rose-900/20">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-800/30 flex items-center justify-center flex-shrink-0">
+                <span className="material-icons-outlined text-rose-500 text-xl">warning</span>
+              </div>
+              <div>
+                <h3 className="text-title-lg text-rose-700 dark:text-rose-300 font-black mb-1">Redação Zerada</h3>
+                <p className="text-body-md text-rose-600 dark:text-rose-400 font-bold">{zeroReason}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── General Feedback ── */}
         <div className="p-5 sm:p-8 bg-surface-container-low">
           <h3 className="flex items-center gap-2 text-title-lg text-on-surface mb-4">
@@ -209,30 +231,34 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
             Texto Transcrito
           </h3>
           <p className="text-body-sm text-on-surface-variant mb-5">
-            Clique nos trechos coloridos para ver observações detalhadas da avaliação.
+            {hasAnnotatedSegments
+              ? 'Clique nos trechos coloridos para ver observações detalhadas da avaliação.'
+              : 'Transcrição integral extraída da folha manuscrita enviada.'}
           </p>
 
           {/* ── Competency Legend / Filter Bar ── */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {((['C1', 'C2', 'C3', 'C4', 'C5'] as CompetencyId[]).map(id => {
-              const colors = COMPETENCY_COLORS[id];
-              const isActive = activeCompetencies.has(id);
-              return (
-                <button
-                  key={id}
-                  onClick={() => toggleCompetency(id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-pill text-label-md font-bold transition-all border ${
-                    isActive
-                      ? `${colors.chip} ${colors.text} ${colors.border}`
-                      : 'bg-surface-container-high text-on-surface-variant border-transparent opacity-50'
-                  }`}
-                >
-                  <span className={`w-2.5 h-2.5 rounded-full ${colors.dot} ${!isActive ? 'opacity-30' : ''}`}></span>
-                  {COMPETENCY_SHORT[id]}
-                </button>
-              );
-            }))}
-          </div>
+          {hasAnnotatedSegments && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {((['C1', 'C2', 'C3', 'C4', 'C5'] as CompetencyId[]).map(id => {
+                const colors = COMPETENCY_COLORS[id];
+                const isActive = activeCompetencies.has(id);
+                return (
+                  <button
+                    key={id}
+                    onClick={() => toggleCompetency(id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-pill text-label-md font-bold transition-all border ${
+                      isActive
+                        ? `${colors.chip} ${colors.text} ${colors.border}`
+                        : 'bg-surface-container-high text-on-surface-variant border-transparent opacity-50'
+                    }`}
+                  >
+                    <span className={`w-2.5 h-2.5 rounded-full ${colors.dot} ${!isActive ? 'opacity-30' : ''}`}></span>
+                    {COMPETENCY_SHORT[id]}
+                  </button>
+                );
+              }))}
+            </div>
+          )}
 
           {/* ── Rendered Annotated Text ── */}
           <div
@@ -244,7 +270,7 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
             }}
           >
             <div className="font-serif text-base sm:text-lg leading-[2rem] text-on-surface whitespace-pre-wrap">
-              {result.annotatedSegments.map((seg, i) => {
+              {hasAnnotatedSegments ? annotatedSegments.map((seg, i) => {
                 // Neutral segments
                 if (seg.type === 'neutral' || !seg.competencyId) {
                   return <span key={i}>{seg.text}</span>;
@@ -252,6 +278,9 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
 
                 const cId = seg.competencyId;
                 const colors = COMPETENCY_COLORS[cId];
+                if (!colors) {
+                  return <span key={i}>{seg.text}</span>;
+                }
                 const isVisible = activeCompetencies.has(cId);
 
                 // If this competency is toggled off, render as plain text
@@ -286,7 +315,7 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
                         <div className="flex items-center gap-2 mb-2">
                           <span className={`w-2.5 h-2.5 rounded-full ${colors.dot}`}></span>
                           <p className={`text-label-md font-bold ${colors.text}`}>
-                            {result.competencies.find(c => c.id === cId)?.name || cId}
+                            {(result.competencies || []).find(c => c.id === cId)?.name || cId}
                           </p>
                         </div>
                         <p className="text-body-sm text-on-surface-variant leading-relaxed">
@@ -302,7 +331,11 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
                     )}
                   </span>
                 );
-              })}
+              }) : (
+                <p className="whitespace-pre-wrap text-on-surface">
+                  {transcribedDisplay || 'Transcrição não disponível para esta redação.'}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -319,14 +352,21 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
           </h3>
 
           <div className="space-y-4">
-            {result.competencies.map((comp, index) => {
-              const cId = comp.id;
-              const colors = COMPETENCY_COLORS[cId];
+            {(result.competencies || []).map((comp, index) => {
+              const rawId = comp.id ? String(comp.id).toUpperCase() : '';
+              const cId: CompetencyId = (rawId && rawId in COMPETENCY_COLORS)
+                ? (rawId as CompetencyId)
+                : (`C${Math.min(5, index + 1)}` as CompetencyId);
+              const colors = COMPETENCY_COLORS[cId] || COMPETENCY_COLORS.C1;
               const isExpanded = expandedCompetency === cId;
+              const suggestions = (comp.suggestions && comp.suggestions.length > 0)
+                ? comp.suggestions
+                : ((comp as unknown as { tips?: string[] }).tips || []);
+              const errors = (comp as unknown as { errors?: Array<{ excerpt: string; correction: string; type: string }> }).errors || [];
 
               return (
                 <div
-                  key={cId}
+                  key={`${cId}-${index}`}
                   className={`bg-surface-container-lowest rounded-card overflow-hidden transition-shadow hover:shadow-card border-l-4 ${colors.border}`}
                 >
                   {/* Card Header */}
@@ -374,20 +414,44 @@ const HandwrittenResultView: React.FC<HandwrittenResultProps> = ({ result, onBac
                       </p>
 
                       {/* Suggestions */}
-                      {comp.suggestions && comp.suggestions.length > 0 && (
+                      {suggestions.length > 0 && (
                         <div>
                           <h5 className="text-label-md text-on-surface font-bold mb-2 flex items-center gap-1.5">
                             <span className="material-icons-outlined text-sm text-primary">lightbulb</span>
                             Sugestões de Melhoria
                           </h5>
                           <ul className="space-y-1.5">
-                            {comp.suggestions.map((s, si) => (
+                            {suggestions.map((s, si) => (
                               <li key={si} className="flex items-start gap-2 text-body-sm text-on-surface-variant">
                                 <span className="text-primary mt-0.5">•</span>
                                 <span>{s}</span>
                               </li>
                             ))}
                           </ul>
+                        </div>
+                      )}
+
+                      {/* Errors */}
+                      {errors.length > 0 && (
+                        <div className="space-y-2">
+                          <h5 className="text-label-md text-rose-500 font-bold flex items-center gap-1.5">
+                            <span className="material-icons-outlined text-sm">search</span>
+                            Desvios Encontrados
+                          </h5>
+                          {errors.map((err, ei) => (
+                            <div key={ei} className="p-2.5 bg-rose-50/50 dark:bg-rose-900/10 rounded-lg border border-rose-100/50 dark:border-rose-800/20">
+                              {err.type && (
+                                <span className="inline-block text-[9px] font-black uppercase text-rose-400 bg-rose-100 dark:bg-rose-900/30 px-1.5 py-0.5 rounded mb-1">
+                                  {err.type}
+                                </span>
+                              )}
+                              <p className="text-body-sm">
+                                <span className="line-through text-rose-400 font-medium">{err.excerpt}</span>
+                                <span className="text-on-surface-variant mx-1.5">→</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-bold">{err.correction}</span>
+                              </p>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>

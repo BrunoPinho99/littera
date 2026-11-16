@@ -12,6 +12,7 @@ export interface ExploreTopic {
   category: "Sociedade" | "Meio Ambiente" | "Tecnologia" | "Educação" | "Saúde" | "Cultura" | "Política" | "Economia";
   difficulty: "Fácil" | "Médio" | "Difícil";
   supportTexts: SupportText[];
+  coverImage?: string;
 }
 
 export const exploreTopics: ExploreTopic[] = [

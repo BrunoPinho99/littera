@@ -31,7 +31,32 @@ import { correctEssay, correctHandwrittenEssay, correctEssayDemo, correctHandwri
 import { saveEssayToDatabase, getNotifications, markNotificationAsRead, markAllNotificationsRead, getSchoolData, getStudentAssignments } from './services/databaseService';
 import { supabase } from './supabaseClient';
 import { exploreTopics } from './data/exploreTopics';
-import { notificationsData } from './data/notificationsData';
+
+const clearDemoStorage = () => {
+  localStorage.removeItem('littera_demo_mode');
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('scritta_demo_') || key === 'scritta_custom_notifications') {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+const normalizeUserType = (rawType?: string | null): 'student' | 'teacher' | 'school_admin' => {
+  const t = String(rawType || '').toLowerCase();
+  if (t === 'owner' || t === 'school_admin' || t === 'institution') return 'school_admin';
+  if (t === 'professor' || t === 'teacher') return 'teacher';
+  return 'student';
+};
+
+const safeParseJson = <T,>(raw: any, fallback: T): T => {
+  if (raw === null || raw === undefined) return fallback;
+  if (typeof raw !== 'string') return raw as T;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+};
 
 // Fallback logic
 const SAFE_TOPICS = exploreTopics && exploreTopics.length > 0 ? exploreTopics : [{
@@ -79,7 +104,16 @@ const App: React.FC = () => {
 
   // Writing flow
   const [topic, setTopic] = useState<Topic>(INITIAL_TOPIC);
-  const [writingTopicTitle, setWritingTopicTitle] = useState('');
+  const [writingTopicTitle, setWritingTopicTitle] = useState(() => {
+    try {
+      const saved = localStorage.getItem('littera_essay_in_progress');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.topicTitle) return parsed.topicTitle;
+      }
+    } catch {}
+    return INITIAL_TOPIC.title;
+  });
   const [correctionResult, setCorrectionResult] = useState<CorrectionResult | null>(null);
   const [handwrittenResult, setHandwrittenResult] = useState<HandwrittenCorrectionResult | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -90,31 +124,62 @@ const App: React.FC = () => {
   const [essayDraft, setEssayDraft] = useState<{ topicTitle: string; startTime: number } | null>(null);
   const [schoolStatus, setSchoolStatus] = useState<string | null>(null);
   const [schoolId, setSchoolId] = useState<string | null>(null);
+  const [userClassId, setUserClassId] = useState<string | null>(null);
 
-  // Resolve school_id + subscription_status (fail-closed: qualquer falha => 'inactive')
-  const resolveSchoolStatus = async (s: any): Promise<void> => {
+  // Resolve user_type, class_id, school_id + subscription_status (fail-closed: qualquer falha => 'inactive')
+  const resolveSchoolStatus = async (s: any): Promise<'student' | 'teacher' | 'school_admin'> => {
+    const isDemoSession = Boolean(!s?.user?.id || String(s.user.id).startsWith('demo'));
+    if (isDemoSession && localStorage.getItem('littera_demo_mode') === 'true') {
+      setSchoolStatus('active');
+      setSchoolId('demo-school');
+      setUserClassId(s?.user?.user_metadata?.class_id || null);
+      return normalizeUserType(s?.user?.user_metadata?.user_type || localStorage.getItem('littera_user_type'));
+    }
     if (!s?.user) {
       setSchoolStatus('inactive');
-      return;
+      return 'student';
     }
     try {
-      let sid: string | null = s.user.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
-      if (!sid) {
-        const profilePromise = supabase.from('profiles').select('school_id').eq('id', s.user.id).maybeSingle();
+      const metaType = s.user.user_metadata?.user_type;
+      let sid: string | null = s.user.user_metadata?.school_id || null;
+      let cid: string | null = s.user.user_metadata?.class_id || null;
+      let resolvedRole: 'student' | 'teacher' | 'school_admin' = normalizeUserType(metaType);
+
+      if (!sid || !metaType || (resolvedRole === 'teacher' && !cid)) {
+        const profilePromise = supabase
+          .from('profiles')
+          .select('role, school_id, class_id')
+          .eq('id', s.user.id)
+          .maybeSingle();
         const { data: profile } = await withTimeout(profilePromise, 2000, { data: null, error: null } as any);
-        sid = profile?.school_id || null;
+        if (!sid && profile?.school_id) sid = profile.school_id;
+        if (!cid && profile?.class_id) cid = profile.class_id;
+        if (profile?.role) {
+          resolvedRole = normalizeUserType(profile.role);
+        }
       }
+
+      if (!sid) {
+        sid = localStorage.getItem('checkout_schoolId');
+      }
+
+      localStorage.setItem('littera_user_type', resolvedRole);
+      setUserType(prev => (prev === resolvedRole ? prev : resolvedRole));
+      setUserClassId(cid);
       setSchoolId(sid);
+
       if (!sid) {
         setSchoolStatus('inactive');
-        return;
+        return resolvedRole;
       }
       const schoolPromise = supabase.from('schools').select('subscription_status').eq('id', sid).maybeSingle();
       const { data: school, error } = await withTimeout(schoolPromise, 2000, { data: null, error: null } as any);
       const status = !error && school?.subscription_status ? String(school.subscription_status).toLowerCase() : 'inactive';
       setSchoolStatus(prev => (prev === status ? prev : status));
+      return resolvedRole;
     } catch {
       setSchoolStatus('inactive');
+      return normalizeUserType(s?.user?.user_metadata?.user_type);
     }
   };
 
@@ -161,6 +226,13 @@ const App: React.FC = () => {
         icon: 'school',
         color: 'rose'
       });
+    } else if (msg.includes('JWT') || msg.includes('Autorização') || msg.includes('não autenticado') || msg.includes('Sessão')) {
+      setQuotaAlert({
+        title: 'Sessão Expirada',
+        message: 'Sua sessão de login expirou ou você não está autenticado. Por favor, faça login novamente com sua conta para corrigir sua redação.',
+        icon: 'lock',
+        color: 'rose'
+      });
     } else {
       setQuotaAlert({
         title: 'Aviso de Correção',
@@ -174,15 +246,21 @@ const App: React.FC = () => {
   useEffect(() => {
     if (userType === 'student') {
       const u = session?.user;
-      const schoolId = u?.user_metadata?.school_id || localStorage.getItem('checkout_schoolId');
-      const classId = u?.user_metadata?.class_id;
-      getStudentAssignments(schoolId, classId).then((assignments) => {
+      const effectiveSchoolId = isDemoMode
+        ? 'demo-school'
+        : (schoolId || u?.user_metadata?.school_id || null);
+      const effectiveClassId = userClassId || u?.user_metadata?.class_id;
+      if (!effectiveSchoolId) {
+        setActiveAssignments([]);
+        return;
+      }
+      getStudentAssignments(effectiveSchoolId, effectiveClassId).then((assignments) => {
         const now = Date.now();
         const valid = (assignments || []).filter(a => !a.due_date || new Date(a.due_date).getTime() > now);
         setActiveAssignments(valid);
       });
     }
-  }, [userType, currentView, session]);
+  }, [userType, currentView, session, schoolId, userClassId, isDemoMode]);
 
   
   // 1. Initialize Session
@@ -198,15 +276,73 @@ const App: React.FC = () => {
         );
         if (!isMounted) return;
         if (data?.session) {
+          if (!String(data.session.user.id || '').startsWith('demo')) {
+            clearDemoStorage();
+            setIsDemoMode(false);
+          }
           setSession(data.session);
           const metaType = data.session.user.user_metadata?.user_type;
-          if (metaType) localStorage.setItem('littera_user_type', metaType);
-          const resolvedType = metaType || localStorage.getItem('littera_user_type') || 'student';
+          if (metaType) localStorage.setItem('littera_user_type', normalizeUserType(metaType));
+          const resolvedType = normalizeUserType(metaType || localStorage.getItem('littera_user_type'));
           setUserType(resolvedType);
           loadNotifications(data.session.user.id);
 
-          // Paywall: tenta resolver o status da escola com timeout
-          await withTimeout(resolveSchoolStatus(data.session), 2000, undefined);
+          // Paywall + fallback de profile (role/school_id/class_id)
+          await withTimeout(resolveSchoolStatus(data.session), 2000, 'student');
+        } else if (localStorage.getItem('littera_demo_mode') === 'true') {
+          const savedType = (localStorage.getItem('littera_user_type') || 'student') as 'student' | 'teacher' | 'school_admin';
+          setIsDemoMode(true);
+          setUserType(savedType);
+          setSchoolStatus('active');
+          setSchoolId('demo-school');
+
+          if (savedType === 'teacher') {
+            setSession({
+              user: {
+                id: 'demo-teacher',
+                email: 'professor.demo@littera.com',
+                user_metadata: {
+                  full_name: 'Prof. Carlos Eduardo (Demo)',
+                  user_type: 'teacher',
+                  school: 'Colégio Littera (Demo)',
+                  school_name: 'Colégio Littera (Demo)',
+                  school_id: 'demo-school',
+                  class_id: 'turma-demo-1',
+                  avatar_url: 'https://ui-avatars.com/api/?name=Prof+Carlos&background=10b981&color=fff',
+                }
+              }
+            });
+          } else if (savedType === 'school_admin') {
+            setSession({
+              user: {
+                id: 'demo-school-admin',
+                email: 'coordenacao.demo@littera.com',
+                user_metadata: {
+                  full_name: 'Coordenação Pedagógica (Demo)',
+                  user_type: 'school_admin',
+                  school: 'Colégio Littera (Demo)',
+                  school_name: 'Colégio Littera (Demo)',
+                  school_id: 'demo-school',
+                  avatar_url: 'https://ui-avatars.com/api/?name=Colegio+Littera&background=6366f1&color=fff',
+                }
+              }
+            });
+          } else {
+            setSession({
+              user: {
+                id: 'demo-anonymous',
+                email: 'demo@littera.com',
+                user_metadata: {
+                  full_name: 'Estudante Demo',
+                  user_type: 'student',
+                  school: 'Colégio Littera (Demo)',
+                  school_name: 'Colégio Littera (Demo)',
+                  school_id: 'demo-school',
+                  avatar_url: 'https://ui-avatars.com/api/?name=Demo&background=f59e0b&color=fff',
+                }
+              }
+            });
+          }
         }
       } catch (error) {
         console.error('Init error:', error);
@@ -221,31 +357,33 @@ const App: React.FC = () => {
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
+        if (!String(session.user.id || '').startsWith('demo')) {
+          clearDemoStorage();
+          setIsDemoMode(false);
+        }
         setSession(prev => (prev?.access_token === session.access_token && prev?.user?.id === session.user?.id ? prev : session));
         
         const metaType = session.user.user_metadata?.user_type;
-        if (metaType) localStorage.setItem('littera_user_type', metaType);
-        const nextUserType = metaType || localStorage.getItem('littera_user_type') || 'student';
+        if (metaType) localStorage.setItem('littera_user_type', normalizeUserType(metaType));
+        const nextUserType = normalizeUserType(metaType || localStorage.getItem('littera_user_type'));
         setUserType(prev => prev === nextUserType ? prev : nextUserType);
 
         if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
-          // Desativa demo mode quando um login real acontece
-          if (isDemoMode) {
-            localStorage.removeItem('littera_demo_mode');
-            setIsDemoMode(false);
-          }
           loadNotifications(session.user.id);
 
-          // Resolve status em background de forma assíncrona sem travar o app em isInitializing
+          // Resolve status + fallback de profile em background sem travar o app em isInitializing
           resolveSchoolStatus(session).finally(() => {
             if (isMounted) setIsInitializing(false);
           });
         }
       } else {
-        if (!isDemoMode) {
+        if (localStorage.getItem('littera_demo_mode') !== 'true') {
           localStorage.removeItem('littera_user_type');
+          setIsDemoMode(false);
           setSession(null);
           setUserType('student');
+          setSchoolId(null);
+          setUserClassId(null);
         }
         if (isMounted) setIsInitializing(false);
       }
@@ -309,24 +447,65 @@ const App: React.FC = () => {
     navigate('/login');
   };
 
-  // --- MODO DEMO: Entrar sem cadastro ---
-  const handleEnterDemo = () => {
+  // --- MODO DEMO: Entrar sem cadastro (Aluno, Professor ou Escola) ---
+  const handleEnterDemo = (type: 'student' | 'teacher' | 'school_admin' = 'student') => {
     localStorage.setItem('littera_demo_mode', 'true');
+    localStorage.setItem('littera_user_type', type);
     setIsDemoMode(true);
-    setUserType('student');
-    // Cria sessão fake local para o demo funcionar
-    setSession({
-      user: {
-        id: 'demo-anonymous',
-        email: 'demo@littera.com',
-        user_metadata: {
-          full_name: 'Estudante Demo',
-          user_type: 'student',
-          avatar_url: 'https://ui-avatars.com/api/?name=Demo&background=f59e0b&color=fff',
+    setUserType(type);
+    setSchoolStatus('active');
+    setSchoolId('demo-school');
+
+    if (type === 'teacher') {
+      setSession({
+        user: {
+          id: 'demo-teacher',
+          email: 'professor.demo@littera.com',
+          user_metadata: {
+            full_name: 'Prof. Carlos Eduardo (Demo)',
+            user_type: 'teacher',
+            school: 'Colégio Littera (Demo)',
+            school_name: 'Colégio Littera (Demo)',
+            school_id: 'demo-school',
+            class_id: 'turma-demo-1',
+            avatar_url: 'https://ui-avatars.com/api/?name=Prof+Carlos&background=10b981&color=fff',
+          }
         }
-      }
-    });
-    navigate('/app/practice');
+      });
+      navigate('/app/inst-overview');
+    } else if (type === 'school_admin') {
+      setSession({
+        user: {
+          id: 'demo-school-admin',
+          email: 'coordenacao.demo@littera.com',
+          user_metadata: {
+            full_name: 'Coordenação Pedagógica (Demo)',
+            user_type: 'school_admin',
+            school: 'Colégio Littera (Demo)',
+            school_name: 'Colégio Littera (Demo)',
+            school_id: 'demo-school',
+            avatar_url: 'https://ui-avatars.com/api/?name=Colegio+Littera&background=6366f1&color=fff',
+          }
+        }
+      });
+      navigate('/app/inst-overview');
+    } else {
+      setSession({
+        user: {
+          id: 'demo-anonymous',
+          email: 'demo@littera.com',
+          user_metadata: {
+            full_name: 'Estudante Demo',
+            user_type: 'student',
+            school: 'Colégio Littera (Demo)',
+            school_name: 'Colégio Littera (Demo)',
+            school_id: 'demo-school',
+            avatar_url: 'https://ui-avatars.com/api/?name=Demo&background=f59e0b&color=fff',
+          }
+        }
+      });
+      navigate('/app/practice');
+    }
   };
 
   const handleStartChallengeWriting = (assignment: Assignment) => {
@@ -339,83 +518,200 @@ const App: React.FC = () => {
     navigate('/app/writing');
   };
 
+  const mapCorrectionRecord = (record: any, activeTopic: string): CorrectionResult => {
+    const competencies = safeParseJson<any[]>(record.competencias_json, []);
+    return {
+      totalScore: record.total_score || 0,
+      competencies,
+      generalComment: record.comentario_geral || '',
+      aiDetected: false,
+      aiJustification: '',
+      zeroReason: record.zero_reason || null,
+      strengths: safeParseJson<string[]>(record.strengths_json, []),
+      priorityImprovements: safeParseJson<string[]>(record.improvements_json, []),
+      annotations: safeParseJson<any[]>(record.annotations_json, []),
+      timeTaken: '0m',
+      topicTitle: activeTopic,
+    };
+  };
+
+  const mapHandwrittenRecord = (record: any, activeTopic: string): HandwrittenCorrectionResult => {
+    const rawCompetencies = safeParseJson<any[]>(record.competencias_json, []);
+    const competencies = rawCompetencies.map((c, idx) => ({
+      id: (c?.id && ['C1', 'C2', 'C3', 'C4', 'C5'].includes(c.id) ? c.id : `C${idx + 1}`) as 'C1' | 'C2' | 'C3' | 'C4' | 'C5',
+      name: c?.name || `Competência ${idx + 1}`,
+      score: Number(c?.score || 0),
+      feedback: c?.feedback || '',
+      suggestions: Array.isArray(c?.suggestions) ? c.suggestions : (Array.isArray(c?.tips) ? c.tips : []),
+    }));
+
+    const parsedAnnotations = safeParseJson<any>(record.annotations_json, []);
+    const isAnnotationsObj = parsedAnnotations && !Array.isArray(parsedAnnotations) && typeof parsedAnnotations === 'object';
+
+    const annotatedSegments = Array.isArray(parsedAnnotations)
+      ? parsedAnnotations
+      : (Array.isArray(parsedAnnotations?.annotatedSegments) ? parsedAnnotations.annotatedSegments : []);
+
+    const transcribedText =
+      record.transcribed_text ||
+      (isAnnotationsObj ? parsedAnnotations.transcribedText : '') ||
+      (record.conteudo && record.conteudo !== 'Redação enviada via imagem' ? record.conteudo : '') ||
+      '';
+
+    const overallSuggestions =
+      (Array.isArray(record.overall_suggestions) ? record.overall_suggestions : null) ||
+      (isAnnotationsObj && Array.isArray(parsedAnnotations.overallSuggestions) ? parsedAnnotations.overallSuggestions : null) ||
+      safeParseJson<string[]>(record.improvements_json, []);
+
+    return {
+      totalScore: record.total_score || 0,
+      competencies,
+      generalComment: record.comentario_geral || '',
+      annotatedSegments,
+      overallSuggestions,
+      transcribedText,
+      topicTitle: activeTopic,
+      timeTaken: '0m',
+    };
+  };
+
+  const fetchEssayRecord = async (essayId: string, isDemo: boolean) => {
+    if (isDemo) {
+      const { data, error } = await supabase.rpc('get_demo_essay_result', {
+        p_essay_id: essayId,
+      });
+      if (error) return null;
+      return data || null;
+    }
+    const { data, error } = await supabase
+      .from('redacoes')
+      .select('*')
+      .eq('id', essayId)
+      .maybeSingle();
+    if (error) return null;
+    return data || null;
+  };
+
+  const waitForEssayResult = (
+    essayId: string,
+    isDemo: boolean,
+    onCompleted: (record: any) => void,
+    onError: (msg: string) => void
+  ) => {
+    let settled = false;
+    let pollTimer: any = null;
+    let timeoutTimer: any = null;
+    const channel = !isDemo ? supabase.channel(`essay-watch-${essayId}`) : null;
+
+    const cleanup = () => {
+      if (pollTimer) clearInterval(pollTimer);
+      if (timeoutTimer) clearTimeout(timeoutTimer);
+      if (channel) supabase.removeChannel(channel);
+    };
+
+    const handleRecord = (record: any) => {
+      if (!record || settled) return;
+      if (record.status === 'corrigida') {
+        settled = true;
+        cleanup();
+        onCompleted(record);
+      } else if (record.status === 'erro') {
+        settled = true;
+        cleanup();
+        onError(record.comentario_geral || 'Erro ao processar redação.');
+      }
+    };
+
+    const checkOnce = async () => {
+      if (settled) return;
+      try {
+        const data = await fetchEssayRecord(essayId, isDemo);
+        if (data) handleRecord(data);
+      } catch {
+        // Ignora erro transitório de polling; próximo tick ou Realtime resolverá
+      }
+    };
+
+    if (channel) {
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'redacoes',
+            filter: `id=eq.${essayId}`,
+          },
+          (payload) => handleRecord(payload.new)
+        )
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            // Verifica imediatamente caso process-essay tenha concluído antes da inscrição
+            checkOnce();
+          }
+        });
+    } else {
+      checkOnce();
+    }
+
+    // Polling fallback a cada 3 segundos (via RPC segura em modo demo)
+    pollTimer = setInterval(checkOnce, 3000);
+
+    // Timeout de segurança de 90 segundos para evitar spinner infinito
+    timeoutTimer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      onError('A correção demorou mais do que o esperado. Verifique seu histórico em "Minha Evolução" em alguns instantes.');
+    }, 90000);
+  };
+
   const handleEssaySubmit = async (input: EssayInput) => {
     setIsCorrecting(true);
     try {
+      const activeTopic = writingTopicTitle || topic.title || INITIAL_TOPIC.title;
+      if (!writingTopicTitle) setWritingTopicTitle(activeTopic);
+
       const userId = session?.user?.id;
+      const isActuallyDemo = isDemoMode || !session || String(userId || '').startsWith('demo');
 
       // Usa a função demo ou normal conforme o modo
-      const res = isDemoMode
-        ? await correctEssayDemo(writingTopicTitle, input)
-        : await correctEssay(writingTopicTitle, input);
+      const res = isActuallyDemo
+        ? await correctEssayDemo(activeTopic, input)
+        : await correctEssay(activeTopic, input);
       const { essayId } = res;
 
+      const finishEssay = async (record: any) => {
+        const mapped = mapCorrectionRecord(record, activeTopic);
+        setCorrectionResult(mapped);
+        if (isActuallyDemo) {
+          await saveEssayToDatabase(
+            activeTopic,
+            input,
+            userId || 'demo-anonymous',
+            mapped,
+            session?.user?.user_metadata
+          );
+        }
+        navigate('/app/result');
+        setTimeout(() => setIsCorrecting(false), 100);
+      };
+
       if ((res as any).cached) {
-        const { data: existingRecord } = await supabase
-          .from('redacoes')
-          .select('*')
-          .eq('id', essayId)
-          .maybeSingle();
+        const existingRecord = await fetchEssayRecord(essayId, isActuallyDemo);
 
         if (existingRecord && existingRecord.status === 'corrigida') {
-          const competencies = JSON.parse(existingRecord.competencias_json || '[]');
-          const result: CorrectionResult = {
-            totalScore: existingRecord.total_score,
-            competencies,
-            generalComment: existingRecord.comentario_geral,
-            aiDetected: false,
-            aiJustification: "",
-            zeroReason: existingRecord.zero_reason || null,
-            strengths: existingRecord.strengths_json ? (typeof existingRecord.strengths_json === 'string' ? JSON.parse(existingRecord.strengths_json) : existingRecord.strengths_json) : [],
-            priorityImprovements: existingRecord.improvements_json ? (typeof existingRecord.improvements_json === 'string' ? JSON.parse(existingRecord.improvements_json) : existingRecord.improvements_json) : [],
-            annotations: existingRecord.annotations_json ? (typeof existingRecord.annotations_json === 'string' ? JSON.parse(existingRecord.annotations_json) : existingRecord.annotations_json) : [],
-          };
-          setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
-          navigate('/app/result');
-          setTimeout(() => setIsCorrecting(false), 100);
+          await finishEssay(existingRecord);
           return;
         }
       }
-      
-      const channel = supabase.channel(`essay-${essayId}`)
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'redacoes',
-          filter: `id=eq.${essayId}`
-        }, async (payload) => {
-          const updatedRecord = payload.new;
-          
-          if (updatedRecord.status === 'corrigida') {
-            const competencies = JSON.parse(updatedRecord.competencias_json || '[]');
-            const result: CorrectionResult = {
-              totalScore: updatedRecord.total_score,
-              competencies,
-              generalComment: updatedRecord.comentario_geral,
-              aiDetected: false,
-              aiJustification: "",
-              zeroReason: updatedRecord.zero_reason || null,
-              strengths: updatedRecord.strengths_json ? (typeof updatedRecord.strengths_json === 'string' ? JSON.parse(updatedRecord.strengths_json) : updatedRecord.strengths_json) : [],
-              priorityImprovements: updatedRecord.improvements_json ? (typeof updatedRecord.improvements_json === 'string' ? JSON.parse(updatedRecord.improvements_json) : updatedRecord.improvements_json) : [],
-              annotations: updatedRecord.annotations_json ? (typeof updatedRecord.annotations_json === 'string' ? JSON.parse(updatedRecord.annotations_json) : updatedRecord.annotations_json) : [],
-            };
-            setCorrectionResult({ ...result, timeTaken: '0m', topicTitle: writingTopicTitle });
-            
-            // Não salva no banco para usuários demo
-            if (userId && !isDemoMode) {
-              await saveEssayToDatabase(writingTopicTitle, input, userId, result, session?.user?.user_metadata);
-            }
-            navigate('/app/result');
-            setTimeout(() => setIsCorrecting(false), 100);
-            supabase.removeChannel(channel);
-          } else if (updatedRecord.status === 'erro') {
-            setIsCorrecting(false);
-            handleCorrectionError(updatedRecord.comentario_geral || 'Erro ao processar redação.');
-            supabase.removeChannel(channel);
-          }
-        })
-        .subscribe();
-        
+
+      waitForEssayResult(
+        essayId,
+        isActuallyDemo,
+        (updatedRecord) => { finishEssay(updatedRecord); },
+        (errMsg) => { handleCorrectionError(errMsg); }
+      );
     } catch (err: unknown) {
       handleCorrectionError(err);
     }
@@ -424,68 +720,58 @@ const App: React.FC = () => {
   const handleHandwrittenSubmit = async (base64: string, mimeType: string) => {
     setIsCorrecting(true);
     try {
-      const res = isDemoMode
-        ? await correctHandwrittenEssayDemo(writingTopicTitle, base64, mimeType)
-        : await correctHandwrittenEssay(writingTopicTitle, base64, mimeType);
+      const activeTopic = writingTopicTitle || topic.title || INITIAL_TOPIC.title;
+      if (!writingTopicTitle) setWritingTopicTitle(activeTopic);
+
+      const userId = session?.user?.id;
+      const isActuallyDemo = isDemoMode || !session || String(userId || '').startsWith('demo');
+
+      const res = isActuallyDemo
+        ? await correctHandwrittenEssayDemo(activeTopic, base64, mimeType)
+        : await correctHandwrittenEssay(activeTopic, base64, mimeType);
       const { essayId } = res;
 
+      const finishHandwritten = async (record: any) => {
+        const mapped = mapHandwrittenRecord(record, activeTopic);
+        setHandwrittenResult(mapped);
+        if (isActuallyDemo) {
+          await saveEssayToDatabase(
+            activeTopic,
+            { type: 'image', base64, mimeType },
+            userId || 'demo-anonymous',
+            {
+              totalScore: mapped.totalScore,
+              competencies: mapped.competencies.map((c) => ({
+                name: c.name,
+                score: c.score,
+                feedback: c.feedback,
+                tips: c.suggestions,
+              })),
+              generalComment: mapped.generalComment,
+              aiDetected: false,
+            },
+            session?.user?.user_metadata
+          );
+        }
+        navigate('/app/handwritten-result');
+        setTimeout(() => setIsCorrecting(false), 100);
+      };
+
       if ((res as any).cached) {
-        const { data: existingRecord } = await supabase
-          .from('redacoes')
-          .select('*')
-          .eq('id', essayId)
-          .maybeSingle();
+        const existingRecord = await fetchEssayRecord(essayId, isActuallyDemo);
 
         if (existingRecord && existingRecord.status === 'corrigida') {
-          const result: HandwrittenCorrectionResult = {
-            totalScore: existingRecord.total_score,
-            competencies: JSON.parse(existingRecord.competencias_json || '[]'),
-            generalComment: existingRecord.comentario_geral,
-            annotatedSegments: [],
-            overallSuggestions: [],
-            transcribedText: "[Transcrição Oculta - Processado no Backend]",
-            topicTitle: writingTopicTitle,
-            timeTaken: '0m'
-          };
-          setHandwrittenResult(result);
-          navigate('/app/handwritten-result');
-          setTimeout(() => setIsCorrecting(false), 100);
+          await finishHandwritten(existingRecord);
           return;
         }
       }
-      
-      const channel = supabase.channel(`handwritten-essay-${essayId}`)
-        .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'redacoes',
-          filter: `id=eq.${essayId}`
-        }, async (payload) => {
-          const updatedRecord = payload.new;
-          
-          if (updatedRecord.status === 'corrigida') {
-            const result: HandwrittenCorrectionResult = {
-              totalScore: updatedRecord.total_score,
-              competencies: JSON.parse(updatedRecord.competencias_json || '[]'),
-              generalComment: updatedRecord.comentario_geral,
-              annotatedSegments: [],
-              overallSuggestions: [],
-              transcribedText: "[Transcrição Oculta - Processado no Backend]",
-              topicTitle: writingTopicTitle,
-              timeTaken: '0m'
-            };
-            setHandwrittenResult(result);
-            navigate('/app/handwritten-result');
-            setTimeout(() => setIsCorrecting(false), 100);
-            supabase.removeChannel(channel);
-          } else if (updatedRecord.status === 'erro') {
-            setIsCorrecting(false);
-            handleCorrectionError(updatedRecord.comentario_geral || 'Erro ao processar manuscrito.');
-            supabase.removeChannel(channel);
-          }
-        })
-        .subscribe();
-        
+
+      waitForEssayResult(
+        essayId,
+        isActuallyDemo,
+        (updatedRecord) => { finishHandwritten(updatedRecord); },
+        (errMsg) => { handleCorrectionError(errMsg); }
+      );
     } catch (err: unknown) {
       handleCorrectionError(err);
     }
@@ -507,7 +793,7 @@ const App: React.FC = () => {
   }
 
   // --- TRAVA DE ASSINATURA (PAYWALL B2B) ---
-  const isSuspended = Boolean(session && !isDemoMode && schoolStatus !== 'active');
+  const isSuspended = Boolean(session && !isDemoMode && schoolStatus !== 'active' && schoolStatus !== 'trialing');
 
   const renderSuspended = () => {
     if (userType === 'school_admin') {
@@ -621,7 +907,12 @@ const App: React.FC = () => {
             <Routes>
               <Route path="practice" element={
                 <div className="space-y-16">
-
+                  <ChallengeBanner
+                    assignments={activeAssignments}
+                    onStartWriting={handleStartChallengeWriting}
+                    forceShowId={forceShowChallengeId}
+                    onClearForceShow={() => setForceShowChallengeId(null)}
+                  />
                   <TopicCard
                     topic={topic}
                     onRefresh={() => {
@@ -636,7 +927,7 @@ const App: React.FC = () => {
               } />
               <Route path="writing" element={
                 <EssayEditor
-                  topicTitle={writingTopicTitle}
+                  topicTitle={writingTopicTitle || topic.title || INITIAL_TOPIC.title}
                   onCancel={() => navigate('/app/practice')}
                   onSubmit={handleEssaySubmit}
                   onHandwrittenSubmit={handleHandwrittenSubmit}
@@ -667,7 +958,7 @@ const App: React.FC = () => {
                     forceShowId={forceShowChallengeId}
                     onClearForceShow={() => setForceShowChallengeId(null)}
                   />
-                  <PerformanceView userId={session?.user?.id} isDemo={false} />
+                  <PerformanceView userId={session?.user?.id} schoolId={schoolId} isDemo={isDemoMode} />
                 </div>
               } />
               <Route path="ranking" element={<RankingView />} />
@@ -681,6 +972,12 @@ const App: React.FC = () => {
                   onMarkAllAsRead={async () => {
                     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
                     await markAllNotificationsRead(session?.user?.id || 'demo');
+                  }}
+                  onAction={(type) => {
+                    if (type === 'correction') navigate('/app/performance');
+                    else if (type === 'ranking') navigate('/app/ranking');
+                    else if (type === 'assignment') navigate('/app/practice');
+                    else navigate('/app/practice');
                   }}
                   onClose={() => navigate(`/app/${getDefaultView(userType)}`)}
                 />
@@ -714,6 +1011,11 @@ const App: React.FC = () => {
                     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
                     await markAllNotificationsRead(session?.user?.id || 'demo');
                   }}
+                  onAction={(type) => {
+                    if (type === 'correction') navigate('/app/inst-performance');
+                    else if (type === 'ranking') navigate('/app/inst-ranking');
+                    else navigate('/app/inst-overview');
+                  }}
                   onClose={() => navigate(`/app/${getDefaultView(userType)}`)}
                 />
               } />
@@ -746,12 +1048,16 @@ const App: React.FC = () => {
               onLoginSuccess={async (newSession?: any) => {
                 const s = newSession || (await supabase.auth.getSession()).data.session;
                 if (s) {
+                  if (!String(s.user?.id || '').startsWith('demo')) {
+                    clearDemoStorage();
+                    setIsDemoMode(false);
+                  }
                   setSession(s);
-                  const metaType = s.user?.user_metadata?.user_type;
-                  if (metaType) localStorage.setItem('littera_user_type', metaType);
-                  const resolvedType = metaType || localStorage.getItem('littera_user_type') || userType;
-                  setUserType(resolvedType);
-                  await withTimeout(resolveSchoolStatus(s), 2000, undefined);
+                  const resolvedType = await withTimeout(
+                    resolveSchoolStatus(s),
+                    2500,
+                    normalizeUserType(s.user?.user_metadata?.user_type || localStorage.getItem('littera_user_type'))
+                  );
                   navigate(`/app/${getDefaultView(resolvedType)}`, { replace: true });
                 } else {
                   navigate(`/app/${getDefaultView(userType)}`, { replace: true });

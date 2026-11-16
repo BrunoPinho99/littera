@@ -1,5 +1,5 @@
 // supabase/functions/complete-onboarding/index.ts
-// Edge Function — Finaliza o onboarding criando a conta do usuário após o pagamento
+// Edge Function — Finaliza o onboarding criando a escola para usuário autenticado (sempre com status 'inactive' até confirmação do Asaas)
 import { createClient } from '@supabase/supabase-js'
 
 const corsHeaders = {
@@ -27,76 +27,100 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Configuração de banco ausente.' }, 500)
   }
 
-  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+  const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return jsonResponse({ error: 'Não autorizado. Use o fluxo /cadastro para criar sua conta.' }, 401)
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
 
   try {
-    const body = await req.json()
-    const { email, password, directorName, schoolName, cnpj, studentCount, asaasCustomerId, subscriptionId } = body
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const { data: { user: callerUser }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !callerUser) {
+      return jsonResponse({ error: 'Sessão inválida ou expirada.' }, 401)
+    }
 
-    if (!email || !password || !schoolName || !cnpj) {
+    const body = await req.json()
+    const { email, directorName, schoolName, cnpj, studentCount, asaasCustomerId, subscriptionId } = body
+    const normalizedEmail = (email || callerUser.email || '').toLowerCase().trim()
+
+    if (!normalizedEmail || !schoolName || !cnpj) {
       return jsonResponse({ error: 'Dados insuficientes para criar a conta.' }, 400)
     }
 
-    // 1. Criar usuário no Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: email.toLowerCase().trim(),
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: directorName,
-        user_type: 'school_admin',
-      },
-    })
-
-    if (authError || !authData.user) {
-      console.error('Auth error:', authError)
-      return jsonResponse({ error: 'Erro ao criar conta ou e-mail já cadastrado.' }, 400)
+    const isLitteraAdmin = callerUser.app_metadata?.role === 'littera_admin'
+    if (!isLitteraAdmin && callerUser.email?.toLowerCase() !== normalizedEmail) {
+      return jsonResponse({ error: 'E-mail divergente do usuário autenticado.' }, 403)
     }
 
-    const userId = authData.user.id
+    // Impedir duplicação ou sequestro por CNPJ
+    const cleanCnpj = String(cnpj).replace(/\D/g, '')
+    const { data: existingSchool } = await supabase
+      .from('schools')
+      .select('id')
+      .eq('cnpj', cleanCnpj)
+      .maybeSingle()
 
-    // 2. Criar Escola
-    const slug = schoolName
+    if (existingSchool) {
+      return jsonResponse({ error: 'Já existe uma instituição cadastrada com este CNPJ.' }, 409)
+    }
+
+    const userId = callerUser.id
+
+    // Impedir que um usuário que já pertence a uma escola crie outra por esta rota
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('school_id')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (existingProfile?.school_id) {
+      return jsonResponse({ error: 'Usuário já vinculado a uma instituição.' }, 409)
+    }
+
+    const slug = String(schoolName)
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '')
 
+    // Criar Escola sempre como 'inactive' — apenas o webhook Asaas ou admin autorizado ativa
     const { data: schoolData, error: schoolError } = await supabase
       .from('schools')
       .insert({
-        name: schoolName.trim(),
+        name: String(schoolName).trim(),
         slug: slug || `escola-${Date.now()}`,
-        cnpj: cnpj,
+        cnpj: cleanCnpj,
+        email: normalizedEmail,
         student_count: studentCount,
-        asaas_customer_id: asaasCustomerId,
-        subscription_id: subscriptionId,
-        subscription_status: 'active' // Assumimos ativo se o cartão passou no Asaas. Webhook pode revogar.
+        asaas_customer_id: asaasCustomerId || null,
+        subscription_id: subscriptionId || null,
+        subscription_status: 'inactive',
       })
       .select()
       .single()
 
     if (schoolError || !schoolData) {
       console.error('School error:', schoolError)
-      await supabase.auth.admin.deleteUser(userId)
       return jsonResponse({ error: 'Erro ao registrar escola no banco de dados.' }, 500)
     }
 
-    // 3. Criar Profile
     await supabase.from('profiles').upsert({
       id: userId,
-      full_name: directorName,
-      email: email.toLowerCase().trim(),
-      role: 'school_admin',
+      full_name: directorName || callerUser.user_metadata?.full_name || normalizedEmail,
+      email: normalizedEmail,
+      role: 'owner',
       school_id: schoolData.id,
       status: 'active',
     })
 
-    // 4. Atualizar metadata
     await supabase.auth.admin.updateUserById(userId, {
       user_metadata: {
-        full_name: directorName,
+        full_name: directorName || callerUser.user_metadata?.full_name || normalizedEmail,
         user_type: 'school_admin',
         school_id: schoolData.id,
       },

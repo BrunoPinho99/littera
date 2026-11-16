@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { exploreTopics, ExploreTopic } from '../data/exploreTopics';
+import { getTopicCover } from '../data/topicCovers';
 
 interface ExploreViewProps {
   onSelectTopic: (topicTitle: string) => void;
@@ -17,77 +18,6 @@ const categories = [
   'Economia',
 ];
 const ITEMS_PER_PAGE = 9;
-
-// Mapeamento de capas fotográficas reais por categoria temática
-const CATEGORY_COVERS: Record<string, string> = {
-  Sociedade: '/assets/covers/cover-sociedade.jpg',
-  'Meio Ambiente': '/assets/covers/cover-meio-ambiente.jpg',
-  Tecnologia: '/assets/covers/cover-tecnologia.jpg',
-  Educação: '/assets/covers/cover-educacao.jpg',
-  Saúde: '/assets/covers/cover-saude.jpg',
-  Cultura: '/assets/covers/cover-cultura.jpg',
-  Política: '/assets/covers/cover-politica.jpg',
-  Economia: '/assets/covers/cover-economia.jpg',
-};
-
-// Fotos editoriais e fotojornalísticas reais por palavras-chave do ENEM
-const THEMATIC_PHOTOS: { keywords: string[]; url: string }[] = [
-  {
-    keywords: ['amazônia', 'floresta', 'clima', 'desmatamento', 'ambiental', 'indígena', 'queimadas', 'sustentabilidade'],
-    url: '/assets/covers/cover-meio-ambiente.jpg',
-  },
-  {
-    keywords: ['fome', 'alimentar', 'insegurança', 'rua', 'pobreza', 'desigualdade', 'moradia', 'social', 'cidadania', 'violência', 'mulher'],
-    url: '/assets/covers/cover-sociedade.jpg',
-  },
-  {
-    keywords: ['inteligência artificial', 'ia', 'algoritmo', 'tecnologia', 'digital', 'dados', 'internet', 'redes sociais', 'telas', 'cibernético'],
-    url: '/assets/covers/cover-tecnologia.jpg',
-  },
-  {
-    keywords: ['educação', 'escola', 'ensino', 'leitura', 'professores', 'alfabetização', 'livro', 'aluno', 'evasão'],
-    url: '/assets/covers/cover-educacao.jpg',
-  },
-  {
-    keywords: ['saúde', 'sus', 'mental', 'vacina', 'médic', 'hospital', 'ansiedade', 'doença', 'obesidade'],
-    url: '/assets/covers/cover-saude.jpg',
-  },
-  {
-    keywords: ['cultura', 'cinema', 'arte', 'teatro', 'patrimônio', 'literatura', 'música', 'história', 'tradição'],
-    url: '/assets/covers/cover-cultura.jpg',
-  },
-  {
-    keywords: ['política', 'democracia', 'cidadania', 'voto', 'justiça', 'direitos', 'eleiç', 'leis', 'corrupção', 'transparência'],
-    url: '/assets/covers/cover-politica.jpg',
-  },
-  {
-    keywords: ['economia', 'dívida', 'trabalho', 'emprego', 'renda', 'financeir', 'inflação', 'mercado', 'consumo', 'empreendedorismo'],
-    url: '/assets/covers/cover-economia.jpg',
-  },
-];
-
-const getTopicCover = (topic: { title: string; category?: string }, index = 0): string => {
-  const lowerTitle = (topic.title || '').toLowerCase();
-  for (const item of THEMATIC_PHOTOS) {
-    if (item.keywords.some((kw) => lowerTitle.includes(kw))) {
-      return item.url;
-    }
-  }
-  if (topic.category && CATEGORY_COVERS[topic.category]) {
-    return CATEGORY_COVERS[topic.category];
-  }
-  const fallbackList = [
-    '/assets/covers/cover-sociedade.jpg',
-    '/assets/covers/cover-educacao.jpg',
-    '/assets/covers/cover-meio-ambiente.jpg',
-    '/assets/covers/cover-tecnologia.jpg',
-    '/assets/covers/cover-saude.jpg',
-    '/assets/covers/cover-cultura.jpg',
-    '/assets/covers/cover-politica.jpg',
-    '/assets/covers/cover-economia.jpg',
-  ];
-  return fallbackList[index % fallbackList.length];
-};
 
 const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -233,6 +163,8 @@ const ExploreView: React.FC<ExploreViewProps> = ({ onSelectTopic }) => {
             <img
               src={getTopicCover(topic, index)}
               alt={topic.title}
+              loading="lazy"
+              decoding="async"
               className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105 pointer-events-none"
             />
 

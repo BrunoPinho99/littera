@@ -12,14 +12,18 @@
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
     "@supabase/supabase-js": "^2.39.0",
+    "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
     "lenis": "^1.3.27",
+    "lucide-react": "^1.73.0",
     "matter-js": "^0.20.0",
+    "motion": "^14.14.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hook-form": "^7.78.0",
     "react-input-mask": "^2.0.4",
     "react-router-dom": "^6.22.0",
+    "tailwind-merge": "^3.7.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

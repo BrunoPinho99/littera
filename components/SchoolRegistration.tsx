@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { getClassesBySchool } from '../services/databaseService';
 import { ClassGroup } from '../types';
 
 const SchoolRegistration: React.FC = () => {
@@ -34,21 +33,14 @@ const SchoolRegistration: React.FC = () => {
         setLoading(true);
         setError('');
         try {
-            // Get school name
-            const { data: schoolData, error: schoolError } = await supabase
-                .from('schools')
-                .select('name')
-                .eq('id', schoolId)
-                .single();
+            const { data: schoolInfo, error: rpcError } = await supabase
+                .rpc('get_public_school_registration_info', { p_school_id: schoolId });
 
-            if (schoolError || !schoolData) {
-                throw new Error('Escola não encontrada.');
+            if (rpcError || !schoolInfo) {
+                throw new Error('Escola não encontrada ou assinatura inativa.');
             }
-            setSchoolName(schoolData.name);
-
-            // Get classes
-            const classesData = await getClassesBySchool(schoolId!);
-            setClasses(classesData);
+            setSchoolName(schoolInfo.name || '');
+            setClasses(Array.isArray(schoolInfo.classes) ? schoolInfo.classes : []);
         } catch (err: any) {
             setError(err.message || 'Erro ao carregar dados da escola.');
         } finally {
@@ -94,9 +86,9 @@ const SchoolRegistration: React.FC = () => {
             setSuccess(true);
             
             // Fazer login automático e redirecionar
-            const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+            const { error: loginError } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
             if (!loginError) {
-                setTimeout(() => navigate('/app/student-dashboard'), 2000);
+                setTimeout(() => navigate('/app/practice'), 2000);
             }
 
         } catch (err: any) {

@@ -28,7 +28,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const payload: RegisterStudentPayload = await req.json()
-    const { action = 'register', name, email, whatsapp, invite_code } = payload
+    const { action = 'register', name, whatsapp, invite_code } = payload
+    const email = (payload.email || '').trim().toLowerCase()
 
     if (!invite_code) {
       return new Response(JSON.stringify({ error: 'Código da turma é obrigatório' }), {
@@ -51,7 +52,7 @@ Deno.serve(async (req: Request) => {
     // 1. Check if class exists and get details
     const { data: classData, error: classError } = await supabaseAdmin
       .from('classes')
-      .select('id, name, school_id, max_students, schools(name, is_trial_school)')
+      .select('id, name, school_id, max_students, trial_ends_at, schools(name, is_trial_school, subscription_status, student_count)')
       .eq('invite_code', invite_code)
       .maybeSingle()
 
@@ -62,39 +63,62 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    const { id: class_id, name: class_name, school_id, max_students, schools } = classData
-    
-    // Supabase generated types often infer joined tables as arrays. 
-    // We safely handle it by getting the first item if it's an array.
-    type SchoolData = { name: string; is_trial_school: boolean };
+    const { id: class_id, name: class_name, school_id, max_students, trial_ends_at, schools } = classData
+
+    type SchoolData = {
+      name: string;
+      is_trial_school: boolean;
+      subscription_status?: string;
+      student_count?: number;
+    };
     const schoolData = Array.isArray(schools) ? (schools[0] as SchoolData) : (schools as SchoolData | null);
     const school_name = schoolData?.name || 'Escola'
-    const is_trial = schoolData?.is_trial_school === true
+    const school_status = String(schoolData?.subscription_status || '').toLowerCase()
+    const is_trial = schoolData?.is_trial_school === true || school_status === 'trialing'
 
-    // 2. Check if class is full
-    const { count, error: countError } = await supabaseAdmin
+    if (!['active', 'trialing'].includes(school_status)) {
+      return new Response(JSON.stringify({ error: 'Esta instituição não está com acesso ativo no momento.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // 2. Check class capacity and school seat limit
+    const { count: classCount, error: countError } = await supabaseAdmin
       .from('profiles')
       .select('id', { count: 'exact', head: true })
       .eq('class_id', class_id)
       .eq('role', 'student')
 
-    const isFull = !countError && count !== null && count >= max_students
+    let isClassFull = !countError && classCount !== null && max_students != null && max_students > 0 && classCount >= max_students
+
+    if (!isClassFull && !is_trial && (schoolData?.student_count ?? 0) > 0) {
+      const { count: schoolStudentCount } = await supabaseAdmin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('school_id', school_id)
+        .eq('role', 'student')
+
+      if (schoolStudentCount !== null && schoolStudentCount >= (schoolData?.student_count ?? 0)) {
+        isClassFull = true
+      }
+    }
 
     if (action === 'check') {
-       return new Response(JSON.stringify({
-         success: true,
-         class_name,
-         school_name,
-         is_full: is_trial ? isFull : false,
-       }), {
-         status: 200,
-         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-       })
+      return new Response(JSON.stringify({
+        success: true,
+        class_name,
+        school_name,
+        is_full: isClassFull,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // --- Action: register ---
-    if (is_trial && isFull) {
-      return new Response(JSON.stringify({ error: 'Turma já atingiu o limite de vagas' }), {
+    if (isClassFull) {
+      return new Response(JSON.stringify({ error: 'Turma ou escola já atingiu o limite de vagas' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -140,42 +164,109 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 4. Generate Magic Link
+    // Check existing profile to prevent cross-tenant hijack
+    const { data: existingProfile } = await supabaseAdmin
+      .from('profiles')
+      .select('id, school_id, status, role')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (existingProfile && existingProfile.school_id && existingProfile.school_id !== school_id && existingProfile.status !== 'invited') {
+      return new Response(JSON.stringify({ error: 'Este e-mail já está vinculado a outra instituição.' }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // 4. Generate Invite Link redirecting to /convite so student defines password
     const siteUrl = Deno.env.get('SITE_URL') ?? 'https://app.littera.com.br'
-    const { data: magicLinkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
+    const userMetadata = {
+      full_name: name.trim(),
+      user_type: 'student',
+      school_id: school_id,
+      school_name: school_name,
+      class_id: class_id,
+      invited_by_school: school_name,
+    }
+
+    if (existingProfile?.status === 'invited' && existingProfile.id) {
+      await supabaseAdmin.auth.admin.deleteUser(existingProfile.id).catch(() => {})
+      await supabaseAdmin.from('profiles').delete().eq('id', existingProfile.id)
+    }
+
+    let userId: string
+    let actionLink: string
+    let profileStatus: 'invited' | 'active' = 'invited'
+
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'invite',
       email: email,
       options: {
-        redirectTo: `${siteUrl}/login`,
-        data: {
-          full_name: name,
-        }
+        redirectTo: `${siteUrl}/convite`,
+        data: userMetadata,
       },
     })
 
-    if (linkError) {
-      console.error('Error generating magic link:', linkError)
+    if (!inviteError && inviteData?.user?.id) {
+      userId = inviteData.user.id
+      actionLink = inviteData.properties.action_link
+      profileStatus = 'invited'
+    } else if (
+      inviteError?.message?.includes('already been registered') ||
+      inviteError?.message?.includes('already registered') ||
+      inviteError?.code === 'email_exists'
+    ) {
+      if (!existingProfile?.id) {
+        return new Response(JSON.stringify({ error: 'Este e-mail já está cadastrado. Faça login na plataforma.' }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      userId = existingProfile.id
+      profileStatus = 'active'
+      await supabaseAdmin.auth.admin.updateUserById(userId, { user_metadata: userMetadata })
+
+      const { data: magicLinkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: email,
+        options: {
+          redirectTo: `${siteUrl}/login`,
+          data: userMetadata,
+        },
+      })
+      if (linkError || !magicLinkData?.user) {
+        return new Response(JSON.stringify({ error: 'Erro ao gerar acesso' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      actionLink = magicLinkData.properties.action_link
+    } else {
+      console.error('Error generating invite link:', inviteError)
       return new Response(JSON.stringify({ error: 'Erro ao gerar acesso' }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    const userId = magicLinkData.user.id
-    const actionLink = magicLinkData.properties.action_link
-
     // 5. Update / Insert Profile
+    const now = new Date()
+    const computedTrialEnd = trial_ends_at
+      ? new Date(trial_ends_at).toISOString()
+      : new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000).toISOString()
+
     const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
       id: userId,
-      full_name: name,
+      full_name: name.trim(),
       email: email,
       role: 'student',
       school_id: school_id,
       class_id: class_id,
-      status: 'active',
+      status: profileStatus,
       is_trial: is_trial,
       ...(is_trial ? {
-        trial_started_at: new Date().toISOString(),
+        trial_started_at: now.toISOString(),
+        trial_ends_at: computedTrialEnd,
         trial_school_name: school_name,
         originated_from_trial: true,
       } : {})
@@ -183,7 +274,6 @@ Deno.serve(async (req: Request) => {
 
     if (profileError) {
       console.error('Error updating profile:', profileError)
-      // Even if profile fails, user is created, but it's an edge case.
     }
 
     // 6. Insert into trial_history
@@ -196,7 +286,7 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // 7. Send Magic Link to Student via Brevo
+    // 7. Send Activation Link to Student via Brevo
     const brevoApiKey = Deno.env.get('BREVO_API_KEY')
     if (brevoApiKey) {
       const studentHtml = `
@@ -207,13 +297,13 @@ Deno.serve(async (req: Request) => {
           ${is_trial ? '<p>Você tem direito a enviar 2 redações por dia civil e receber correções ultra-detalhadas instantaneamente.</p>' : ''}
           <div style="text-align: center; margin: 30px 0;">
             <a href="${actionLink}" style="background-color: #111315; color: #ffffff; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">
-              Acessar Plataforma Agora
+              Ativar Minha Conta Agora
             </a>
           </div>
           <p style="color: #666; font-size: 14px;">Se o botão não funcionar, cole este link no navegador:<br>${actionLink}</p>
         </div>
       `
-      
+
       try {
         await fetch('https://api.brevo.com/v3/smtp/email', {
           method: 'POST',
@@ -236,7 +326,7 @@ Deno.serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Cadastro realizado com sucesso! Verifique seu e-mail para acessar a plataforma.',
+      message: 'Cadastro realizado com sucesso! Verifique seu e-mail para ativar sua conta.',
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

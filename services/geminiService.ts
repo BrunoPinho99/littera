@@ -1,131 +1,5 @@
 import { supabase } from "../supabaseClient";
-import { CorrectionResult, EssayInput, Topic, HandwrittenCorrectionResult } from "../types";
-
-
-
-
-const _extractJson = (str: string): string => {
-  if (!str) return "{}";
-  let cleaned = str.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
-  const firstBrace = cleaned.indexOf("{");
-  const lastBrace = cleaned.lastIndexOf("}");
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    cleaned = cleaned.substring(firstBrace, lastBrace + 1);
-  }
-  return cleaned;
-};
-
-const _generateId = () => {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Extrai o tempo de espera sugerido pelo Google na mensagem de erro (ex: "retry in 33.24s")
-const parseRetryDelay = (errorMsg: string): number => {
-  const match = errorMsg.match(/retry in (\d+\.?\d*)/i);
-  if (match) {
-    return Math.ceil(parseFloat(match[1]) * 1000) + 2000; // +2s de margem
-  }
-  return 35000; // fallback 35s
-};
-
-const _formatGeminiError = (error: any, defaultMsg: string): Error => {
-  const msg = error?.message || error?.toString() || "";
-  if (msg.includes("429") || msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota")) {
-    return new Error("O sistema de IA está temporariamente sobrecarregado ou atingiu o limite de requisições. Por favor, aguarde alguns instantes e tente novamente.");
-  }
-  if (msg.includes("503") || msg.includes("500") || msg.includes("overloaded")) {
-    return new Error("Os servidores da IA estão indisponíveis no momento. Por favor, tente novamente em alguns minutos.");
-  }
-  if (msg.includes("API key") || msg.includes("missing_key")) {
-    return new Error("Configuração da chave de IA inválida ou ausente.");
-  }
-  return new Error(`${defaultMsg} (${msg.slice(0, 100)})`);
-};
-
-// Wrapper com retry automático inteligente
-const _generateWithRetry = async (
-  model: any,
-  request: any,
-  maxRetries: number = 2
-): Promise<any> => {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const result = await model.generateContent(request);
-      return result;
-    } catch (error: any) {
-      const msg = error?.message || error?.toString() || "";
-      const isRetryable = 
-        msg.includes("429") || 
-        msg.includes("RESOURCE_EXHAUSTED") || 
-        msg.includes("quota") ||
-        msg.includes("503") ||
-        msg.includes("500") ||
-        msg.includes("overloaded");
-
-      if (isRetryable && attempt < maxRetries) {
-        // Se a API estiver pedindo para esperar muito, não vamos travar a UX do aluno.
-        // Se o delay sugerido for > 3s, falhamos rápido para ativar o fallback.
-        const waitTime = parseRetryDelay(msg);
-        if (waitTime <= 3000) {
-          console.warn(`[Littera] Pequena latência. Aguardando ${Math.round(waitTime / 1000)}s...`);
-          await delay(waitTime);
-          continue;
-        }
-      }
-
-      // Falha rápida para acionar o fallback no nível superior sem notificar o usuário
-      throw error;
-    }
-  }
-};
-
-const _generateStreamWithRetry = async (
-  model: any,
-  request: any,
-  onStream: (text: string) => void,
-  maxRetries: number = 2
-): Promise<any> => {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const result = await model.generateContentStream(request);
-      let fullText = "";
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        fullText += chunkText;
-        onStream(fullText);
-      }
-      return { response: await result.response };
-    } catch (error: any) {
-      const msg = error?.message || error?.toString() || "";
-      const isRetryable = 
-        msg.includes("429") || 
-        msg.includes("RESOURCE_EXHAUSTED") || 
-        msg.includes("quota") ||
-        msg.includes("503") ||
-        msg.includes("500") ||
-        msg.includes("overloaded");
-
-      if (isRetryable && attempt < maxRetries) {
-        const waitTime = parseRetryDelay(msg);
-        if (waitTime <= 3000) {
-          await delay(waitTime);
-          continue;
-        }
-      }
-
-      throw error;
-    }
-  }
-};
+import { EssayInput, Topic } from "../types";
 
 // --- GERAÇÃO DE TEMA ---
 export const generateCustomTopic = async (userInterest: string): Promise<Topic> => {
@@ -133,6 +7,9 @@ export const generateCustomTopic = async (userInterest: string): Promise<Topic> 
   if (!session) throw new Error("Usuário não autenticado.");
 
   const { data, error } = await supabase.functions.invoke('generate-theme', {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
     body: { action: 'generateCustomTopic', prompt: userInterest }
   });
 
@@ -159,9 +36,12 @@ export const correctEssay = async (
   _onStream?: (text: string) => void
 ): Promise<{ success: boolean; essayId: string; cached?: boolean }> => {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Usuário não autenticado.");
+  if (!session) throw new Error("Usuário não autenticado. Faça login para enviar redações.");
 
   const { data, error } = await supabase.functions.invoke('correct-essay', {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
     body: {
       topicTitle,
       input,
@@ -193,6 +73,9 @@ export const generateAssignmentTheme = async (prompt: string): Promise<{ title: 
   if (!session) throw new Error("Usuário não autenticado.");
 
   const { data, error } = await supabase.functions.invoke('generate-theme', {
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
     body: { action: 'generateAssignmentTheme', prompt }
   });
 
@@ -226,6 +109,7 @@ export const correctEssayDemo = async (
     headers: {
       'Content-Type': 'application/json',
       'apikey': supabaseAnonKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
     },
     body: JSON.stringify({
       topicTitle,

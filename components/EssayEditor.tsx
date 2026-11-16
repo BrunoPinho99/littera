@@ -1,6 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { EssayInput } from '../types';
+import AITextLoading from '@/components/ui/ai-text-loading';
+import { Brain } from 'lucide-react';
 
 interface EssayEditorProps {
   topicTitle: string;
@@ -74,10 +76,11 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   isSubmitting, 
   startTime
 }) => {
+  const effectiveTopicTitle = topicTitle?.trim() || "Desafios para a formação educacional de surdos no Brasil";
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [compressedSizeKB, setCompressedSizeKB] = useState<number | null>(null);
-  const [cooldownNotice, setCooldownNotice] = useState<string | null>(null);
+  const [cooldownSeconds, setCooldownSeconds] = useState<number | null>(null);
   const [progress, setProgress] = useState(0);
   const [elapsedTime, setElapsedTime] = useState("00:00");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -87,7 +90,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
   // Marca redação em andamento ao montar
   useEffect(() => {
     localStorage.setItem('littera_essay_in_progress', JSON.stringify({
-      topicTitle,
+      topicTitle: effectiveTopicTitle,
       startTime,
       savedAt: Date.now()
     }));
@@ -95,7 +98,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
     return () => {
       localStorage.removeItem('littera_essay_in_progress');
     };
-  }, [topicTitle]);
+  }, [effectiveTopicTitle]);
 
   // Lógica do Cronômetro - Resistente a trocas de aba
   useEffect(() => {
@@ -126,6 +129,35 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [startTime, isSubmitting]);
+
+  // Cronômetro do intervalo pedagógico em tempo real
+  useEffect(() => {
+    // Checa se há intervalo ativo ao carregar
+    const lastSub = localStorage.getItem('littera_last_essay_submitted_at');
+    if (lastSub) {
+      const elapsed = Date.now() - parseInt(lastSub, 10);
+      const tenMinutes = 10 * 60 * 1000;
+      if (elapsed < tenMinutes) {
+        setCooldownSeconds(Math.ceil((tenMinutes - elapsed) / 1000));
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cooldownSeconds === null || cooldownSeconds <= 0) return;
+
+    const interval = setInterval(() => {
+      setCooldownSeconds(prev => {
+        if (!prev || prev <= 1) {
+          localStorage.removeItem('littera_last_essay_submitted_at');
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [cooldownSeconds]);
 
   useEffect(() => {
     let interval: any;
@@ -174,16 +206,14 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       const tenMinutes = 10 * 60 * 1000;
       if (elapsed < tenMinutes) {
         const remainingSecs = Math.ceil((tenMinutes - elapsed) / 1000);
-        const remMins = Math.floor(remainingSecs / 60);
-        const remSecs = remainingSecs % 60;
-        setCooldownNotice(`Intervalo pedagógico ativo: aguarde ${remMins}m ${remSecs}s antes de enviar nova redação. Aproveite para reler o tema e refletir sobre a estrutura.`);
+        setCooldownSeconds(remainingSecs);
         return;
       }
     }
 
     isSubmittingRef.current = true;
-    setCooldownNotice(null);
-    localStorage.removeItem(`draft_${topicTitle}`);
+    setCooldownSeconds(null);
+    localStorage.removeItem(`draft_${effectiveTopicTitle}`);
     localStorage.setItem('littera_last_essay_submitted_at', Date.now().toString());
 
     const base64Data = imagePreview.split(',')[1];
@@ -218,7 +248,7 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               <span className="text-xs font-black text-primary font-mono">{elapsedTime}</span>
             </div>
           </div>
-          <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white line-clamp-1 font-display" title={topicTitle}>{topicTitle}</h2>
+          <h2 className="text-sm sm:text-lg font-bold text-gray-900 dark:text-white line-clamp-1 font-display" title={effectiveTopicTitle}>{effectiveTopicTitle}</h2>
         </div>
         
         <button 
@@ -234,16 +264,15 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
         </button>
       </div>
 
-      {/* Photo Upload Area */}
-      {cooldownNotice && (
+      {/* Cooldown Banner (informational only) */}
+      {cooldownSeconds !== null && cooldownSeconds > 0 && (
         <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800/40 p-3 sm:p-4 flex items-center justify-between gap-3 text-xs sm:text-sm text-amber-900 dark:text-amber-200 animate-fade-in shrink-0">
           <div className="flex items-center gap-2">
             <span className="material-icons-outlined text-amber-600 text-lg shrink-0">hourglass_top</span>
-            <span className="font-semibold">{cooldownNotice}</span>
+            <span className="font-semibold">
+              Intervalo pedagógico ativo: aguarde {Math.floor(cooldownSeconds / 60)}m {(cooldownSeconds % 60).toString().padStart(2, '0')}s antes de enviar nova redação. Aproveite para reler o tema e refletir sobre a estrutura.
+            </span>
           </div>
-          <button onClick={() => setCooldownNotice(null)} className="text-amber-600 hover:text-amber-900 shrink-0">
-            <span className="material-icons-outlined text-base">close</span>
-          </button>
         </div>
       )}
 
@@ -335,15 +364,14 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
       
       {/* Loading Overlay — Professional Correction UX */}
       {isSubmitting && (
-        <div className="fixed inset-0 z-[9999] bg-white dark:bg-[#0c1021] overflow-y-auto transition-all duration-300">
-          <div className="min-h-full w-full flex flex-col items-center justify-center p-4 sm:p-6">
-            <div className="w-full max-w-lg animate-fade-in text-center py-8">
-              
-              {/* Animated Brain Icon */}
-              <div className="relative w-20 h-20 sm:w-28 sm:h-28 mx-auto mb-6 sm:mb-8">
+        <div className="fixed inset-0 z-[9999] bg-white text-gray-900 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-slate-50/80 via-white to-white select-none">
+          <div className="w-full max-w-md animate-fade-in text-center flex flex-col items-center justify-center">
+            
+            {/* Animated Brain Icon */}
+            <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-6">
               {/* Outer rotating ring */}
               <div 
-                className="absolute inset-0 rounded-full border-2 border-dashed border-primary/20"
+                className="absolute inset-0 rounded-full border-2 border-dashed border-blue-500/25"
                 style={{ animation: 'correctionSpin 8s linear infinite' }}
               />
               {/* Middle pulsing ring */}
@@ -357,33 +385,39 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               />
               {/* Inner glow */}
               <div 
-                className="absolute inset-4 rounded-full bg-gradient-to-br from-primary/10 to-blue-400/10"
+                className="absolute inset-4 rounded-full bg-gradient-to-br from-blue-500/10 to-indigo-500/10"
                 style={{ animation: 'correctionPulse 2s ease-in-out infinite' }}
               />
               {/* Icon */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <span 
-                  className="material-icons-outlined text-primary text-4xl"
+                <Brain 
+                  className="w-10 h-10 text-primary"
                   style={{ animation: 'correctionIconFloat 3s ease-in-out infinite' }}
-                >
-                  psychology
-                </span>
+                />
               </div>
             </div>
 
-            {/* Title */}
-            <h3 
-              className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mb-2 font-display"
-            >
-              Corrigindo sua redação
-            </h3>
-            <p className="text-gray-400 dark:text-gray-500 mb-6 sm:mb-8 text-xs sm:text-sm font-medium">
-              Nossa I.A. está analisando cada competência com cuidado
+            {/* AITextLoading - Kokonut UI Animated Shimmer */}
+            <AITextLoading 
+              texts={[
+                "Analisando sua redação...",
+                "Lendo a caligrafia da folha...",
+                "Avaliando as 5 competências ENEM...",
+                "Mapeando pontos fortes e desvios...",
+                "Calculando nota ENEM oficial...",
+                "Preparando devolutiva pedagógica..."
+              ]}
+              className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-neutral-950 via-neutral-400 to-neutral-950"
+              interval={2000}
+            />
+
+            <p className="text-gray-500 mt-2 mb-8 text-sm font-medium">
+              Nossa Inteligência Artificial está analisando cada critério com precisão
             </p>
 
             {/* Progress Bar */}
-            <div className="w-full max-w-xs mx-auto mb-6 sm:mb-8">
-              <div className="h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full max-w-xs mx-auto">
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden shadow-inner">
                 <div 
                   className="h-full rounded-full relative"
                   style={{ 
@@ -404,74 +438,6 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
               </div>
             </div>
 
-            {/* Steps */}
-            <div className="w-full max-w-sm mx-auto space-y-2 sm:space-y-3 mb-6 sm:mb-8">
-              {[
-                { label: 'Lendo caligrafia da foto', threshold: 10, icon: 'photo_camera' },
-                { label: 'Transcrevendo texto manuscrito', threshold: 30, icon: 'draw' },
-                { label: 'Avaliação das 5 competências ENEM', threshold: 50, icon: 'checklist_rtl' },
-                { label: 'Mapeando trechos por competência', threshold: 70, icon: 'palette' },
-                { label: 'Gerando feedback personalizado', threshold: 85, icon: 'rate_review' },
-              ].map((step, i) => {
-                const isComplete = progress > step.threshold;
-                const thresholds = [0, 10, 30, 50, 70];
-                const isActive = !isComplete && (i === 0 || progress > (thresholds[i] || 0));
-                return (
-                  <div 
-                    key={i} 
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 ${
-                      isComplete 
-                        ? 'bg-emerald-50 dark:bg-emerald-950/30' 
-                        : isActive 
-                          ? 'bg-primary/5 dark:bg-primary/10' 
-                          : 'bg-gray-50 dark:bg-slate-800/50'
-                    }`}
-                  >
-                    {/* Step icon */}
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all duration-500 ${
-                      isComplete 
-                        ? 'bg-emerald-500 text-white' 
-                        : isActive 
-                          ? 'bg-primary/10 text-primary' 
-                          : 'bg-gray-100 dark:bg-slate-700 text-gray-300 dark:text-slate-600'
-                    }`}>
-                      {isComplete ? (
-                        <span className="material-icons-outlined text-lg" style={{ animation: 'correctionCheckPop 0.3s ease-out' }}>check</span>
-                      ) : isActive ? (
-                        <span className="material-icons-outlined text-lg" style={{ animation: 'correctionIconFloat 1.5s ease-in-out infinite' }}>{step.icon}</span>
-                      ) : (
-                        <span className="material-icons-outlined text-lg">{step.icon}</span>
-                      )}
-                    </div>
-                    
-                    {/* Step label */}
-                    <span className={`text-sm font-semibold transition-colors duration-500 ${
-                      isComplete 
-                        ? 'text-emerald-700 dark:text-emerald-400' 
-                        : isActive 
-                          ? 'text-gray-800 dark:text-white' 
-                          : 'text-gray-300 dark:text-slate-600'
-                    }`}>
-                      {step.label}
-                    </span>
-                    
-                    {/* Active indicator */}
-                    {isActive && (
-                      <div className="ml-auto flex gap-1">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: 'correctionDot 1.4s ease-in-out infinite' }} />
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: 'correctionDot 1.4s ease-in-out 0.2s infinite' }} />
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary" style={{ animation: 'correctionDot 1.4s ease-in-out 0.4s infinite' }} />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Bottom tag */}
-            <p className="text-[11px] font-bold text-gray-300 dark:text-slate-600 uppercase tracking-[0.15em]">
-              Gemini Flash • Análise profunda em segundos
-            </p>
           </div>
           
           {/* Inline keyframes for correction overlay */}
@@ -502,7 +468,6 @@ const EssayEditor: React.FC<EssayEditorProps> = ({
                 40% { opacity: 1; transform: scale(1.2); }
               }
             `}</style>
-          </div>
         </div>
       )}
 

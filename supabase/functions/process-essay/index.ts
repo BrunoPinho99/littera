@@ -1,10 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI, type GenerationConfig, type GenerateContentRequest } from '@google/generative-ai'
 import { Receiver } from '@upstash/qstash'
 
 interface ParsedEssayResponse {
   totalScore?: number
   zeroReason?: string | null
+  transcribedText?: string
   generalComment?: string
   strengths?: unknown[]
   priorityImprovements?: unknown[]
@@ -47,28 +48,30 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Method Not Allowed' }, 405)
   }
 
+  let supabase: SupabaseClient | null = null
+  let essayId: string | null = null
+
   try {
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
     if (!authHeader) {
-      return jsonResponse({ error: 'Falta cabeçalho de Autorização (JWT).' }, 401)
+      return jsonResponse({ error: 'Falta cabeçalho de Autorização.' }, 401)
     }
 
     const currentSigningKey = Deno.env.get('QSTASH_CURRENT_SIGNING_KEY')
     const nextSigningKey = Deno.env.get('QSTASH_NEXT_SIGNING_KEY')
-    
-    // Se as chaves do QStash estiverem presentes, validar a origem da requisição
-    if (currentSigningKey && nextSigningKey) {
-      const signature = req.headers.get('upstash-signature')
-      if (!signature) {
-        return jsonResponse({ error: 'Assinatura QStash ausente.' }, 401)
-      }
-      
+    const signature = req.headers.get('upstash-signature')
+    const rawBody = await req.clone().text()
+
+    let isAuthorized = false
+    if (signature && currentSigningKey && nextSigningKey) {
       const receiver = new Receiver({
         currentSigningKey,
         nextSigningKey,
       })
-      
-      const rawBody = await req.clone().text()
+
       const isValid = await receiver.verify({
         signature,
         body: rawBody,
@@ -76,18 +79,21 @@ Deno.serve(async (req: Request) => {
         console.error("[process-essay] Erro na verificação do QStash:", err);
         return false;
       })
-      
+
       if (!isValid) {
         return jsonResponse({ error: 'Assinatura QStash inválida.' }, 401)
       }
+      isAuthorized = true
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    // Usamos o SERVICE_ROLE_KEY aqui para garantir que possamos atualizar a redação
-    // mesmo que o JWT do usuário expire durante o processamento longo, mas como
-    // repassamos o AuthHeader do usuário, também podemos usar supabaseAnonKey + authHeader.
-    // Vamos usar SERVICE_ROLE_KEY para a escrita por segurança de background job.
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, '').trim()
+    if (!isAuthorized) {
+      if (!supabaseServiceKey || bearerToken !== supabaseServiceKey) {
+        return jsonResponse({ error: 'Não autorizado.' }, 401)
+      }
+      isAuthorized = true
+    }
+
     const geminiKey = Deno.env.get('GEMINI_API_KEY')
 
     if (!geminiKey) {
@@ -95,12 +101,13 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Erro de configuração do servidor.' }, 500)
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false, autoRefreshToken: false }
     })
 
-    const body = await req.json()
-    const { essayId, topicTitle, input } = body
+    const body = JSON.parse(rawBody || '{}')
+    essayId = body.essayId || null
+    const { topicTitle, input } = body
 
     if (!essayId || !topicTitle || !input) {
       return jsonResponse({ error: 'Faltam parâmetros obrigatórios.' }, 400)
@@ -130,7 +137,7 @@ Se a foto enviada estiver borrada/ilegível, muito escura, cortada impedindo a l
 - Retorne IMEDIATAMENTE totalScore = 0 e zeroReason = "Imagem ilegível ou inválida".
 - Escreva generalComment com NO MÁXIMO 1 frase curta explicando o motivo.
 - Em todas as 5 competências, defina score = 0, feedback com NO MÁXIMO 1 frase curta, tips = [] e errors = [].
-- strengths = [], priorityImprovements = [], annotations = [].
+- strengths = [], priorityImprovements = [], annotations = [], transcribedText = "".
 
 ═══════════════════════════════════════════════════
 REGRAS DE NOTA ZERO (verificar ANTES de corrigir):
@@ -216,16 +223,18 @@ O campo "errors" deve listar 1-3 erros ESPECÍFICOS encontrados no texto (com tr
 O campo "generalComment" deve ter 3-5 frases: pontos fortes + pontos de melhoria + motivação.
 O campo "strengths" deve listar 2-3 pontos FORTES do texto.
 O campo "priorityImprovements" deve listar 2-3 PRIORIDADES de melhoria.
-${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno com posição (start/end em caracteres, 0-indexed) e tipo do problema. Máximo 10 annotations. Use APENAS posições que existam no texto original.' : 'O campo "annotations" deve ser um array vazio [] pois o texto é manuscrito.'}
+${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno com posição (start/end em caracteres, 0-indexed) e tipo do problema. Máximo 10 annotations. Use APENAS posições que existam no texto original.' : 'O campo "transcribedText" DEVE conter a transcrição fiel e integral da redação manuscrita da imagem (preservando quebras de parágrafo e eventuais erros originais do aluno). O campo "annotations" deve ser um array vazio [].'}
 
 {
   "totalScore": <soma das 5 competências>,
   "zeroReason": <string ou null>,
+  "transcribedText": ${isTextInput ? '""' : '"<transcrição fiel integral do texto manuscrito>"'},
   "generalComment": "<3-5 frases: fortes + melhorias + motivação>",
   "strengths": ["<ponto forte 1>", "<ponto forte 2>"],
   "priorityImprovements": ["<melhoria 1>", "<melhoria 2>"],
   "competencies": [
     {
+      "id": "C1",
       "name": "Competência 1 – Domínio da norma culta",
       "score": <0|40|80|120|160|200>,
       "level": "<Excelente|Bom|Mediano|Insuficiente|Precário|Desconhecimento>",
@@ -234,6 +243,7 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
       "errors": [{"excerpt": "<trecho com erro>", "correction": "<como deveria ser>", "type": "<tipo do erro>"}]
     },
     {
+      "id": "C2",
       "name": "Competência 2 – Compreensão da proposta",
       "score": <0|40|80|120|160|200>,
       "level": "<nível>",
@@ -242,6 +252,7 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
       "errors": []
     },
     {
+      "id": "C3",
       "name": "Competência 3 – Argumentação",
       "score": <0|40|80|120|160|200>,
       "level": "<nível>",
@@ -250,6 +261,7 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
       "errors": []
     },
     {
+      "id": "C4",
       "name": "Competência 4 – Coesão textual",
       "score": <0|40|80|120|160|200>,
       "level": "<nível>",
@@ -258,6 +270,7 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
       "errors": [{"excerpt": "<trecho>", "correction": "<sugestão>", "type": "coesão"}]
     },
     {
+      "id": "C5",
       "name": "Competência 5 – Proposta de intervenção",
       "score": <0|40|80|120|160|200>,
       "level": "<nível>",
@@ -320,12 +333,23 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
       return jsonResponse({ error: "Resposta da IA em formato inesperado." }, 500)
     }
 
+    const normalizedCompetencies = parsed.competencies.map((comp: unknown, idx: number) => {
+      const c = (comp && typeof comp === 'object') ? (comp as Record<string, unknown>) : {}
+      const rawId = typeof c.id === 'string' ? c.id.toUpperCase() : ''
+      const id = /^C[1-5]$/.test(rawId) ? rawId : `C${Math.min(5, idx + 1)}`
+      return { ...c, id }
+    })
+
     // Atualizar redação no Supabase Database
     const updatePayload: Record<string, unknown> = {
       total_score: parsed.totalScore,
       status: 'corrigida',
-      competencias_json: JSON.stringify(parsed.competencies),
+      competencias_json: JSON.stringify(normalizedCompetencies),
       comentario_geral: parsed.generalComment || '',
+    }
+
+    if (!isTextInput && typeof parsed.transcribedText === 'string' && parsed.transcribedText.trim().length > 0) {
+      updatePayload.conteudo = parsed.transcribedText.trim()
     }
 
     // Salvar novos campos se existirem
@@ -347,6 +371,14 @@ ${isTextInput ? 'O campo "annotations" deve conter marcações no texto do aluno
   } catch (error: unknown) {
     console.error("[process-essay] Erro geral:", error)
     const message = error instanceof Error ? error.message : 'Erro interno do servidor.'
+    if (supabase && essayId) {
+      await supabase.from('redacoes').update({
+        status: 'erro',
+        comentario_geral: 'Falha temporária ao processar sua redação com a IA. Por favor, tente enviar novamente.',
+      }).eq('id', essayId).then(({ error: errUpdate }) => {
+        if (errUpdate) console.error('[process-essay] Falha ao marcar status erro:', errUpdate)
+      })
+    }
     return jsonResponse({ error: message }, 500)
   }
 })

@@ -14,12 +14,13 @@ const CreateTopicCard: React.FC<CreateTopicCardProps> = ({ onTopicGenerated }) =
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+  const handleGenerate = async (customPrompt?: string) => {
+    const targetPrompt = (customPrompt ?? prompt).trim();
+    if (!targetPrompt) return;
     setIsGenerating(true);
     setErrorMsg(null);
     try {
-      const newTopic = await generateCustomTopic(prompt);
+      const newTopic = await generateCustomTopic(targetPrompt);
       onTopicGenerated(newTopic);
       setPrompt("");
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -115,8 +116,9 @@ const CreateTopicCard: React.FC<CreateTopicCardProps> = ({ onTopicGenerated }) =
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPrompt("Surpreenda-me com um tema inédito e atual do ENEM");
-                  setTimeout(() => handleGenerate(), 100);
+                  const surprisePrompt = "Surpreenda-me com um tema inédito e atual do ENEM";
+                  setPrompt(surprisePrompt);
+                  handleGenerate(surprisePrompt);
                 }}
                 disabled={isGenerating}
                 className="text-xs sm:text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 group/random"

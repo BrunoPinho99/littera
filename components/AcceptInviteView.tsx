@@ -57,14 +57,58 @@ const AcceptInviteView: React.FC = () => {
   const [selectedClassId, setSelectedClassId] = useState('');
 
   useEffect(() => {
+    const hydrateFromSession = async (sessionUser: any) => {
+      let meta = sessionUser.user_metadata || {};
+
+      // Fallback para buscar dados no profiles se metadados ainda não tiverem school_id / user_type
+      let resolvedSchoolId = meta.school_id;
+      let resolvedClassId = meta.class_id;
+      let resolvedRole = meta.user_type;
+      let resolvedFullName = meta.full_name;
+      let resolvedSchoolName = meta.invited_by_school || meta.school_name;
+
+      if (!resolvedSchoolId || !resolvedRole) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name, role, school_id, class_id')
+          .eq('id', sessionUser.id)
+          .maybeSingle();
+
+        if (profile) {
+          resolvedFullName = resolvedFullName || profile.full_name;
+          resolvedSchoolId = resolvedSchoolId || profile.school_id;
+          resolvedClassId = resolvedClassId || profile.class_id;
+          resolvedRole = resolvedRole || profile.role;
+        }
+      }
+
+      const roleStr = ['teacher', 'professor'].includes(String(resolvedRole)) ? 'Professor(a)' : 'Aluno(a)';
+
+      setInviteMeta({
+        email: sessionUser.email ?? '',
+        schoolName: resolvedSchoolName || 'sua escola',
+        role: roleStr,
+        schoolId: resolvedSchoolId,
+        classId: resolvedClassId,
+      });
+
+      if (roleStr === 'Aluno(a)' && !resolvedClassId && resolvedSchoolId) {
+        getClassesBySchool(resolvedSchoolId).then(setSchoolClasses).catch(console.error);
+      }
+
+      if (sessionUser.email) setLoginEmail(sessionUser.email);
+      if (resolvedFullName) setFullName(resolvedFullName);
+
+      setStep('form');
+    };
+
     const initInvite = async () => {
       const { token, type, accessToken } = extractTokenFromURL();
+      const acceptedTypes = ['invite', 'magiclink', 'recovery'];
 
-      // Supabase invite: the hash contains access_token + type=invite
-      // We need to exchange it for a session via verifyOtp or setSession
-      if (accessToken && type === 'invite') {
+      // Supabase invite/magiclink: the hash contains access_token
+      if (accessToken && (!type || acceptedTypes.includes(type))) {
         try {
-          // Exchange the token — Supabase will validate it and return a session
           const refreshToken = new URLSearchParams(window.location.hash.substring(1)).get('refresh_token') || '';
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -75,30 +119,7 @@ const AcceptInviteView: React.FC = () => {
             throw new Error('Link de convite inválido ou expirado. Solicite um novo convite à sua escola.');
           }
 
-          const user = data.session.user;
-          const meta = user.user_metadata;
-          const roleStr = meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)';
-
-          setInviteMeta({
-            email: user.email ?? '',
-            schoolName: meta?.invited_by_school || meta?.school_name || 'sua escola',
-            role: roleStr,
-            schoolId: meta?.school_id,
-            classId: meta?.class_id,
-          });
-          
-          if (roleStr === 'Aluno(a)' && !meta?.class_id && meta?.school_id) {
-            getClassesBySchool(meta.school_id).then(setSchoolClasses).catch(console.error);
-          }
-          
-          if (user.email) setLoginEmail(user.email);
-
-          // Pre-fill name if already set in metadata
-          if (meta?.full_name) {
-            setFullName(meta.full_name);
-          }
-
-          setStep('form');
+          await hydrateFromSession(data.session.user);
         } catch (err: any) {
           setErrorMsg(err.message || 'Erro ao validar convite.');
           setStep('error');
@@ -106,39 +127,20 @@ const AcceptInviteView: React.FC = () => {
         return;
       }
 
-      // Supabase token-based OTP flow (older format)
-      if (token && type === 'invite') {
+      // Supabase token-based OTP flow
+      if (token && (!type || acceptedTypes.includes(type))) {
         try {
+          const otpType = (type === 'magiclink' || type === 'recovery') ? type : 'invite';
           const { data, error } = await supabase.auth.verifyOtp({
             token_hash: token,
-            type: 'invite',
+            type: otpType,
           });
 
           if (error || !data.session) {
             throw new Error('Link de convite inválido ou expirado.');
           }
 
-          const user = data.session.user;
-          const meta = user.user_metadata;
-          const roleStr = meta?.user_type === 'teacher' ? 'Professor(a)' : 'Aluno(a)';
-
-          setInviteMeta({
-            email: user.email ?? '',
-            schoolName: meta?.invited_by_school || meta?.school_name || 'sua escola',
-            role: roleStr,
-            schoolId: meta?.school_id,
-            classId: meta?.class_id,
-          });
-
-          if (roleStr === 'Aluno(a)' && !meta?.class_id && meta?.school_id) {
-            getClassesBySchool(meta.school_id).then(setSchoolClasses).catch(console.error);
-          }
-
-          if (user.email) setLoginEmail(user.email);
-
-          if (meta?.full_name) setFullName(meta.full_name);
-
-          setStep('form');
+          await hydrateFromSession(data.session.user);
         } catch (err: any) {
           setErrorMsg(err.message || 'Erro ao validar convite.');
           setStep('error');
@@ -146,7 +148,14 @@ const AcceptInviteView: React.FC = () => {
         return;
       }
 
-      // No token found
+      // Fallback: SDK may have already auto-exchanged PKCE/hash session on load
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await hydrateFromSession(session.user);
+        return;
+      }
+
+      // No token or session found
       setErrorMsg('Nenhum token de convite encontrado na URL. Use o link enviado para o seu email.');
       setStep('error');
     };
@@ -191,14 +200,18 @@ const AcceptInviteView: React.FC = () => {
     setErrorMsg('');
 
     try {
-      // Update password, email and name for the current session
+      const normalizedUserType = inviteMeta?.role === 'Professor(a)' ? 'teacher' : 'student';
+
+      // Update password and name for the current session (keep email synced with invite)
       const updatePayload: any = {
         password,
-        data: { full_name: fullName.trim() },
+        data: {
+          full_name: fullName.trim(),
+          user_type: normalizedUserType,
+          ...(inviteMeta?.schoolId ? { school_id: inviteMeta.schoolId } : {}),
+          ...(inviteMeta?.schoolName ? { school_name: inviteMeta.schoolName } : {}),
+        },
       };
-      if (loginEmail.trim() && loginEmail.trim() !== inviteMeta?.email) {
-        updatePayload.email = loginEmail.trim();
-      }
       if (selectedClassId) {
         updatePayload.data.class_id = selectedClassId;
       }
@@ -223,14 +236,17 @@ const AcceptInviteView: React.FC = () => {
           .eq('id', currentUser.id);
         if (profileError) {
           console.error("Erro ao atualizar status e perfil no Supabase:", profileError);
+          throw new Error("Não foi possível ativar seu perfil. Tente novamente.");
         }
       }
 
+      localStorage.setItem('littera_user_type', normalizedUserType);
       setStep('success');
 
-      // Redirect to app after 2s
+      // Redirect based on role
+      const targetRoute = normalizedUserType === 'teacher' ? '/app/inst-overview' : '/app/practice';
       setTimeout(() => {
-        navigate('/app/practice', { replace: true });
+        navigate(targetRoute, { replace: true });
       }, 2500);
     } catch (err: any) {
       setErrorMsg(err.message || 'Erro ao ativar conta. Tente novamente.');
@@ -389,10 +405,10 @@ const AcceptInviteView: React.FC = () => {
                     id="invite-login-email"
                     type="email"
                     required
+                    readOnly
                     value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
                     placeholder="Seu e-mail de acesso"
-                    className="w-full px-5 py-3.5 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-gray-100 dark:bg-white/5 border border-transparent outline-none font-bold text-sm text-gray-500 cursor-not-allowed transition-all"
                   />
                 </div>
 

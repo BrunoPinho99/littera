@@ -36,20 +36,26 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Authenticate the request comes from an admin
-    const authHeader = req.headers.get('Authorization')
+    // Authenticate the request comes from an immutable app_metadata littera_admin
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), { status: 401, headers: corsHeaders })
     }
 
-    const supabaseClient = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }
     )
 
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
-    if (userError || !user || user.user_metadata?.role !== 'littera_admin') {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token)
+    if (userError || !user || user.app_metadata?.role !== 'littera_admin') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 403, headers: corsHeaders })
     }
 
@@ -63,32 +69,22 @@ Deno.serve(async (req: Request) => {
       })
     }
 
-    // Use service role to bypass RLS for inserts
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    )
-
     // 1. Find or create the school
     let finalSchoolId = ''
-    
-    // Attempt to find by name first
+
     const { data: existingSchool } = await supabaseAdmin
       .from('schools')
-      .select('id')
+      .select('id, subscription_status')
       .ilike('name', school_name)
       .maybeSingle()
 
     if (existingSchool) {
       finalSchoolId = existingSchool.id
-      // ensure it's marked as trial
-      await supabaseAdmin.from('schools').update({ is_trial_school: true }).eq('id', finalSchoolId)
+      const updatePayload: Record<string, unknown> = { is_trial_school: true }
+      if (existingSchool.subscription_status !== 'active') {
+        updatePayload.subscription_status = 'trialing'
+      }
+      await supabaseAdmin.from('schools').update(updatePayload).eq('id', finalSchoolId)
     } else {
       const { data: newSchool, error: newSchoolError } = await supabaseAdmin
         .from('schools')
@@ -100,7 +96,7 @@ Deno.serve(async (req: Request) => {
         })
         .select('id')
         .single()
-        
+
       if (newSchoolError) {
         throw new Error(`Erro ao criar escola: ${newSchoolError.message}`)
       }
@@ -113,7 +109,7 @@ Deno.serve(async (req: Request) => {
 
     while (!isUnique) {
       const { data: codeCheck } = await supabaseAdmin.from('classes').select('id').eq('invite_code', invite_code).maybeSingle()
-      
+
       if (!codeCheck) {
         isUnique = true
       } else {
@@ -126,7 +122,7 @@ Deno.serve(async (req: Request) => {
     const endsDateObj = new Date(startDateObj)
     endsDateObj.setDate(endsDateObj.getDate() + 15) // + 15 days
 
-    const { data: newClass, error: newClassError } = await supabaseAdmin
+    const { error: newClassError } = await supabaseAdmin
       .from('classes')
       .insert({
         name: class_name,

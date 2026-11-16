@@ -43,8 +43,10 @@ Deno.serve(async (req: Request) => {
     const body = await req.json()
     const { action, studentCount, billingCycle, billingType = 'UNDEFINED' } = body
 
-    const { data: profile } = await supabase.from('profiles').select('school_id').eq('id', user.id).single()
+    const { data: profile } = await supabase.from('profiles').select('school_id, role').eq('id', user.id).single()
     if (!profile?.school_id) return jsonResponse({ error: 'Escola não encontrada.' }, 404)
+
+    const isSchoolAdmin = profile.role === 'owner' || profile.role === 'school_admin'
 
     const { data: school } = await supabase
       .from('schools')
@@ -74,22 +76,37 @@ Deno.serve(async (req: Request) => {
       const payments = checkData.data || []
       if (payments.length === 0) return jsonResponse({ status: 'PENDING', invoiceUrl: null })
 
-      const latestPayment = payments[0]
-      if (latestPayment.status === 'CONFIRMED' || latestPayment.status === 'RECEIVED') {
+      const paidPayment = payments.find((p: any) => p.status === 'CONFIRMED' || p.status === 'RECEIVED')
+      if (paidPayment) {
         const nowIso = new Date().toISOString()
         await supabase.from('schools')
           .update({ subscription_status: 'active', plano_ativado_em: nowIso })
           .eq('id', profile.school_id)
         await supabase.from('payments')
-          .update({ status: 'paid', paid_at: nowIso, invoice_url: latestPayment.invoiceUrl || null })
-          .eq('asaas_payment_id', latestPayment.id)
-        return jsonResponse({ status: 'PAID', invoiceUrl: latestPayment.invoiceUrl || null })
+          .update({ status: 'paid', paid_at: nowIso, invoice_url: paidPayment.invoiceUrl || null })
+          .eq('asaas_payment_id', paidPayment.id)
+        return jsonResponse({ status: 'PAID', invoiceUrl: paidPayment.invoiceUrl || null })
       }
+
+      // Para parcelamentos (inst_), prioriza a parcela pendente/vencida mais próxima (menor installmentNumber ou dueDate)
+      const pendingPayments = payments.filter((p: any) => p.status === 'PENDING' || p.status === 'OVERDUE')
+      const sortedPending = [...pendingPayments].sort((a: any, b: any) => {
+        const numA = Number(a.installmentNumber ?? 0)
+        const numB = Number(b.installmentNumber ?? 0)
+        if (numA !== numB) return numA - numB
+        return String(a.dueDate || '').localeCompare(String(b.dueDate || ''))
+      })
+      const targetPayment = sortedPending[0] || payments[0]
 
       return jsonResponse({
         status: 'PENDING',
-        invoiceUrl: latestPayment.invoiceUrl || null,
+        invoiceUrl: targetPayment?.invoiceUrl || null,
       })
+    }
+
+    // Somente administradores da escola (owner / school_admin) podem alterar/cancelar/criar assinatura
+    if (!isSchoolAdmin) {
+      return jsonResponse({ error: 'Permissão negada. Apenas administradores da escola podem gerenciar a assinatura.' }, 403)
     }
 
     // ─── 2. ACTION: UPDATE_PLAN ──────────────────────────────────────────────
@@ -132,7 +149,47 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ success: true, message: 'Plano atualizado' })
     }
 
-    // ─── 3. CRIAÇÃO DE ASSINATURA OU PARCELAMENTO (100% HOSPEDADO NO ASAAS) ──
+    // ─── 3. ACTION: CANCEL_SUBSCRIPTION ──────────────────────────────────────
+    if (action === 'cancel_subscription') {
+      if (subscriptionId && subscriptionId.startsWith('sub_')) {
+        try {
+          const cancelRes = await fetch(`${ASAAS_BASE}/subscriptions/${subscriptionId}`, {
+            method: 'DELETE',
+            headers: asaasHeaders,
+          })
+          if (!cancelRes.ok) {
+            const errData = await cancelRes.json().catch(() => ({}))
+            return jsonResponse({ error: errData.errors?.[0]?.description || 'Falha ao cancelar assinatura no Asaas.' }, 502)
+          }
+        } catch (subErr) {
+          console.warn('[pay-subscription] Aviso ao cancelar sub no Asaas:', subErr)
+          return jsonResponse({ error: 'Falha ao comunicar com o Asaas para cancelamento.' }, 502)
+        }
+      } else if (subscriptionId && subscriptionId.startsWith('inst_')) {
+        try {
+          const cancelInstRes = await fetch(`${ASAAS_BASE}/installments/${subscriptionId}`, {
+            method: 'DELETE',
+            headers: asaasHeaders,
+          })
+          if (!cancelInstRes.ok) {
+            const errData = await cancelInstRes.json().catch(() => ({}))
+            return jsonResponse({ error: errData.errors?.[0]?.description || 'Falha ao cancelar parcelamento no Asaas.' }, 502)
+          }
+        } catch (instErr) {
+          console.warn('[pay-subscription] Aviso ao cancelar installment no Asaas:', instErr)
+          return jsonResponse({ error: 'Falha ao comunicar com o Asaas para cancelar parcelamento.' }, 502)
+        }
+      }
+
+      await supabase
+        .from('schools')
+        .update({ subscription_status: 'canceled' })
+        .eq('id', profile.school_id)
+
+      return jsonResponse({ success: true, message: 'Assinatura cancelada com sucesso.' })
+    }
+
+    // ─── 4. CRIAÇÃO DE ASSINATURA OU PARCELAMENTO (100% HOSPEDADO NO ASAAS) ──
     if (!studentCount || !billingCycle) return jsonResponse({ error: 'Dados do plano ausentes.' }, 400)
 
     const isYearly = billingCycle === 'YEARLY'
@@ -221,23 +278,49 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Buscar primeira cobrança gerada para a assinatura
-      const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${newSubscriptionId}/payments`, { headers: asaasHeaders })
-      if (paymentsRes.ok) {
-        const paymentsData = await paymentsRes.json()
-        if (paymentsData.data && paymentsData.data.length > 0) {
-          firstPayment = paymentsData.data[0]
+      // Salvar imediatamente subscription_id e billing_cycle antes de buscar a primeira cobrança
+      await supabase
+        .from('schools')
+        .update({
+          subscription_id: newSubscriptionId,
+          student_count: studentCount,
+          billing_cycle: 'MONTHLY',
+        })
+        .eq('id', profile.school_id)
+
+      // Buscar primeira cobrança gerada para a assinatura (com breve retry se o Asaas ainda estiver gerando)
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt > 0) await new Promise((r) => setTimeout(r, 700))
+        const paymentsRes = await fetch(`${ASAAS_BASE}/subscriptions/${newSubscriptionId}/payments`, { headers: asaasHeaders })
+        if (paymentsRes.ok) {
+          const paymentsData = await paymentsRes.json()
+          if (paymentsData.data && paymentsData.data.length > 0) {
+            firstPayment = paymentsData.data[0]
+            break
+          }
         }
       }
     }
 
-    if (!firstPayment) return jsonResponse({ error: 'Nenhum pagamento gerado pelo Asaas.' }, 404)
-
-    // Atualizar tabela schools com o ID da assinatura/parcelamento
+    // Garantir persistência de subscription_id, student_count e billing_cycle na tabela schools (inclusive para parcelamento anual)
     await supabase
       .from('schools')
-      .update({ subscription_id: newSubscriptionId, student_count: studentCount })
+      .update({
+        subscription_id: newSubscriptionId,
+        student_count: studentCount,
+        billing_cycle: isYearly ? 'YEARLY' : 'MONTHLY',
+      })
       .eq('id', profile.school_id)
+
+    if (!firstPayment) {
+      return jsonResponse({
+        success: true,
+        status: 'PENDING',
+        invoiceUrl: null,
+        subscriptionId: newSubscriptionId,
+        message: 'Assinatura criada. A cobrança está sendo gerada pelo Asaas.',
+      })
+    }
 
     // Inserir registro em payments com invoice_url
     await supabase.from('payments').insert({

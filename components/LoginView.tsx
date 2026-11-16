@@ -18,7 +18,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -42,78 +41,41 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
     try {
       if (isLogin) {
         // --- FLUXO DE LOGIN ---
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
         if (error) throw error;
         await onLoginSuccess(data?.session);
       } else {
         // --- FLUXO DE CADASTRO / RESGATE ---
-        if (password !== confirmPassword) throw new Error("As senhas não coincidem!");
-        if (password.length < 6) throw new Error("A senha deve ter pelo menos 6 caracteres.");
-
         // 1. Fluxo para ESCOLA (O cadastro de escola vai para o fluxo /cadastro)
         if (userType === 'school_admin') {
           window.location.href = '/cadastro';
           return;
         } else {
-          // 2. Fluxo para ALUNO e PROFESSOR (Resgate de Convite)
-          const { data: existingProfile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('email', email)
-            .single();
-
-          if (!existingProfile || profileError) {
-            throw new Error("Convite não encontrado. Peça para sua escola cadastrar seu e-mail primeiro.");
+          // 2. Fluxo para ALUNO e PROFESSOR (Resgate de Convite via link seguro no e-mail)
+          const normalizedEmail = email.trim().toLowerCase();
+          if (!normalizedEmail) {
+            throw new Error("Informe o e-mail onde recebeu o convite.");
           }
 
-          const { data: authData, error: authError } = await supabase.auth.signUp({
-            email,
-            password,
+          const { error: otpError } = await supabase.auth.signInWithOtp({
+            email: normalizedEmail,
             options: {
-              data: {
-                full_name: existingProfile.full_name,
-                user_type: userType,
-                school_id: existingProfile.school_id,
-                class_id: existingProfile.class_id,
-                avatar_url: `https://ui-avatars.com/api/?name=${existingProfile.full_name}&background=2F5BFF&color=fff`
-              }
-            }
+              shouldCreateUser: false,
+              emailRedirectTo: `${window.location.origin}/convite`,
+            },
           });
 
-          if (authError) {
-            if (authError.message.includes("already registered")) {
-              throw new Error("Este usuário já possui cadastro. Faça login.");
+          if (otpError) {
+            const lowerMsg = otpError.message?.toLowerCase() || '';
+            if (lowerMsg.includes('signups not allowed') || lowerMsg.includes('not found') || lowerMsg.includes('user not found')) {
+              throw new Error("Convite não encontrado. Peça para sua escola cadastrar seu e-mail primeiro.");
             }
-            throw authError;
+            throw otpError;
           }
 
-          if (authData.user) {
-            // Remove o perfil "convite" temporário
-            await supabase.from('profiles').delete().eq('email', email).is('user_id', null);
-
-            // Vincula o perfil oficial
-            const { error: linkError } = await supabase.from('profiles').upsert({
-              id: authData.user.id,
-              full_name: existingProfile.full_name,
-              role: userType,
-              school_id: existingProfile.school_id,
-              class_id: existingProfile.class_id,
-              email: email,
-              status: 'active'
-            });
-
-            if (linkError) {
-              console.error("Erro ao vincular perfil:", JSON.stringify(linkError));
-            }
-
-            setSuccessMessage(`Convite resgatado! Bem-vindo(a), ${existingProfile.full_name}.`);
-
-            if (authData.session) {
-              setTimeout(() => onLoginSuccess(), 1500);
-            } else {
-              setTimeout(() => setIsLogin(true), 3000);
-            }
-          }
+          setSuccessMessage(
+            `Link de ativação enviado para ${normalizedEmail}! Verifique sua caixa de entrada (e spam) para definir sua senha e acessar a plataforma.`
+          );
         }
       }
     } catch (error: any) {
@@ -298,8 +260,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
             </h2>
             <p className="text-xs sm:text-[13px] text-slate-500 mt-1 leading-relaxed">
               {isLogin
-                ? 'Acesse suas redações, anotações e atividades a qualquer momento.'
-                : 'Defina sua senha de acesso vinculada ao convite recebido da sua instituição.'}
+                ? (userType === 'student'
+                    ? 'Acesse suas redações, anotações e atividades a qualquer momento.'
+                    : userType === 'teacher'
+                    ? 'Gerencie turmas, avalie redações e acompanhe o desempenho dos estudantes.'
+                    : 'Painel institucional, indicadores pedagógicos e gestão do corpo docente.')
+                : 'Informe o e-mail vinculado ao convite da sua instituição para receber o link de ativação.'}
             </p>
           </div>
 
@@ -359,7 +325,8 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
               />
             </div>
 
-            {/* Senha */}
+            {/* Senha (apenas no modo Login) */}
+            {isLogin && (
             <div className="space-y-1.5 pt-0.5">
               <div className="flex items-center justify-between">
                 <label className="block text-[13px] font-medium text-slate-700" htmlFor="password">
@@ -419,24 +386,6 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 </button>
               </div>
             </div>
-
-            {/* Confirmar Senha (Modo Cadastro / Resgate) */}
-            {!isLogin && (
-              <div className="space-y-1.5 pt-0.5">
-                <label className="block text-[13px] font-medium text-slate-700" htmlFor="confirmPassword">
-                  Confirmar Senha
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full h-11 px-4 text-[14px] tracking-wider text-slate-800 placeholder-slate-400 bg-white border border-slate-200 rounded-xl focus:border-[#2F5BFF] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
-                />
-              </div>
             )}
 
             {/* Botão de Submissão Principal */}
@@ -449,22 +398,65 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <span>{isLogin ? 'Entrar' : 'Confirmar e Ativar Conta'}</span>
+                  <span>{isLogin ? 'Entrar' : 'Enviar Link de Ativação'}</span>
                 )}
               </button>
             </div>
 
-            {/* Experimentar sem cadastro (Modo Aluno Demo) */}
-            {isLogin && userType === 'student' && (
-              <div className="pt-1">
+            {/* Experimentar sem cadastro (Modo Demo: Aluno, Professor e Escola) */}
+            {isLogin && (
+              <div className="pt-1.5 space-y-2.5">
                 <button
                   type="button"
-                  onClick={() => onEnterDemo('student')}
-                  className="w-full h-11 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
+                  onClick={() => onEnterDemo(userType)}
+                  className="w-full h-11 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-2 group shadow-sm hover:shadow"
                 >
-                  <span className="material-icons-outlined text-base text-[#2F5BFF]">science</span>
-                  <span>Experimentar sem cadastro (Modo Demo)</span>
+                  <span className="material-icons-outlined text-base text-[#2F5BFF] group-hover:scale-110 transition-transform">
+                    {userType === 'student' ? 'science' : userType === 'teacher' ? 'menu_book' : 'domain'}
+                  </span>
+                  <span>
+                    {userType === 'student' && 'Experimentar como Aluno (Modo Demo)'}
+                    {userType === 'teacher' && 'Acessar como Professor (Modo Demo)'}
+                    {userType === 'school_admin' && 'Acessar como Gestão Escolar (Modo Demo)'}
+                  </span>
                 </button>
+
+                {/* Atalhos rápidos para alternar e conhecer outros perfis em demonstração */}
+                <div className="flex flex-wrap items-center justify-center gap-1.5 text-[11px] text-slate-400">
+                  <span>Ou explore outro perfil:</span>
+                  <div className="inline-flex items-center gap-1">
+                    {userType !== 'student' && (
+                      <button
+                        type="button"
+                        onClick={() => onEnterDemo('student')}
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-[#2F5BFF] text-slate-600 font-semibold transition-colors"
+                        title="Ver como Aluno"
+                      >
+                        Aluno
+                      </button>
+                    )}
+                    {userType !== 'teacher' && (
+                      <button
+                        type="button"
+                        onClick={() => onEnterDemo('teacher')}
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-[#2F5BFF] text-slate-600 font-semibold transition-colors"
+                        title="Ver como Professor"
+                      >
+                        Professor
+                      </button>
+                    )}
+                    {userType !== 'school_admin' && (
+                      <button
+                        type="button"
+                        onClick={() => onEnterDemo('school_admin')}
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-[#2F5BFF] text-slate-600 font-semibold transition-colors"
+                        title="Ver como Gestão Escolar"
+                      >
+                        Escola
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 

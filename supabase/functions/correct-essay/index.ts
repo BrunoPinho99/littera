@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = req.headers.get('Authorization') || req.headers.get('authorization')
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -61,19 +61,41 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: 'Faltam parâmetros obrigatórios (topicTitle, input).' }, 400)
     }
 
-    let studentId: string
+    let studentId: string | null = null
     let studentName: string
     let supabase: SupabaseClient
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    })
     let userMetadata: Record<string, unknown> = {}
     let resolvedClassId = classId || null
     let resolvedSchoolId = schoolId || null
 
     if (demo_mode) {
-      // ── MODO DEMO: sem JWT, usa service role ──
-      studentId = 'demo-anonymous'
+      // ── MODO DEMO: sem JWT, usa service role com rate-limit global por hora ──
+      studentId = null
       studentName = 'Estudante Demo'
-      supabase = createClient(supabaseUrl, supabaseServiceKey)
-      // Sem check de limite — correções ilimitadas no demo
+      resolvedClassId = null
+      resolvedSchoolId = null
+      supabase = supabaseAdmin
+
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+      const { count: demoCount, error: demoCountError } = await supabaseAdmin
+        .from('redacoes')
+        .select('id', { count: 'exact', head: true })
+        .is('user_id', null)
+        .in('status', ['processando', 'corrigida'])
+        .gte('data_envio', oneHourAgo)
+
+      if (!demoCountError && (demoCount ?? 0) >= 10) {
+        return jsonResponse(
+          {
+            error: 'Limite Demo Atingido',
+            message: 'O modo demonstração atingiu o limite temporário de correções por hora. Crie uma conta ou tente novamente em instantes.',
+          },
+          429
+        )
+      }
     } else {
       // ── MODO NORMAL: requer JWT ──
       if (!authHeader) {
@@ -92,16 +114,26 @@ Deno.serve(async (req: Request) => {
       }
 
       studentId = user.id
-      studentName = user.user_metadata?.full_name || 'Estudante'
       userMetadata = user.user_metadata || {}
-      resolvedClassId = classId || user.user_metadata?.class_id || null
-      resolvedSchoolId = schoolId || user.user_metadata?.school_id || null
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('school_id, class_id, full_name')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      studentName = (user.user_metadata?.full_name as string) || profile?.full_name || 'Estudante'
+      resolvedSchoolId = profile?.school_id || (user.user_metadata?.school_id as string) || schoolId || null
+      resolvedClassId = profile?.class_id || classId || (user.user_metadata?.class_id as string) || null
     }
 
     // 1. Calcular hash SHA-256 do payload (base64 da imagem ou texto)
     const rawPayload = input.type === 'text'
       ? (input.content || '').trim()
       : (input.base64?.includes(',') ? input.base64.split(',')[1] : (input.base64 || '')).trim()
+    if (!rawPayload) {
+      return jsonResponse({ error: 'Conteúdo da redação vazio.' }, 400)
+    }
     const imageHash = await computeSha256Hex(rawPayload)
 
     // 2. Deduplicação: verificar se a mesma redação já foi enviada para este tema
@@ -169,7 +201,7 @@ Deno.serve(async (req: Request) => {
       conteudo: isHandwritten ? '[Manuscrito Base64]' : input.content,
       total_score: 0,
       data_envio: new Date().toISOString(),
-      user_id: studentId,
+      user_id: demo_mode ? null : studentId,
       student_name: studentName,
       class_id: resolvedClassId,
       school_id: resolvedSchoolId,
@@ -196,42 +228,69 @@ Deno.serve(async (req: Request) => {
     // 4. Disparar processamento em background via Fila (QStash) ou direto
     const processUrl = `${supabaseUrl}/functions/v1/process-essay`;
     const qstashToken = Deno.env.get('QSTASH_TOKEN');
-    const effectiveAuthHeader = demo_mode
-      ? `Bearer ${supabaseServiceKey}`
-      : authHeader!;
-    
-    if (qstashToken) {
-      // QStash Queue
-      const qstashUrl = `https://qstash.upstash.io/v2/publish/${processUrl}`;
-      fetch(qstashUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${qstashToken}`,
-          'Content-Type': 'application/json',
-          'Upstash-Forward-Authorization': effectiveAuthHeader,
-          // Upstash-Retries controla o Circuit Breaker/Retries
-          'Upstash-Retries': '3', 
-        },
-        body: JSON.stringify({
-          essayId,
-          topicTitle,
-          input,
+    const serviceAuthHeader = `Bearer ${supabaseServiceKey}`;
+
+    const markEssayError = async (reason: string) => {
+      await supabaseAdmin
+        .from('redacoes')
+        .update({ status: 'erro', comentario_geral: reason })
+        .eq('id', essayId);
+    };
+
+    const dispatchPromise = qstashToken
+      ? fetch(`https://qstash.upstash.io/v2/publish/${processUrl}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${qstashToken}`,
+            'Content-Type': 'application/json',
+            'Upstash-Forward-Authorization': serviceAuthHeader,
+            'Upstash-Retries': '3',
+          },
+          body: JSON.stringify({
+            essayId,
+            topicTitle,
+            input,
+          })
+        }).then(async (res) => {
+          if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            console.error(`[correct-essay] QStash retornou ${res.status}:`, errText);
+            await markEssayError('Falha ao enfileirar redação para correção. Tente novamente.');
+          }
+        }).catch(async (err) => {
+          console.error('[correct-essay] Erro ao enviar para QStash:', err);
+          await markEssayError('Falha de comunicação com a fila de correção. Tente novamente.');
         })
-      }).catch(err => console.error('[correct-essay] Erro ao enviar para QStash:', err));
+      : fetch(processUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': serviceAuthHeader,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            essayId,
+            topicTitle,
+            input,
+          })
+        }).then(async (res) => {
+          if (!res.ok) {
+            const errText = await res.text().catch(() => '');
+            console.error(`[correct-essay] process-essay retornou ${res.status}:`, errText);
+            await markEssayError('Falha ao processar a correção da redação. Tente novamente.');
+          }
+        }).catch(async (err) => {
+          console.error('[correct-essay] Erro ao disparar process-essay:', err);
+          await markEssayError('Falha de comunicação ao iniciar a correção. Tente novamente.');
+        });
+
+    const edgeRuntime = (globalThis as unknown as {
+      EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void }
+    }).EdgeRuntime;
+
+    if (edgeRuntime && typeof edgeRuntime.waitUntil === 'function') {
+      edgeRuntime.waitUntil(dispatchPromise);
     } else {
-      // Fallback sem fila (risco de Rate Limit no Gemini)
-      fetch(processUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': effectiveAuthHeader,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          essayId,
-          topicTitle,
-          input,
-        })
-      }).catch(err => console.error('[correct-essay] Erro ao disparar process-essay:', err));
+      await dispatchPromise;
     }
 
     // 5. Retornar resposta imediata ao frontend com o ID

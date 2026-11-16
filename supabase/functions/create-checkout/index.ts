@@ -56,11 +56,22 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Token inválido ou expirado.' }, 401)
   }
 
-  // ── Buscar school_id do perfil do usuário ─────────────────────────────────
-  const schoolId = user.user_metadata?.school_id as string | undefined
-  if (!schoolId) {
-    return jsonResponse({ error: 'Usuário não vinculado a uma escola.' }, 400)
+  // ── Buscar school_id e role no perfil do usuário (autorização estrita) ────
+  const { data: callerProfile, error: profileErr } = await supabase
+    .from('profiles')
+    .select('school_id, role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileErr || !callerProfile?.school_id) {
+    return jsonResponse({ error: 'Usuário não vinculado a uma escola.' }, 403)
   }
+
+  if (!['owner', 'school_admin'].includes(callerProfile.role || '')) {
+    return jsonResponse({ error: 'Permissão negada. Apenas administradores da escola podem iniciar checkout.' }, 403)
+  }
+
+  const schoolId = callerProfile.school_id
 
   // Buscar dados completos da escola
   const { data: school, error: schoolErr } = await supabase
@@ -196,10 +207,14 @@ Deno.serve(async (req: Request) => {
 
     const subscriptionId = subData.id
 
-    // Salvar subscription_id na escola
+    // Salvar subscription_id e billing_cycle na escola
     await supabase
       .from('schools')
-      .update({ subscription_id: subscriptionId })
+      .update({
+        subscription_id: subscriptionId,
+        student_count: count,
+        billing_cycle: isYearly ? 'YEARLY' : 'MONTHLY',
+      })
       .eq('id', schoolId)
       .eq('subscription_id', lockId) // Garante que atualiza apenas se a trava for a nossa
 

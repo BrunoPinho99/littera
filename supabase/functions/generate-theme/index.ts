@@ -71,6 +71,10 @@ Deno.serve(async (req: Request) => {
     const body = await req.json()
     const { action, prompt } = body
 
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+      return jsonResponse({ error: 'Assunto (prompt) obrigatório.' }, 400)
+    }
+
     const genAI = new GoogleGenerativeAI(geminiKey)
     const generationConfig: GenerationConfig & { thinkingConfig?: { thinkingBudget: number } } = {
       temperature: 0.7,
