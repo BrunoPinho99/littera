@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
@@ -20,6 +19,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -47,18 +47,15 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
         await onLoginSuccess(data?.session);
       } else {
         // --- FLUXO DE CADASTRO / RESGATE ---
-
         if (password !== confirmPassword) throw new Error("As senhas não coincidem!");
         if (password.length < 6) throw new Error("A senha deve ter pelo menos 6 caracteres.");
 
-        // 1. Fluxo para ESCOLA (O cadastro de escola foi migrado para o fluxo /cadastro)
+        // 1. Fluxo para ESCOLA (O cadastro de escola vai para o fluxo /cadastro)
         if (userType === 'school_admin') {
           window.location.href = '/cadastro';
           return;
-        }
-        // 2. Fluxo para ALUNO e PROFESSOR (Resgate de Convite)
-        else {
-          // Verifica se existe um pré-cadastro (convite) feito pela escola
+        } else {
+          // 2. Fluxo para ALUNO e PROFESSOR (Resgate de Convite)
           const { data: existingProfile, error: profileError } = await supabase
             .from('profiles')
             .select('*')
@@ -78,7 +75,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
                 user_type: userType,
                 school_id: existingProfile.school_id,
                 class_id: existingProfile.class_id,
-                avatar_url: `https://ui-avatars.com/api/?name=${existingProfile.full_name}&background=8B5CF6&color=fff`
+                avatar_url: `https://ui-avatars.com/api/?name=${existingProfile.full_name}&background=2F5BFF&color=fff`
               }
             }
           });
@@ -91,10 +88,10 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
           }
 
           if (authData.user) {
-            // Remove o perfil "convite" (que não tem ID de usuário real)
+            // Remove o perfil "convite" temporário
             await supabase.from('profiles').delete().eq('email', email).is('user_id', null);
 
-            // Garante upsert do perfil oficial com os dados corretos vinculados ao ID do Auth
+            // Vincula o perfil oficial
             const { error: linkError } = await supabase.from('profiles').upsert({
               id: authData.user.id,
               full_name: existingProfile.full_name,
@@ -106,7 +103,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
             });
 
             if (linkError) {
-              console.error("Erro ao vincular perfil de aluno:", JSON.stringify(linkError));
+              console.error("Erro ao vincular perfil:", JSON.stringify(linkError));
             }
 
             setSuccessMessage(`Convite resgatado! Bem-vindo(a), ${existingProfile.full_name}.`);
@@ -128,359 +125,388 @@ const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onEnterDemo }) =>
     }
   };
 
-  const checkConnection = async () => {
-    try {
-      const { error } = await supabase.from('schools').select('count', { count: 'exact', head: true });
-      if (error) throw error;
-      alert("Conexão com Supabase OK!");
-    } catch (e: any) {
-      alert("Erro de conexão: " + (e.message || JSON.stringify(e)));
-    }
-  };
-
   return (
-    <div className="min-h-screen lg:h-screen w-full flex bg-background-light dark:bg-background-dark overflow-y-auto lg:overflow-hidden font-sans">
-      {/* Lado Esquerdo - Branding Imersivo Premium */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-[#06132B] flex-col justify-between p-12 xl:p-16 overflow-hidden select-none">
-        {/* Glows Ambientes Suaves */}
-        <div className="absolute top-[-10%] right-[-10%] w-[520px] h-[520px] bg-[#1455E8]/20 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-[-15%] left-[-15%] w-[480px] h-[480px] bg-[#1455E8]/15 rounded-full blur-[130px] pointer-events-none" />
-        <div className="absolute top-[45%] left-[-10%] w-[320px] h-[320px] bg-[#0A2663]/25 rounded-full blur-[100px] pointer-events-none" />
-
-        {/* Textura sutil de micro-grid linear */}
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 opacity-[0.035] pointer-events-none"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
-            backgroundSize: '48px 48px',
-          }}
-        />
-
-        {/* Formas Geométricas Orgânicas e Fluídas (SVG de Alta Fidelidade nas Extremidades) */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 800 1000"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <defs>
-            {/* Gradiente de preenchimento fluido topo-direito */}
-            <linearGradient id="fluid-top-grad" x1="800" y1="0" x2="450" y2="400" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#1455E8" stopOpacity="0.4" />
-              <stop offset="50%" stopColor="#2563EB" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
-            </linearGradient>
-
-            {/* Gradiente de traçado topo-direito */}
-            <linearGradient id="stroke-top-grad" x1="800" y1="0" x2="400" y2="350" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#60A5FA" stopOpacity="0.45" />
-              <stop offset="60%" stopColor="#1455E8" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
-            </linearGradient>
-
-            {/* Gradiente de preenchimento fluido base-esquerda */}
-            <linearGradient id="fluid-bottom-grad" x1="0" y1="1000" x2="400" y2="650" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#1455E8" stopOpacity="0.32" />
-              <stop offset="65%" stopColor="#1D4ED8" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
-            </linearGradient>
-
-            {/* Gradiente de traçado base-esquerda */}
-            <linearGradient id="stroke-bottom-grad" x1="0" y1="1000" x2="450" y2="600" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.4" />
-              <stop offset="70%" stopColor="#1455E8" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
-            </linearGradient>
-
-            {/* Brilho radial focal */}
-            <radialGradient id="focal-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(700 150) rotate(90) scale(260)">
-              <stop offset="0%" stopColor="#38BDF8" stopOpacity="0.25" />
-              <stop offset="60%" stopColor="#1455E8" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#06132B" stopOpacity="0" />
-            </radialGradient>
-          </defs>
-
-          {/* Curva Orgânica Superior Direita - Camada 1 (Profundidade Suave) */}
-          <path
-            d="M 520 0 C 580 140, 720 180, 800 240 L 800 0 Z"
-            fill="url(#fluid-top-grad)"
-          />
-
-          {/* Curva Orgânica Superior Direita - Camada 2 (Onda Elegante) */}
-          <path
-            d="M 450 0 C 540 180, 680 230, 800 320"
-            stroke="url(#stroke-top-grad)"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 500 0 C 590 150, 710 200, 800 280"
-            stroke="url(#stroke-top-grad)"
-            strokeWidth="1.2"
-            strokeDasharray="4 6"
-            opacity="0.65"
-          />
-
-          {/* Curva Orgânica Base Esquerda - Camada 1 (Profundidade Suave) */}
-          <path
-            d="M 0 780 C 120 760, 260 880, 360 1000 L 0 1000 Z"
-            fill="url(#fluid-bottom-grad)"
-          />
-
-          {/* Curva Orgânica Base Esquerda - Camada 2 (Onda Elegante) */}
-          <path
-            d="M 0 720 C 160 720, 290 840, 420 1000"
-            stroke="url(#stroke-bottom-grad)"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 0 770 C 130 780, 240 880, 340 1000"
-            stroke="url(#stroke-bottom-grad)"
-            strokeWidth="1.2"
-            strokeDasharray="4 6"
-            opacity="0.65"
-          />
-
-          {/* Orbe sutil iluminado topo-direito */}
-          <circle cx="700" cy="150" r="240" fill="url(#focal-glow)" />
-        </svg>
-
-        {/* 1. Topo: Logo Littera Preservada */}
-        <div className="relative z-10 animate-fade-in">
-          <a
-            href="/"
-            className="inline-flex items-center transition-opacity hover:opacity-85 focus:outline-none"
-            aria-label="Littera Início"
-          >
-            <img
-              src="/assets/littera-logo.png"
-              alt="Littera"
-              className="block h-7 lg:h-[30px] w-auto brightness-0 invert"
-            />
-          </a>
-        </div>
-
-        {/* 2, 3, 4. Centro / Mensagem Principal com Alto Contraste */}
-        <div className="relative z-10 my-auto max-w-lg space-y-7 animate-fade-in-up">
-          <div className="space-y-3">
-            <h1 className="text-4xl xl:text-5xl 2xl:text-[3.5rem] font-black tracking-[-0.035em] text-white leading-[1.08] font-sans">
-              <span className="block">Suas ideias merecem ir mais longe.</span>
-              <span className="block mt-2.5 text-transparent bg-clip-text bg-gradient-to-r from-[#2F6BFF] via-[#3B82F6] to-[#60A5FA]">
-                A inteligência para chegar lá.
-              </span>
-            </h1>
+    <div className="bg-[#f6f8fb] min-h-screen flex items-center justify-center p-4 md:p-8 font-sans antialiased text-slate-800">
+      {/* Container Principal do Card de Autenticação */}
+      <main
+        className="w-full max-w-[1020px] bg-white rounded-[32px] p-3 sm:p-4 auth-card-shadow flex flex-col md:flex-row items-stretch border border-slate-100/80"
+        data-purpose="auth-container"
+      >
+        {/* Banner Esquerdo - Identidade Visual & Mensagem Conceitual */}
+        <div className="w-full md:w-[46%] rounded-[24px] bg-gradient-to-b from-[#2563EB] via-[#1D4ED8] to-[#1E3A8A] p-7 md:p-10 flex flex-col justify-between relative overflow-hidden shrink-0 min-h-[380px] md:min-h-[580px]">
+          {/* Logo / Link Home */}
+          <div className="relative z-10 flex items-center justify-between">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2.5 text-white focus:outline-none transition-opacity hover:opacity-90"
+              title="Voltar para a página inicial"
+            >
+              <img
+                src="/assets/littera-logo.png"
+                alt="Littera"
+                className="h-7 md:h-8 w-auto brightness-0 invert"
+              />
+            </a>
           </div>
 
-          <p className="text-base sm:text-lg text-slate-300/85 leading-relaxed font-normal max-w-md font-sans">
-            Escrita, conhecimento e inteligência artificial trabalhando juntos para desenvolver seu potencial.
-          </p>
+          {/* Ambient Lighting Accents */}
+          <div className="absolute -right-20 -bottom-20 w-80 h-80 rounded-full bg-blue-400/25 blur-3xl pointer-events-none" />
+          <div className="absolute -left-12 -top-12 w-64 h-64 rounded-full bg-indigo-500/20 blur-2xl pointer-events-none" />
+
+          {/* Textura sutil */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 opacity-[0.04] pointer-events-none"
+            style={{
+              backgroundImage:
+                'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+              backgroundSize: '36px 36px',
+            }}
+          />
+
+          {/* Headline & Kicker */}
+          <div className="relative z-10 mt-auto pt-10">
+            <p className="text-[11px] font-bold tracking-[0.18em] text-blue-200 uppercase mb-3">
+              REDAÇÃO NOTA 1000
+            </p>
+            <h1 className="text-2xl md:text-[28px] font-bold text-white leading-tight tracking-tight">
+              A nota 1000 no ENEM começa na inteligência de cada correção.
+            </h1>
+            <p className="mt-3.5 text-xs text-blue-100/80 leading-relaxed font-normal">
+              Correções com padrão banca examinadora, devolutivas em segundos e gestão pedagógica completa.
+            </p>
+          </div>
         </div>
 
-        {/* 5. Base: Assinatura Editorial Minimalista */}
-        <div className="relative z-10 flex items-center gap-3 text-xs font-medium text-slate-400/60 font-sans tracking-wide">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#1455E8] shadow-[0_0_8px_#1455E8]" />
-          <span>Plataforma de inteligência e desenvolvimento da escrita</span>
-        </div>
-      </div>
-
-      {/* Lado Direito - Formulário Glassmorphism */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-grid overflow-y-auto">
-        <div className="w-full max-w-md animate-fade-in-up py-8">
-            <div className="bg-white dark:bg-surface-dark rounded-[2rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-premium border border-gray-100 dark:border-white/5 relative overflow-hidden">
-
-            <div className="mb-6 text-center">
-              <h2 className="text-2xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tighter">
-                {isLogin ? 'Bem-vindo' : 'Ativar Conta'}
-              </h2>
-              <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em]">
-                {isLogin ? 'Acesse seu painel exclusivo' : 'Defina sua senha de acesso'}
-              </p>
-            </div>
-
-            {/* Selector de Perfil Dinâmico */}
-            <div className="flex bg-gray-50 dark:bg-white/5 p-1 rounded-[1.4rem] mb-6 shadow-inner">
-              {(['student', 'teacher', 'school_admin'] as const).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => {
-                    if (!isLogin && type === 'school_admin') {
-                      window.location.href = '/cadastro';
-                      return;
-                    }
-                    setUserType(type);
-                  }}
-                  className={`flex-1 py-3.5 text-[9px] font-black uppercase tracking-widest rounded-[1.4rem] transition-all duration-300 ${userType === type
-                    ? 'bg-white dark:bg-white/10 text-primary shadow-lg scale-100'
-                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
-                    }`}
+        {/* Lado Direito - Painel de Acesso / Formulário */}
+        <div className="w-full md:w-[54%] py-8 px-5 sm:px-8 md:py-10 md:px-12 flex flex-col justify-center">
+          {/* Segmented Tabs / Seletor de Perfil */}
+          <div className="mb-6" data-purpose="role-selector">
+            <div className="inline-flex bg-[#f1f4f9] p-1.5 rounded-2xl w-full justify-between gap-1 border border-slate-200/50">
+              {/* Aluno */}
+              <button
+                type="button"
+                aria-selected={userType === 'student'}
+                onClick={() => setUserType('student')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                  userType === 'student'
+                    ? 'bg-white pill-shadow text-[#2F5BFF]'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <svg
+                  className={`w-4 h-4 ${userType === 'student' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
                 >
-                  {type === 'student' ? 'ALUNO' : type === 'teacher' ? 'DOCENTE' : 'ESCOLA'}
-                </button>
-              ))}
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                  <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                </svg>
+                <span>Aluno</span>
+              </button>
+
+              {/* Professor */}
+              <button
+                type="button"
+                aria-selected={userType === 'teacher'}
+                onClick={() => setUserType('teacher')}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                  userType === 'teacher'
+                    ? 'bg-white pill-shadow text-[#2F5BFF]'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <svg
+                  className={`w-4 h-4 ${userType === 'teacher' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <rect height="18" rx="2" width="18" x="3" y="3" />
+                  <circle cx="12" cy="10" r="3" />
+                  <path d="M7 21v-2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v2" />
+                </svg>
+                <span>Professor</span>
+              </button>
+
+              {/* Escola */}
+              <button
+                type="button"
+                aria-selected={userType === 'school_admin'}
+                onClick={() => {
+                  if (!isLogin) {
+                    window.location.href = '/cadastro';
+                    return;
+                  }
+                  setUserType('school_admin');
+                }}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-[13px] font-semibold transition-all duration-200 ${
+                  userType === 'school_admin'
+                    ? 'bg-white pill-shadow text-[#2F5BFF]'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <svg
+                  className={`w-4 h-4 ${userType === 'school_admin' ? 'text-[#2F5BFF]' : 'text-slate-400'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M4 22h16" />
+                  <path d="M4 10V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v18" />
+                  <path d="M9 10h1" />
+                  <path d="M14 10h1" />
+                  <path d="M9 14h1" />
+                  <path d="M14 14h1" />
+                  <path d="M9 18h1" />
+                  <path d="M14 18h1" />
+                </svg>
+                <span>Escola</span>
+              </button>
             </div>
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 animate-fade-in">
-              {showActivatedBanner && (
-                <div className="p-5 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-900/20 rounded-2xl text-center animate-fade-in-up">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <span className="material-icons-outlined text-emerald-500 text-2xl">check_circle</span>
-                    <span className="text-emerald-700 dark:text-emerald-400 font-black text-sm">Pagamento Confirmado!</span>
-                  </div>
-                  <p className="text-emerald-600 dark:text-emerald-400 text-xs font-bold">
-                    Sua assinatura foi ativada com sucesso. Faça login para acessar o painel completo.
-                  </p>
-                </div>
-              )}
+          {/* Cabeçalho da Seção */}
+          <div className="mb-6" data-purpose="form-header">
+            <h2 className="text-2xl md:text-[28px] font-bold text-slate-900 tracking-tight leading-snug">
+              {isLogin ? 'Acessar sua conta' : 'Resgatar Convite'}
+            </h2>
+            <p className="text-[13px] text-slate-500 mt-1.5 leading-relaxed">
+              {isLogin
+                ? 'Acesse suas redações, anotações e atividades a qualquer momento e continue de onde parou.'
+                : 'Defina sua senha de acesso vinculada ao convite recebido da sua instituição.'}
+            </p>
+          </div>
 
-              {errorMessage && (
-                <div className="p-5 bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-2xl text-rose-600 dark:text-rose-400 text-xs font-bold text-center animate-shake">
-                  {errorMessage}
-                </div>
-              )}
-              {successMessage && (
-                <div className="p-5 bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/20 rounded-2xl text-green-600 dark:text-green-400 text-xs font-bold text-center animate-pulse">
-                  {successMessage}
-                </div>
-              )}
+          {/* Banners de Notificação / Feedback */}
+          {showActivatedBanner && (
+            <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-semibold">
+              🎉 Pagamento Confirmado! Sua assinatura escolar está ativa. Faça login para continuar.
+            </div>
+          )}
 
-              {/* Nome só é necessário para Escolas novas. Alunos/Profs já têm nome no convite. */}
-              {!isLogin && userType === 'school_admin' && (
-                <div className="space-y-1 group">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">
-                    NOME DA INSTITUIÇÃO
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Ex: Colégio Anglo"
-                    className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
-                  />
-                </div>
-              )}
+          {errorMessage && (
+            <div className="mb-4 p-3.5 bg-rose-50 border border-rose-200/80 rounded-xl text-center text-xs text-rose-700 font-medium animate-shake">
+              {errorMessage}
+            </div>
+          )}
 
-              <div className="space-y-1 group">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">E-MAIL</label>
+          {successMessage && (
+            <div className="mb-4 p-3.5 bg-green-50 border border-green-200/80 rounded-xl text-center text-xs text-green-700 font-medium">
+              {successMessage}
+            </div>
+          )}
+
+          {/* Formulário de Acesso */}
+          <form onSubmit={handleSubmit} className="space-y-4" data-purpose="login-form">
+            {/* Nome da Instituição (quando aplicável) */}
+            {!isLogin && userType === 'school_admin' && (
+              <div className="space-y-1.5">
+                <label className="block text-[13px] font-medium text-slate-700" htmlFor="institution-name">
+                  Nome da Instituição
+                </label>
                 <input
-                  type="email"
+                  id="institution-name"
+                  type="text"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={!isLogin && userType !== 'school_admin' ? "Email onde recebeu o convite" : "exemplo@littera.com"}
-                  className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Ex: Colégio Anglo"
+                  className="w-full h-11 px-4 text-[14px] text-slate-800 placeholder-slate-400 bg-white border border-slate-200 rounded-xl focus:border-[#2F5BFF] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                 />
               </div>
+            )}
 
-              <div className="space-y-1 group">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">SENHA</label>
+            {/* Email */}
+            <div className="space-y-1.5">
+              <label className="block text-[13px] font-medium text-slate-700" htmlFor="email">
+                Seu e-mail
+              </label>
+              <input
+                id="email"
+                type="email"
+                name="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={!isLogin && userType !== 'school_admin' ? "E-mail onde recebeu o convite" : "seu.email@exemplo.com.br"}
+                className="w-full h-11 px-4 text-[14px] text-slate-800 placeholder-slate-400 bg-white border border-slate-200 rounded-xl focus:border-[#2F5BFF] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+              />
+            </div>
+
+            {/* Senha */}
+            <div className="space-y-1.5 pt-0.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-[13px] font-medium text-slate-700" htmlFor="password">
+                  Senha
+                </label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!email) {
+                        alert("Por favor, digite seu e-mail no campo acima para redefinir a senha.");
+                        return;
+                      }
+                      supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/login`
+                      }).then(({ error }) => {
+                        if (error) alert("Erro ao enviar e-mail: " + error.message);
+                        else alert("Instruções de recuperação enviadas para o seu e-mail!");
+                      });
+                    }}
+                    className="text-[12.5px] font-medium text-[#2F5BFF] hover:text-blue-700 transition-colors"
+                  >
+                    Esqueceu sua senha?
+                  </button>
+                )}
+              </div>
+              <div className="relative flex items-center">
                 <input
-                  type="password"
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
+                  placeholder="••••••••••••"
+                  className="w-full h-11 pl-4 pr-11 text-[14px] tracking-wider text-slate-800 placeholder-slate-400 bg-white border border-slate-200 rounded-xl focus:border-[#2F5BFF] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label="Alternar visualização da senha"
+                  className="absolute right-3.5 text-slate-400 hover:text-slate-600 focus:outline-none transition p-0.5"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                      <line x1="2" x2="22" y1="2" y2="22" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirmar Senha (Modo Cadastro / Resgate) */}
+            {!isLogin && (
+              <div className="space-y-1.5 pt-0.5">
+                <label className="block text-[13px] font-medium text-slate-700" htmlFor="confirmPassword">
+                  Confirmar Senha
+                </label>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full h-11 px-4 text-[14px] tracking-wider text-slate-800 placeholder-slate-400 bg-white border border-slate-200 rounded-xl focus:border-[#2F5BFF] focus:ring-2 focus:ring-blue-100 transition-all outline-none"
                 />
               </div>
+            )}
 
-              {!isLogin && (
-                <div className="space-y-1 group">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 transition-colors group-focus-within:text-primary">CONFIRMAR SENHA</label>
-                  <input
-                    type="password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-5 py-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-transparent focus:border-primary/30 focus:bg-white dark:focus:bg-white/10 outline-none font-bold text-sm transition-all"
-                  />
-                </div>
-              )}
-
+            {/* Botão de Submissão Principal */}
+            <div className="pt-2">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-4 mt-2 rounded-[1.8rem] font-black text-white bg-primary hover:bg-primary-dark shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-3 active:scale-95 disabled:opacity-50"
+                className="w-full h-12 bg-[#2F5BFF] hover:bg-[#254ED8] active:bg-[#1E3A8A] text-white text-[15px] font-medium rounded-xl shadow-lg shadow-blue-500/25 transition-all transform active:scale-[0.99] flex items-center justify-center disabled:opacity-50"
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <span className="text-sm uppercase tracking-widest">
-                    {isLogin ? 'Entrar Agora' : (userType === 'school_admin' ? 'Criar Instituição' : 'Resgatar Convite')}
-                  </span>
+                  <span>{isLogin ? 'Entrar' : 'Confirmar e Ativar Conta'}</span>
                 )}
               </button>
-            </form>
+            </div>
 
-            <div className="mt-6 pt-4 border-t border-gray-50 dark:border-white/5 text-center space-y-2">
-              <button
-                type="button"
-                onClick={checkConnection}
-                className="opacity-0 hover:opacity-20 text-[8px] uppercase tracking-widest absolute bottom-2 left-2"
-              >
-                Debug Conexão
-              </button>
-
-              {/* Botão Testar como Aluno — só aparece no modo login + perfil aluno */}
-              {isLogin && userType === 'student' && (
+            {/* Experimentar sem cadastro (Modo Aluno Demo) */}
+            {isLogin && userType === 'student' && (
+              <div className="pt-1">
                 <button
                   type="button"
                   onClick={() => onEnterDemo('student')}
-                  className="w-full py-3.5 rounded-[1.8rem] font-black text-primary bg-primary/5 hover:bg-primary/10 border-2 border-primary/20 hover:border-primary/40 transition-all flex items-center justify-center gap-2.5 active:scale-95 group"
+                  className="w-full h-11 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-[13px] font-semibold rounded-xl transition-all flex items-center justify-center gap-2"
                 >
-                  <span className="material-icons-outlined text-lg group-hover:rotate-12 transition-transform">science</span>
-                  <span className="text-[10px] uppercase tracking-[0.2em]">Experimentar sem cadastro</span>
+                  <span className="material-icons-outlined text-base text-[#2F5BFF]">science</span>
+                  <span>Experimentar sem cadastro (Modo Demo)</span>
                 </button>
-              )}
-
-              <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">
-                {isLogin
-                  ? (userType === 'school_admin' ? 'Ainda não tem conta?' : 'Foi convidado pela escola?')
-                  : 'Já tem cadastro?'}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isLogin && userType === 'school_admin') {
-                      window.location.href = '/cadastro';
-                      return;
-                    }
-                    setIsLogin(!isLogin);
-                    setErrorMessage(null);
-                  }}
-                  className="ml-2 text-gray-900 dark:text-white hover:text-primary transition-colors underline decoration-primary/20 underline-offset-4"
-                >
-                  {isLogin
-                    ? (userType === 'school_admin' ? 'Criar Conta' : 'Resgatar Convite')
-                    : 'Fazer Login'}
-                </button>
-              </p>
-
-              <div className="pt-2 text-center">
-                <p className="text-[10px] text-gray-400 dark:text-gray-500 leading-normal">
-                  Ao continuar, você concorda com os{' '}
-                  <a href="/termos" className="underline hover:text-primary transition-colors">Termos de Uso</a>{' '}
-                  e a{' '}
-                  <a href="/privacidade" className="underline hover:text-primary transition-colors">Política de Privacidade (LGPD)</a>.
-                </p>
               </div>
-            </div>
-          </div>
+            )}
+
+            {/* Link Alternativo: Alternar entre Login e Cadastro */}
+            <p className="text-center text-[13px] text-slate-500 pt-3">
+              {isLogin ? (
+                <>
+                  {userType === 'school_admin' ? 'Não tem uma conta escolar? ' : 'Foi convidado pela sua escola? '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (userType === 'school_admin') {
+                        window.location.href = '/cadastro';
+                        return;
+                      }
+                      setIsLogin(false);
+                      setErrorMessage(null);
+                    }}
+                    className="font-semibold text-[#2F5BFF] hover:text-blue-700 transition-colors"
+                  >
+                    {userType === 'school_admin' ? 'Cadastre-se gratuitamente' : 'Resgatar meu convite'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  Já possui uma conta?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsLogin(true);
+                      setErrorMessage(null);
+                    }}
+                    className="font-semibold text-[#2F5BFF] hover:text-blue-700 transition-colors"
+                  >
+                    Fazer Login
+                  </button>
+                </>
+              )}
+            </p>
+
+            {/* LGPD e Termos */}
+            <p className="text-[11px] text-slate-400 text-center leading-tight pt-2">
+              Ao acessar, você concorda com nossos{' '}
+              <a href="/termos" className="underline hover:text-slate-600 transition-colors">Termos de Uso</a>{' '}
+              e a{' '}
+              <a href="/privacidade" className="underline hover:text-slate-600 transition-colors">Política de Privacidade (LGPD)</a>.
+            </p>
+          </form>
         </div>
-      </div>
+      </main>
 
       <style>{`
-        .bg-grid {
-          background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
-          background-size: 30px 30px;
+        .auth-card-shadow {
+          box-shadow: 0 25px 60px -15px rgba(50, 65, 110, 0.12), 0 10px 25px -10px rgba(50, 65, 110, 0.08);
         }
-        .dark .bg-grid {
-          background-image: radial-gradient(circle, #1f2937 1px, transparent 1px);
+        .pill-shadow {
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
