@@ -31,12 +31,21 @@ async function runSDRAgent() {
     notes: "Capturado automaticamente pelo Agente SDR via GitHub Actions."
   };
 
+  console.log("Supabase URL configured:", !!supabaseUrl, supabaseUrl ? supabaseUrl.substring(0, 25) + '...' : '');
+  console.log("Supabase Key configured:", !!supabaseKey, supabaseKey ? supabaseKey.substring(0, 15) + '... (length: ' + supabaseKey.length + ')' : '');
+
   // Verifica se o lead já existe pelo e-mail para evitar duplicidade
-  const { data: existingLead } = await supabase
+  const checkRes = await supabase
     .from('leads')
     .select('id')
-    .eq('email', novoLead.email)
-    .single();
+    .eq('email', novoLead.email);
+
+  if (checkRes.error) {
+    console.error("❌ Erro no select de verificação:", checkRes.error);
+    console.error("Status:", checkRes.status, checkRes.statusText);
+  }
+
+  const existingLead = checkRes.data?.[0];
 
   if (existingLead) {
     console.log(`⚠️ O lead ${novoLead.school_name} já está na base.`);
@@ -44,10 +53,12 @@ async function runSDRAgent() {
   }
 
   // Insere o novo lead no Supabase
-  const { data, error } = await supabase.from('leads').insert([novoLead]);
+  const insertRes = await supabase.from('leads').insert([novoLead]);
 
-  if (error) {
-    console.error("❌ Erro ao inserir lead no Supabase:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+  if (insertRes.error) {
+    console.error("❌ Erro ao inserir lead no Supabase:");
+    console.error("Status:", insertRes.status, insertRes.statusText);
+    console.error("Error raw:", insertRes.error);
     process.exit(1);
   }
 
