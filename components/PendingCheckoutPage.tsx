@@ -5,9 +5,15 @@ interface PendingCheckoutPageProps {
   onLogout: () => void;
   session: any;
   schoolStatus?: string | null;
+  onEnterDemo?: (type?: 'student' | 'teacher' | 'school_admin') => void;
 }
 
-export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogout, session, schoolStatus }) => {
+export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({
+  onLogout,
+  session,
+  schoolStatus,
+  onEnterDemo,
+}) => {
   const [schoolData, setSchoolData] = useState<any>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isRejected, setIsRejected] = useState(false);
@@ -283,7 +289,7 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
             {statusCopy.description}
           </p>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3">
             <div className="flex items-center justify-center gap-3 text-sm text-gray-400 font-bold mb-2">
               <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
               Aguardando confirmação automática do Asaas...
@@ -292,18 +298,40 @@ export const PendingCheckoutPage: React.FC<PendingCheckoutPageProps> = ({ onLogo
             <button
               onClick={handleOpenAsaasInvoice}
               disabled={isOpeningInvoice}
-              className="w-full bg-primary hover:bg-primary-dark text-white font-black py-4 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-sm uppercase tracking-widest disabled:opacity-60"
+              className="w-full bg-primary hover:bg-primary-dark text-white font-black py-4 rounded-xl shadow-xl shadow-primary/25 transition-all flex items-center justify-center gap-2 active:scale-95 text-sm uppercase tracking-widest disabled:opacity-60 cursor-pointer"
             >
               <span className="material-icons-outlined text-lg">open_in_new</span>
               {isOpeningInvoice ? 'Abrindo Fatura no Asaas...' : 'Pagar Fatura no Asaas'}
             </button>
-            
-            <button
-              onClick={onLogout}
-              className="w-full px-6 py-4 rounded-2xl font-black text-sm text-gray-400 hover:text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5 transition-all uppercase tracking-widest"
-            >
-              Sair da Conta
-            </button>
+
+            {onEnterDemo && (
+              <button
+                type="button"
+                onClick={() => onEnterDemo('school_admin')}
+                className="w-full py-3.5 px-4 rounded-xl font-bold text-sm bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-700 dark:text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span className="material-icons-outlined text-base">visibility</span>
+                Explorar em Modo Demonstração (Demo)
+              </button>
+            )}
+
+            <div className="flex items-center justify-center gap-4 pt-3 border-t border-gray-100 dark:border-white/10 mt-2">
+              <button
+                type="button"
+                onClick={() => { window.location.href = '/'; }}
+                className="text-xs font-semibold text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                Voltar ao Início
+              </button>
+              <span className="text-gray-300 dark:text-gray-700">·</span>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors uppercase tracking-wider cursor-pointer"
+              >
+                Sair da Conta
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -435,16 +435,25 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    const LITTERA_KEYS = ['littera_', 'scritta_', 'checkout_', 'draft_'];
-    Object.keys(localStorage).forEach(key => {
-      if (LITTERA_KEYS.some(p => key.startsWith(p))) localStorage.removeItem(key);
-    });
-    localStorage.removeItem('littera_demo_mode');
-    setIsDemoMode(false);
-    setSession(null);
-    setUserType('student');
-    navigate('/login');
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('SignOut error:', e);
+    } finally {
+      const LITTERA_KEYS = ['littera_', 'scritta_', 'checkout_', 'draft_', 'sb-'];
+      Object.keys(localStorage).forEach(key => {
+        if (LITTERA_KEYS.some(p => key.startsWith(p)) || key.includes('supabase')) {
+          localStorage.removeItem(key);
+        }
+      });
+      sessionStorage.clear();
+      setIsDemoMode(false);
+      setSession(null);
+      setUserType('student');
+      setSchoolStatus(null);
+      setSchoolId(null);
+      window.location.href = '/login';
+    }
   };
 
   // --- MODO DEMO: Entrar sem cadastro (Aluno, Professor ou Escola) ---
@@ -797,7 +806,14 @@ const App: React.FC = () => {
 
   const renderSuspended = () => {
     if (userType === 'school_admin') {
-      return <PendingCheckoutPage onLogout={handleLogout} session={session} schoolStatus={schoolStatus} />;
+      return (
+        <PendingCheckoutPage
+          onLogout={handleLogout}
+          session={session}
+          schoolStatus={schoolStatus}
+          onEnterDemo={handleEnterDemo}
+        />
+      );
     }
 
     return (
