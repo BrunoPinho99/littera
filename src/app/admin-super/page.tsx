@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../supabaseClient';
 import { 
   Building2, 
   User, 
@@ -10,19 +10,6 @@ import {
   Calendar,
   AlertCircle
 } from 'lucide-react';
-
-// Suporta tanto Vite (VITE_) quanto Next.js (NEXT_PUBLIC_)
-const supabaseUrl = 
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) || 
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || 
-  '';
-
-const supabaseAnonKey = 
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) || 
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_ANON_KEY) || 
-  '';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type LeadStage = 
   | 'novo_lead' 
