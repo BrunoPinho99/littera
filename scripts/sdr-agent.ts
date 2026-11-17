@@ -21,13 +21,16 @@ async function runSDRAgent() {
   // Exemplo de dados simulados da prospecção de uma escola/cursinho em Brasília
   // (Aqui você pode plugar uma lógica de scraping ou requisição a uma API de diretórios educacionais)
   const novoLead = {
+    name: "Coordenação Pedagógica",
     school_name: "Colégio Pioneiro Brasília",
     contact_name: "Coordenação Pedagógica",
     email: "contato@colegiopioneiro.com.br",
     phone: "(61) 3333-4444",
+    whatsapp: "(61) 3333-4444",
     city: "Brasília",
     state: "DF",
     stage: "novo_lead",
+    status: "pending",
     notes: "Capturado automaticamente pelo Agente SDR via GitHub Actions."
   };
 
