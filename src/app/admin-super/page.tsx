@@ -129,6 +129,16 @@ export default function CRMKanbanPage() {
   }, []);
 
   useEffect(() => {
+    // Garante que o Google e outros buscadores não indexem a página mesmo se acessada
+    let metaRobots = document.querySelector('meta[name="robots"]');
+    if (!metaRobots) {
+      metaRobots = document.createElement('meta');
+      metaRobots.setAttribute('name', 'robots');
+      document.head.appendChild(metaRobots);
+    }
+    metaRobots.setAttribute('content', 'noindex, nofollow');
+
+    document.title = 'Littera CRM B2B | Gestão de Leads';
     fetchLeads();
   }, [fetchLeads]);
 
