@@ -23,15 +23,9 @@ async function runSDRAgent() {
   const novoLead = {
     name: "Coordenação Pedagógica",
     school_name: "Colégio Pioneiro Brasília",
-    contact_name: "Coordenação Pedagógica",
     email: "contato@colegiopioneiro.com.br",
-    phone: "(61) 3333-4444",
     whatsapp: "(61) 3333-4444",
-    city: "Brasília",
-    state: "DF",
-    stage: "novo_lead",
     status: "pending",
-    notes: "Capturado automaticamente pelo Agente SDR via GitHub Actions."
   };
 
   console.log("Supabase URL configured:", !!supabaseUrl, supabaseUrl ? supabaseUrl.substring(0, 25) + '...' : '');
@@ -65,7 +59,7 @@ async function runSDRAgent() {
     process.exit(1);
   }
 
-  console.log("✅ Lead de escola inserido com sucesso:", data);
+  console.log("✅ Lead de escola inserido com sucesso:", novoLead.school_name);
 }
 
 runSDRAgent();
