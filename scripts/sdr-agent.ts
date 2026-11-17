@@ -56,12 +56,10 @@ async function runSDRAgent() {
   }
 
   // Insere o novo lead no Supabase
-  const insertRes = await supabase.from('leads').insert([novoLead]);
+  const { data, error } = await supabase.from('leads').insert([novoLead]).select();
 
-  if (insertRes.error) {
-    console.error("❌ Erro ao inserir lead no Supabase:");
-    console.error("Status:", insertRes.status, insertRes.statusText);
-    console.error("Error raw:", insertRes.error);
+  if (error) {
+    console.error("❌ Erro ao inserir lead no Supabase:", error);
     process.exit(1);
   }
 
