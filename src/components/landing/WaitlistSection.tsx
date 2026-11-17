@@ -190,8 +190,7 @@ export const WaitlistSection: React.FC = () => {
             <div className="inline-flex items-center gap-[8px] px-[14px] py-[7px] rounded-full bg-white/10 text-white backdrop-blur-md border border-white/20 tm-sans text-[13px] font-medium">
               <span className="w-[7px] h-[7px] rounded-full bg-[#60A5FA]" />
               <span>
-                Simulação anexada: {formatIntegerPtBr(alunos)} alunos · {redacoesPorAluno}{' '}
-                {redacoesPorAluno === 1 ? 'redação' : 'redações'}/aluno ·{' '}
+                Simulação anexada: {formatIntegerPtBr(alunos)} alunos ·{' '}
                 {formatCurrencyFullPtBr(gastoMensal)}/mês
               </span>
             </div>
