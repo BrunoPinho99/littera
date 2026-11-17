@@ -100,6 +100,13 @@ export const CtaAndFooterSection: React.FC = () => {
                 </a>
               ))}
               <span className="text-[#0A0A0B]/20 hidden sm:inline">·</span>
+              <a
+                href="/crm"
+                className="tm-sans text-[13.5px] text-[#6B6F76] hover:text-blue-600 transition-colors"
+              >
+                Acesso CRM
+              </a>
+              <span className="text-[#0A0A0B]/20 hidden sm:inline">·</span>
               {LEGAL_LINKS.map((item) => (
                 <button
                   key={item.label}

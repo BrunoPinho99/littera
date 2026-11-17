@@ -14,6 +14,7 @@ import {
   formatIntegerPtBr,
   useSimulation,
 } from './SimulationContext';
+import { supabase } from '../../../supabaseClient';
 
 const WAITLIST_AVATARS = [
   'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=400&q=80',
@@ -59,10 +60,32 @@ export const WaitlistSection: React.FC = () => {
     if (scheduled) setScheduled(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !whatsapp.trim()) return;
+
     setScheduled(true);
+
+    // Salva automaticamente o lead no CRM
+    try {
+      await supabase.from('leads').insert([
+        {
+          name: name.trim(),
+          contact_name: name.trim(),
+          school_name: name.trim().includes('Colégio') || name.trim().includes('Escola') ? name.trim() : `Escola de ${name.trim()}`,
+          email: email.trim(),
+          whatsapp: whatsapp.trim(),
+          phone: whatsapp.trim(),
+          stage: 'reuniao_agendada',
+          status: 'pending',
+          notes: simulationAttached
+            ? `Formulário Landing Page. Simulação: ${alunos} alunos, ${redacoesPorAluno} red/mês, gasto atual est.: ${formatCurrencyFullPtBr(gastoMensal)}/mês (${formatCurrencyFullPtBr(gastoAnual)}/ano).`
+            : 'Lead vindo do formulário de demonstração da Landing Page.',
+        }
+      ]);
+    } catch (err) {
+      console.error('Erro ao registrar lead no CRM:', err);
+    }
   };
 
   const handleCopy = async () => {

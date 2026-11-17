@@ -25,6 +25,7 @@ import ActivateTrialDashboard from './components/ActivateTrialDashboard';
 import ClassRegistration from './components/ClassRegistration';
 import SchoolRegistration from './components/SchoolRegistration';
 import { TermsPrivacyPage } from './components/TermsPrivacyPage';
+import CRMView from './components/CRMView';
 // Types and Services
 import { Topic, CorrectionResult, EssayInput, Notification, HandwrittenCorrectionResult, Assignment } from './types';
 import { correctEssay, correctHandwrittenEssay, correctEssayDemo, correctHandwrittenEssayDemo } from './services/geminiService';
@@ -1015,6 +1016,7 @@ const App: React.FC = () => {
               <Route path="inst-subscription" element={<InstitutionDashboard initialTab="subscription" userType={userType as any} />} />
               <Route path="admin/warm-schools" element={<WarmSchoolsDashboard />} />
               <Route path="admin/activate-trial" element={<ActivateTrialDashboard />} />
+              <Route path="crm" element={<CRMView />} />
               <Route path="profile" element={<ProfileView user={session?.user} />} />
               <Route path="notifications" element={
                 <NotificationsView
@@ -1091,6 +1093,7 @@ const App: React.FC = () => {
             ? <Navigate to={`/app/${getDefaultView(userType)}`} replace />
             : <FinalizarCadastroView />
         } />
+        <Route path="/crm" element={<CRMView />} />
         <Route path="/setup-account" element={<Navigate to="/cadastro/finalizar" replace />} />
         <Route path="/convite" element={<AcceptInviteView />} />
         <Route path="/matricula/:schoolId" element={
