@@ -47,7 +47,7 @@ async function runSDRAgent() {
   const { data, error } = await supabase.from('leads').insert([novoLead]);
 
   if (error) {
-    console.error("❌ Erro ao inserir lead no Supabase:", error);
+    console.error("❌ Erro ao inserir lead no Supabase:", JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
     process.exit(1);
   }
 
