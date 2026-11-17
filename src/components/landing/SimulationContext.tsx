@@ -3,11 +3,11 @@
 import React, { createContext, useContext, useMemo, useState } from 'react';
 
 export type QuemCorrigeOption = 'banca' | 'professores' | 'ambos';
-export type RedacoesMesOption = 1 | 2 | 4 | '4+';
+export type RedacoesMesOption = number;
 
 export interface SimulationState {
   alunos: number;
-  redacoesPorAluno: RedacoesMesOption;
+  redacoesPorAluno: number;
   quemCorrige: QuemCorrigeOption;
   valorPorRedacao: number;
   horaProfessor: number;
@@ -19,7 +19,7 @@ export interface SimulationState {
   horasSemana: number;
   simulationAttached: boolean;
   setAlunos: (v: number) => void;
-  setRedacoesPorAluno: (v: RedacoesMesOption) => void;
+  setRedacoesPorAluno: (v: number) => void;
   setQuemCorrige: (v: QuemCorrigeOption) => void;
   setValorPorRedacao: (v: number) => void;
   setHoraProfessor: (v: number) => void;
@@ -67,14 +67,14 @@ const SimulationContext = createContext<SimulationState | null>(null);
 
 export const SimulationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [alunos, setAlunosState] = useState<number>(800);
-  const [redacoesPorAluno, setRedacoesState] = useState<RedacoesMesOption>(2);
+  const [redacoesPorAluno, setRedacoesState] = useState<number>(2);
   const [quemCorrige, setQuemState] = useState<QuemCorrigeOption>('banca');
   const [valorPorRedacao, setValorState] = useState<number>(6);
   const [horaProfessor, setHoraState] = useState<number>(60);
   const [simulationAttached, setSimulationAttached] = useState<boolean>(false);
 
   const value = useMemo<SimulationState>(() => {
-    const numericRedacoesPorAluno = redacoesPorAluno === '4+' ? 5 : redacoesPorAluno;
+    const numericRedacoesPorAluno = typeof redacoesPorAluno === 'number' && redacoesPorAluno > 0 ? redacoesPorAluno : 1;
     const redacoesMes = alunos * numericRedacoesPorAluno;
     const custoBanca = valorPorRedacao;
     const custoProfessorUnitario = (horaProfessor * 10) / 60;

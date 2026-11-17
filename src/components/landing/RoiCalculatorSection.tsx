@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { SectionHeading } from './SectionHeading';
 import {
@@ -84,6 +84,7 @@ export const RoiCalculatorSection: React.FC = () => {
     quemCorrige,
     valorPorRedacao,
     horaProfessor,
+    redacoesMes,
     custoProfessorUnitario,
     custoUnitario,
     gastoMensal,
@@ -99,6 +100,32 @@ export const RoiCalculatorSection: React.FC = () => {
 
   const [glowPos, setGlowPos] = useState({ x: 15, y: 85 });
   const resultCardRef = useRef<HTMLDivElement>(null);
+  const essayInputRef = useRef<HTMLInputElement>(null);
+  const [essayInputVal, setEssayInputVal] = useState<string>(String(redacoesPorAluno));
+
+  useEffect(() => {
+    setEssayInputVal(String(redacoesPorAluno));
+  }, [redacoesPorAluno]);
+
+  const handleCustomEssayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    setEssayInputVal(raw);
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed) && parsed > 0) {
+      setRedacoesPorAluno(Math.min(50, parsed));
+    }
+  };
+
+  const handleCustomEssayBlur = () => {
+    const parsed = parseInt(essayInputVal, 10);
+    if (isNaN(parsed) || parsed < 1) {
+      setEssayInputVal('1');
+      setRedacoesPorAluno(1);
+    } else if (parsed > 50) {
+      setEssayInputVal('50');
+      setRedacoesPorAluno(50);
+    }
+  };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const rect = resultCardRef.current?.getBoundingClientRect();
@@ -173,20 +200,45 @@ export const RoiCalculatorSection: React.FC = () => {
             />
 
             {/* Controle 2: Redações por aluno, por mês */}
-            <div className="flex flex-col gap-[14px]">
-              <span className="tm-sans text-[15.5px] font-medium text-[#4B5563]">
-                Redações por aluno, por mês
-              </span>
+            <div className="flex flex-col gap-[12px]">
+              <div className="flex items-center justify-between gap-[12px]">
+                <span className="tm-sans text-[15.5px] font-medium text-[#4B5563]">
+                  Redações por aluno, por mês
+                </span>
+                {/* Campo interativo para digitar a quantidade exata */}
+                <div
+                  onClick={() => essayInputRef.current?.focus()}
+                  className="flex items-center gap-[6px] bg-white border border-[#E0E2E7] hover:border-[#CBD5E1] focus-within:border-[#2F5BFF] focus-within:ring-2 focus-within:ring-[#2F5BFF]/15 rounded-[12px] px-[10px] py-[4px] transition-all shadow-sm cursor-text"
+                >
+                  <input
+                    ref={essayInputRef}
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={essayInputVal}
+                    onChange={handleCustomEssayChange}
+                    onBlur={handleCustomEssayBlur}
+                    onFocus={(e) => e.target.select()}
+                    aria-label="Digitar quantidade de redações por aluno"
+                    className="w-[36px] text-center tm-display text-[17px] font-semibold text-[#0A0A0B] focus:outline-none bg-transparent tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="tm-sans text-[12.5px] text-[#6B6F76] font-medium">
+                    {redacoesPorAluno === 1 ? 'redação' : 'redações'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Atalhos rápidos + Opção Outro */}
               <div
                 role="radiogroup"
                 aria-label="Redações por aluno, por mês"
                 className="relative flex gap-[4px] p-[4px] rounded-full bg-white shadow-sm"
               >
-                {([1, 2, 4, '4+'] as RedacoesMesOption[]).map((qty) => {
+                {[1, 2, 3, 4].map((qty) => {
                   const active = redacoesPorAluno === qty;
                   return (
                     <button
-                      key={String(qty)}
+                      key={qty}
                       type="button"
                       role="radio"
                       aria-checked={active}
@@ -206,6 +258,53 @@ export const RoiCalculatorSection: React.FC = () => {
                     </button>
                   );
                 })}
+
+                {/* Opção Outro / Personalizado */}
+                {(() => {
+                  const isCustom = ![1, 2, 3, 4].includes(redacoesPorAluno);
+                  return (
+                    <button
+                      type="button"
+                      role="radio"
+                      aria-checked={isCustom}
+                      onClick={() => {
+                        if (!isCustom) {
+                          setRedacoesPorAluno(5);
+                        }
+                        setTimeout(() => {
+                          essayInputRef.current?.focus();
+                          essayInputRef.current?.select();
+                        }, 50);
+                      }}
+                      className={`relative flex-1 py-[10px] rounded-full cursor-pointer tm-sans text-[13.5px] font-medium transition-colors duration-200 ${
+                        isCustom ? 'text-white' : 'text-[#6B6F76] hover:text-[#0A0A0B]'
+                      }`}
+                    >
+                      {isCustom && (
+                        <motion.span
+                          layoutId="calc-essays-seg"
+                          transition={{ type: 'spring', stiffness: 420, damping: 36 }}
+                          className="absolute inset-0 rounded-full bg-[#0A0A0B]"
+                        />
+                      )}
+                      <span className="relative z-10">
+                        {isCustom ? `${redacoesPorAluno}` : 'Outro'}
+                      </span>
+                    </button>
+                  );
+                })()}
+              </div>
+
+              {/* Detalhamento do volume mensal para transparência pedagógica */}
+              <div className="flex items-center justify-between text-[12.5px] tm-sans text-[#6B6F76] px-1">
+                <span>
+                  <span className="font-semibold text-[#0A0A0B]">{formatIntegerPtBr(alunos)}</span> alunos ×{' '}
+                  <span className="font-semibold text-[#0A0A0B]">{redacoesPorAluno}</span>{' '}
+                  {redacoesPorAluno === 1 ? 'redação' : 'redações'}
+                </span>
+                <span className="font-semibold text-[#2F5BFF]">
+                  = {formatIntegerPtBr(redacoesMes)} redações no mês
+                </span>
               </div>
             </div>
 
@@ -373,13 +472,15 @@ export const RoiCalculatorSection: React.FC = () => {
               <div className="flex flex-col gap-[4px]">
                 <div className="flex items-center justify-between tm-sans text-[12.5px]">
                   <span className="text-white/85">Hoje</span>
-                  <span className="font-medium tabular-nums">{redacoesPorAluno} {redacoesPorAluno === 1 ? 'redação' : 'redações'}</span>
+                  <span className="font-medium tabular-nums">
+                    {redacoesPorAluno} {redacoesPorAluno === 1 ? 'redação' : 'redações'}/aluno ({formatIntegerPtBr(redacoesMes)} no mês)
+                  </span>
                 </div>
                 <div className="w-full h-[8px] rounded-full bg-white/20 overflow-hidden">
                   <motion.div
                     initial={false}
                     animate={{
-                      width: `${Math.max(12, ((redacoesPorAluno === '4+' ? 5 : redacoesPorAluno) / 6) * 100)}%`,
+                      width: `${Math.min(100, Math.max(12, (redacoesPorAluno / Math.max(6, redacoesPorAluno)) * 100))}%`,
                     }}
                     transition={{ type: 'spring', stiffness: 180, damping: 22 }}
                     className="h-full rounded-full bg-white/50"
