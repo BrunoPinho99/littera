@@ -3,7 +3,17 @@ import { createClient } from '@supabase/supabase-js';
 // Inicializa o cliente do Supabase usando variáveis de ambiente do GitHub Actions
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 1,
+    },
+  },
+});
 
 async function runSDRAgent() {
   console.log("🤖 Agente SDR do Littera iniciado...");
