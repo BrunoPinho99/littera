@@ -18,7 +18,7 @@ jobs:
           node-version: '22'
 
       - name: Instalar Dependências
-        run: npm install
+        run: npm ci
 
       - name: Executar Agente SDR
         env:
