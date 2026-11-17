@@ -82,7 +82,7 @@ export const HeroSection: React.FC = () => {
 
       {/* Hero Copy & CTAs */}
       <div className="relative z-10 max-w-[1160px] mx-auto px-4 sm:px-5 text-center flex flex-col items-center">
-        <h1 className="tm-display text-[23px] min-[360px]:text-[26px] min-[390px]:text-[29px] sm:text-[48px] md:text-[62px] lg:text-[74px] xl:text-[82px] font-medium leading-[1.12] sm:leading-[1.04] tracking-[-0.03em] sm:tracking-[-0.04em] text-[#0A0A0B] whitespace-normal sm:whitespace-nowrap max-w-full">
+        <h1 className="tm-display text-[21px] min-[360px]:text-[23px] min-[390px]:text-[26px] sm:text-[44px] md:text-[58px] lg:text-[72px] xl:text-[80px] font-medium leading-[1.15] sm:leading-[1.04] tracking-[-0.03em] sm:tracking-[-0.04em] text-[#0A0A0B] whitespace-normal sm:whitespace-nowrap max-w-full">
           {HERO_TITLE_LINES.map((line, lineIdx) => (
             <span key={lineIdx} className="block whitespace-normal sm:whitespace-nowrap">
               {line.map((word, idxInLine) => {

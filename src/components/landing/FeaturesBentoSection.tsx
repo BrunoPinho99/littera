@@ -206,7 +206,7 @@ export const FeaturesBentoSection: React.FC = () => {
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] sm:gap-[52px] lg:gap-[64px]">
         <SectionHeading
           lines={['Avaliação linha por linha.', 'Em segundos.']}
-          mobileLines={['Avaliação linha por linha.']}
+          mobileLines={['Avaliação linha por linha,', 'em segundos.']}
         />
 
         <div className="w-full flex flex-col lg:flex-row gap-[24px] lg:h-[640px]">

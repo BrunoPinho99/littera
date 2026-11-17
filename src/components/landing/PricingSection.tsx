@@ -95,7 +95,7 @@ export const PricingSection: React.FC = () => {
         <div className="flex max-w-[860px] flex-col items-center gap-[16px] text-center">
           <SectionHeading
             lines={['Como funciona a implantação', 'na sua instituição.']}
-            mobileLines={['Como funciona']}
+            mobileLines={['Como funciona', 'a implantação.']}
           />
           <p className="tm-sans max-w-[760px] text-[16px] leading-[1.45] text-[#6B6F76] sm:text-[18px]">
             Dimensionado para a sua realidade. Mais prática constante para cada estudante, do

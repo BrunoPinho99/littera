@@ -56,7 +56,7 @@ export const SectionHeading: React.FC<SectionHeadingProps> = ({
 }) => {
   return (
     <h2
-      className={`tm-display text-[28px] xs:text-[34px] sm:text-[52px] lg:text-[72px] font-medium leading-[1.06] tracking-[-0.035em] text-[#0A0A0B] text-center ${className}`}
+      className={`tm-display text-[24px] xs:text-[28px] sm:text-[46px] lg:text-[66px] font-medium leading-[1.1] sm:leading-[1.06] tracking-[-0.035em] text-[#0A0A0B] text-center ${className}`}
     >
       {mobileLines && mobileLines.length > 0 ? (
         <>

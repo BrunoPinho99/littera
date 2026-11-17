@@ -771,12 +771,12 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         </div>
       )}
 
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 sm:gap-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-3.5 sm:gap-5">
         <div className="w-full md:w-auto">
-          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-1.5 sm:mb-2">
+          <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] block mb-1">
             {userType === 'teacher' ? 'Área do Docente' : 'Painel de Controle'}
           </span>
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white tracking-tight sm:tracking-tighter font-display break-words">
+          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-[34px] font-black text-gray-900 dark:text-white tracking-tight font-display break-words leading-tight">
             {userType === 'school_admin' 
               ? `Seja bem-vindo(a), ${school?.name || "Escola"}` 
               : (school?.name || "Minha Instituição")}
@@ -784,34 +784,34 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
         </div>
 
         {userType === 'teacher' && (
-          <div className="flex flex-wrap gap-2.5 sm:gap-4 w-full md:w-auto">
+          <div className="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
             <button
               onClick={() => setIsAssignmentModalOpen(true)}
-              className="flex-1 sm:flex-initial justify-center px-4 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2"
+              className="flex-1 sm:flex-initial justify-center px-4 py-2 sm:px-5 sm:py-2.5 bg-primary text-white rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-primary/20 transition-all hover:scale-105 flex items-center gap-2 cursor-pointer"
             >
-              <span className="material-icons-outlined text-lg">add_task</span>
+              <span className="material-icons-outlined text-base">add_task</span>
               Nova Atividade
             </button>
           </div>
         )}
 
         {userType === 'school_admin' && (
-          <div className="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
+          <div className="flex flex-wrap gap-2 sm:gap-2.5 w-full md:w-auto">
             <button
               onClick={() => setIsClassModalOpen(true)}
-              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2.5 sm:px-6 sm:py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl transition-all hover:scale-105 whitespace-nowrap"
+              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2 sm:px-5 sm:py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-md transition-all hover:scale-105 whitespace-nowrap cursor-pointer"
             >
               Criar Turma
             </button>
             <button
               onClick={() => setIsProfessorModalOpen(true)}
-              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2.5 sm:px-6 sm:py-3 bg-white dark:bg-surface-dark text-gray-900 dark:text-white shadow-sm border-none rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5 whitespace-nowrap"
+              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2 sm:px-5 sm:py-2.5 bg-white dark:bg-surface-dark text-gray-900 dark:text-white shadow-sm border border-gray-200/60 dark:border-white/10 rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest transition-all hover:scale-105 hover:bg-gray-50 dark:hover:bg-white/5 whitespace-nowrap cursor-pointer"
             >
               + Professor
             </button>
             <button
               onClick={() => setIsStudentModalOpen(true)}
-              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20 transition-all hover:scale-105 whitespace-nowrap"
+              className="flex-1 sm:flex-initial text-center justify-center px-3.5 py-2 sm:px-5 sm:py-2.5 bg-primary text-white rounded-xl sm:rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-primary/20 transition-all hover:scale-105 whitespace-nowrap cursor-pointer"
             >
               + Aluno
             </button>
@@ -820,22 +820,24 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
       </header>
 
       {/* Grid de Métricas */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 sm:gap-6`}>
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${userType === 'teacher' ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-3.5 sm:gap-5`}>
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-surface-dark p-5 sm:p-7 rounded-2xl sm:rounded-[2.5rem] shadow-sm shadow-ambient border-none flex items-center gap-4 sm:gap-6">
-            <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl ${stat.color} flex items-center justify-center text-white shadow-lg shrink-0`}>
-              <span className="material-icons-outlined text-2xl">{stat.icon}</span>
+          <div key={i} className="bg-white dark:bg-surface-dark p-4 sm:p-5 rounded-xl sm:rounded-2xl shadow-sm shadow-ambient border border-gray-100 dark:border-white/5 flex items-center gap-3.5 sm:gap-4">
+            <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl ${stat.color} flex items-center justify-center text-white shadow-md shrink-0`}>
+              <span className="material-icons-outlined text-xl sm:text-2xl">{stat.icon}</span>
             </div>
             <div className="min-w-0">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest truncate">{stat.label}</p>
-              <h3 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white font-display">{stat.value}</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white font-display leading-tight">{stat.value}</h3>
             </div>
           </div>
         ))}
       </div>
 
-      <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white mt-6 sm:mt-8 mb-3 sm:mb-4 font-display">Painel de Controle</h2>
-      <div className={`grid grid-cols-2 sm:grid-cols-3 ${userType === 'teacher' ? 'lg:grid-cols-5' : 'lg:grid-cols-4 xl:grid-cols-8'} gap-2.5 sm:gap-4 mb-6 sm:mb-8`}>
+      <div className="flex items-center justify-between mt-4 sm:mt-6 mb-2.5 sm:mb-3">
+        <h2 className="text-xs sm:text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.25em]">Módulos de Gestão</h2>
+      </div>
+      <div className={`grid grid-cols-2 sm:grid-cols-4 ${userType === 'teacher' ? 'lg:grid-cols-5' : 'lg:grid-cols-4 xl:grid-cols-8'} gap-2 sm:gap-3 mb-5 sm:mb-6`}>
         {availableTabs.map(tab => (
           <button
             key={tab.id}
@@ -848,20 +850,20 @@ const InstitutionDashboard: React.FC<InstitutionDashboardProps> = ({ initialTab 
                 setActiveTab(tab.id as any);
               }
             }}
-            className={`flex flex-col items-center justify-center p-3.5 sm:p-5 lg:p-6 rounded-2xl sm:rounded-[2rem] border-2 outline-none focus-visible:ring-4 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-300 group ${
+            className={`flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-xl sm:rounded-2xl border outline-none focus-visible:ring-3 focus-visible:ring-primary/40 focus-visible:border-primary transition-all duration-200 group cursor-pointer ${
               activeTab === tab.id 
-              ? 'bg-primary border-primary text-white shadow-xl shadow-primary/30 scale-[1.02] sm:scale-105 z-10' 
-              : 'bg-white dark:bg-surface-dark border-transparent dark:border-white/5 text-gray-600 dark:text-gray-400 hover:border-primary/30 hover:text-gray-900 dark:hover:text-white hover:shadow-lg'
+              ? 'bg-primary border-primary text-white shadow-lg shadow-primary/25 scale-[1.02] z-10' 
+              : 'bg-white dark:bg-surface-dark border-gray-200/60 dark:border-white/5 text-gray-600 dark:text-gray-400 hover:border-primary/30 hover:text-gray-900 dark:hover:text-white hover:shadow-sm'
             }`}
           >
-            <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center mb-2.5 sm:mb-4 transition-transform duration-300 group-hover:-translate-y-1 ${
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center mb-1.5 sm:mb-2 transition-transform duration-200 group-hover:-translate-y-0.5 ${
               activeTab === tab.id ? 'bg-white/20' : 'bg-gray-50 dark:bg-white/5 text-primary'
             }`}>
-              <span className={`material-icons-outlined text-2xl sm:text-3xl ${activeTab === tab.id ? 'text-white' : ''}`}>
+              <span className={`material-icons-outlined text-lg sm:text-xl ${activeTab === tab.id ? 'text-white' : ''}`}>
                 {tab.icon}
               </span>
             </div>
-            <span className="text-xs sm:text-sm lg:text-base font-bold text-center leading-tight">{tab.label}</span>
+            <span className="text-[11.5px] sm:text-xs font-bold text-center leading-tight">{tab.label}</span>
           </button>
         ))}
       </div>
