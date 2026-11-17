@@ -11,7 +11,6 @@
     ],
     "skipLibCheck": true,
     "types": [
-      "node",
       "vite/client"
     ],
     "moduleResolution": "bundler",
@@ -29,6 +28,7 @@
   },
   "exclude": [
     "node_modules",
-    "supabase/functions"
+    "supabase/functions",
+    "scripts"
   ]
 }
