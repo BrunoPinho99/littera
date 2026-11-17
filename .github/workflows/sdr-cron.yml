@@ -1,0 +1,27 @@
+name: Agente SDR Diário - Littera
+
+on:
+  schedule:
+    - cron: '0 11 * * *' # Roda todo dia às 11:00 UTC (08:00 no horário de Brasília)
+  workflow_dispatch:      # Permite que você execute manualmente pelo painel do GitHub quando quiser
+
+jobs:
+  run-sdr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Dependências
+        run: npm install
+
+      - name: Executar Agente SDR
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx ts-node scripts/sdr-agent.ts
