@@ -44,6 +44,106 @@ const REGIONS = [
   'Paranoá', 'Itapoã', 'Brazlândia', 'Valparaíso de Goiás', 'Luziânia', 'Formosa GO',
   'Águas Lindas de Goiás', 'Cidade Ocidental', 'Novo Gama',
 ];
+
+// Bounding box das regiões para consulta na Overpass API (OpenStreetMap)
+const REGION_BBOXES: Record<string, [number, number, number, number]> = {
+  'Asa Sul': [-15.84, -47.94, -15.78, -47.88],
+  'Asa Norte': [-15.78, -47.91, -15.72, -47.85],
+  'Lago Sul': [-15.89, -47.90, -15.80, -47.81],
+  'Lago Norte': [-15.76, -47.88, -15.69, -47.82],
+  'Sudoeste': [-15.81, -47.94, -15.78, -47.91],
+  'Noroeste': [-15.76, -47.92, -15.73, -47.89],
+  'Cruzeiro': [-15.80, -47.95, -15.77, -47.92],
+  'Guará': [-15.84, -47.99, -15.80, -47.95],
+  'Águas Claras': [-15.86, -48.05, -15.81, -48.00],
+  'Taguatinga': [-15.86, -48.09, -15.79, -48.02],
+  'Ceilândia': [-15.86, -48.15, -15.78, -48.08],
+  'Samambaia': [-15.90, -48.12, -15.85, -48.05],
+  'Vicente Pires': [-15.82, -48.04, -15.78, -48.00],
+  'Sobradinho': [-15.68, -47.82, -15.62, -47.76],
+  'Planaltina DF': [-15.65, -47.68, -15.58, -47.60],
+  'Gama': [-16.05, -48.10, -15.98, -48.02],
+  'Santa Maria DF': [-16.03, -48.04, -15.98, -47.98],
+  'Recanto das Emas': [-15.93, -48.10, -15.88, -48.04],
+  'Riacho Fundo': [-15.90, -48.02, -15.85, -47.98],
+  'Núcleo Bandeirante': [-15.88, -47.98, -15.85, -47.94],
+  'Park Way': [-15.92, -47.97, -15.85, -47.92],
+  'Jardim Botânico DF': [-15.90, -47.84, -15.84, -47.78],
+  'São Sebastião DF': [-15.93, -47.80, -15.88, -47.74],
+  'Paranoá': [-15.80, -47.80, -15.74, -47.74],
+  'Itapoã': [-15.78, -47.79, -15.74, -47.75],
+  'Brazlândia': [-15.70, -48.22, -15.64, -48.16],
+  'Valparaíso de Goiás': [-16.09, -47.99, -16.03, -47.94],
+  'Luziânia': [-16.28, -47.98, -16.22, -47.92],
+  'Formosa GO': [-15.56, -47.36, -15.51, -47.30],
+  'Águas Lindas de Goiás': [-15.80, -48.31, -15.73, -48.24],
+  'Cidade Ocidental': [-16.10, -47.95, -16.05, -47.90],
+  'Novo Gama': [-16.08, -48.06, -16.02, -48.01],
+};
+
+const OVERPASS_ENDPOINTS = [
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter'
+];
+
+async function searchOverpass(region: string): Promise<Candidate[]> {
+  const bbox = REGION_BBOXES[region];
+  if (!bbox) return [];
+  const [s, w, n, e] = bbox;
+  const query = `[out:json][timeout:25];
+(
+  node["amenity"="school"]["name"](${s}, ${w}, ${n}, ${e});
+  way["amenity"="school"]["name"](${s}, ${w}, ${n}, ${e});
+);
+out tags center 40;
+`;
+
+  for (const ep of OVERPASS_ENDPOINTS) {
+    try {
+      const res = await fetch(ep, {
+        method: 'POST',
+        headers: { 'User-Agent': 'Littera-SDR-Agent/1.0 (contato@littera.app)' },
+        body: 'data=' + encodeURIComponent(query)
+      });
+      if (!res.ok) continue;
+      const data: any = await res.json();
+      const out: Candidate[] = [];
+      for (const el of data.elements || []) {
+        const tags = el.tags || {};
+        const name = tags.name || '';
+        if (!name || NAME_BLOCK.some(t => norm(name).includes(t))) continue;
+
+        const isGO = region.includes('GO') || region.includes('Goiás');
+        const phone = tags.phone || tags['contact:phone'] || '';
+        const website = tags.website || tags['contact:website'] || '';
+        const addressParts = [tags['addr:street'], tags['addr:housenumber'], tags['addr:suburb'] || region].filter(Boolean);
+        const address = addressParts.join(', ') || `${region}, ${isGO ? 'GO' : 'DF'}`;
+
+        out.push({
+          place_id: `osm:${el.id}`,
+          name,
+          address,
+          neighborhood: region,
+          city: isGO ? region.replace(/ GO$/, '').replace(/ de Goiás$/, ' de Goiás') : 'Brasília',
+          state: isGO ? 'GO' : 'DF',
+          phone,
+          website,
+          rating: 4.5, // default neutro para OSM
+          user_ratings_total: 10,
+          types: ['school', 'point_of_interest'],
+          primary_type: 'school',
+          summary: tags.description || '',
+          maps_url: el.lat && el.lon ? `https://www.google.com/maps?q=${el.lat},${el.lon}` : '',
+        });
+      }
+      if (out.length > 0) return out;
+    } catch {
+      // continua para o próximo mirror
+    }
+  }
+  return [];
+}
 const QUERY_TEMPLATES = [
   'colégio particular ensino médio {r}',
   'escola particular ensino médio e fundamental {r}',
@@ -349,15 +449,23 @@ async function run() {
   const regions = regionsForToday();
   console.log(`🗺️ Regiões de hoje: ${regions.join(', ')}`);
 
-  // Prospecção
+  // Prospecção híbrida: Google Places + Overpass API (OpenStreetMap)
   const found = new Map<string, Candidate>();
-  for (const region of regions) for (const tpl of QUERY_TEMPLATES) {
-    const q = tpl.replace('{r}', region);
-    const list = await searchPlaces(q, region);
-    list.forEach(c => { if (!found.has(c.place_id)) found.set(c.place_id, c); });
-    await sleep(250);
+  for (const region of regions) {
+    // 1. Google Places
+    for (const tpl of QUERY_TEMPLATES) {
+      const q = tpl.replace('{r}', region);
+      const list = await searchPlaces(q, region);
+      list.forEach(c => { if (!found.has(c.place_id)) found.set(c.place_id, c); });
+      await sleep(200);
+    }
+
+    // 2. Overpass API (OpenStreetMap)
+    const osmList = await searchOverpass(region);
+    osmList.forEach(c => { if (!found.has(c.place_id)) found.set(c.place_id, c); });
+    await sleep(200);
   }
-  console.log(`🔎 ${found.size} instituições únicas encontradas.`);
+  console.log(`🔎 ${found.size} instituições únicas encontradas (Google Places + Overpass API).`);
 
   // Dedup contra o CRM
   const ids = [...found.keys()];
