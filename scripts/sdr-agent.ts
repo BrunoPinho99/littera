@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
 
 if (!supabaseUrl || !supabaseKey) {
   console.error("❌ Faltam credenciais do Supabase (SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY).");
@@ -14,21 +15,109 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false, autoRefreshToken: false }
 });
 
-// Interface de Escola do Diretório / INEP / Maps
+// Interface de Escola Encontrada
 interface TargetSchool {
   name: string;
-  neighborhood: string;
+  neighborhood?: string;
   city: string;
   state: string;
   phone: string;
   website?: string;
-  estimated_students: number;
-  known_focus: string;
-  search_query: string;
+  rating?: number;
+  user_ratings_total?: number;
+  address?: string;
+  known_focus?: string;
+}
+
+// 🌐 1. MOTOR GOOGLE PLACES API (NEW): Busca automática de Colégios e Cursinhos em Brasília
+async function fetchSchoolsFromGooglePlaces(): Promise<TargetSchool[]> {
+  if (!googlePlacesApiKey) {
+    console.log("ℹ️ GOOGLE_PLACES_API_KEY não encontrada. Usando base curada.");
+    return [];
+  }
+
+  console.log("📍 Consultando Google Places API (New) para escolas privadas de Ensino Médio em Brasília/DF...");
+
+  const queries = [
+    "colegio ensino medio brasilia df",
+    "escola particular ensino medio asa sul brasilia",
+    "escola particular ensino medio asa norte brasilia",
+    "cursinho pre vestibular enem brasilia df",
+    "colegio particular aguas claras df"
+  ];
+
+  const results: TargetSchool[] = [];
+  const seenPlaceNames = new Set<string>();
+
+  for (const textQuery of queries) {
+    try {
+      const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": googlePlacesApiKey,
+          "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types"
+        },
+        body: JSON.stringify({
+          textQuery: textQuery,
+          languageCode: "pt-BR",
+          maxResultCount: 8
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`⚠️ Google Places retornou status ${response.status} para "${textQuery}":`, errorText.substring(0, 150));
+        continue;
+      }
+
+      const data = await response.json();
+      const places = data.places || [];
+
+      for (const p of places) {
+        const name = p.displayName?.text;
+        if (!name || seenPlaceNames.has(name.toLowerCase())) continue;
+        seenPlaceNames.add(name.toLowerCase());
+
+        // Filtrar termos indesejados (faculdades, idiomas, creches, berçários)
+        const lowerName = name.toLowerCase();
+        if (
+          lowerName.includes("infantil") ||
+          lowerName.includes("creche") ||
+          lowerName.includes("baby") ||
+          lowerName.includes("idiomas") ||
+          lowerName.includes("faculdade") ||
+          lowerName.includes("universidade")
+        ) {
+          continue;
+        }
+
+        results.push({
+          name: name,
+          city: "Brasília",
+          state: "DF",
+          address: p.formattedAddress || "",
+          phone: p.nationalPhoneNumber || p.internationalPhoneNumber || "(61) 3333-0000",
+          website: p.websiteUri || "",
+          rating: p.rating || 0,
+          user_ratings_total: p.userRatingCount || 0,
+          known_focus: `Encontrado no Google Maps (${p.rating ? p.rating + '★' : 'Sem nota'}). Endereço: ${p.formattedAddress || 'Brasília'}`
+        });
+      }
+    } catch (err: any) {
+      console.error(`Erro ao consultar Places para "${textQuery}":`, err.message);
+    }
+
+    // Intervalo de segurança
+    await new Promise(r => setTimeout(r, 400));
+  }
+
+  console.log(`📍 Google Places API encontrou ${results.length} instituições candidatas.`);
+  return results;
 }
 
 // 🏛️ Base de Escolas Particulares de Brasília (DF) de Alto Desempenho no ENEM e Ensino Médio
-const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
+const BRASILIA_CURATED_SCHOOLS: TargetSchool[] = [
   {
     name: "Colégio Podion",
     neighborhood: "Asa Norte",
@@ -36,9 +125,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3340-0077",
     website: "https://podion.com.br",
-    estimated_students: 450,
-    known_focus: "Foco intensivo em Medicina, vestibulares de alta concorrência e nota 1000 no ENEM.",
-    search_query: "Colégio Podion Asa Norte Brasília coordenação redação contato"
+    known_focus: "Foco intensivo em Medicina, vestibulares concorridos e nota 1000 no ENEM."
   },
   {
     name: "Colégio Olimpo Brasília",
@@ -47,9 +134,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3346-6000",
     website: "https://colegioolimpo.com.br",
-    estimated_students: 850,
-    known_focus: "Referência tradicional em aprovações ENEM e olimpíadas do conhecimento.",
-    search_query: "Colégio Olimpo Asa Sul Brasília coordenação pedagógica"
+    known_focus: "Referência tradicional em aprovações ENEM e olimpíadas do conhecimento."
   },
   {
     name: "Centro Educacional Leonardo da Vinci",
@@ -58,9 +143,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3214-2200",
     website: "https://leonardodavinci.com.br",
-    estimated_students: 1100,
-    known_focus: "Grande rede com múltiplas turmas de 1º a 3º ano do Ensino Médio.",
-    search_query: "Leonardo da Vinci Asa Sul Brasília contato coordenação"
+    known_focus: "Grande rede com múltiplas turmas de 1º a 3º ano do Ensino Médio."
   },
   {
     name: "Colégio Marista de Brasília",
@@ -69,9 +152,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3442-9400",
     website: "https://marista.edu.br/brasilia",
-    estimated_students: 900,
-    known_focus: "Formação integral com forte produção textual e simulados regulares.",
-    search_query: "Colégio Marista 615 Sul Brasília coordenação ensino médio"
+    known_focus: "Formação integral com forte produção textual e simulados regulares."
   },
   {
     name: "Colégio Sigma",
@@ -80,9 +161,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3346-3200",
     website: "https://sigmadf.com.br",
-    estimated_students: 1400,
-    known_focus: "Uma das maiores escolas privadas do DF, alto volume de correções mensais.",
-    search_query: "Colégio Sigma Brasília coordenação pedagógica redação"
+    known_focus: "Uma das maiores escolas privadas do DF, alto volume de correções mensais."
   },
   {
     name: "Colégio Seriös",
@@ -91,9 +170,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3049-8800",
     website: "https://colegioserios.com.br",
-    estimated_students: 550,
-    known_focus: "Pedagogia moderna, foco em tecnologia e desenvolvimento de competências BNCC/ENEM.",
-    search_query: "Colégio Serios Brasília contato coordenação"
+    known_focus: "Pedagogia moderna, foco em tecnologia e desenvolvimento de competências BNCC/ENEM."
   },
   {
     name: "Colégio Galois",
@@ -102,9 +179,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3214-9900",
     website: "https://galois.com.br",
-    estimated_students: 1200,
-    known_focus: "Pioneirismo em preparação para o ENEM e UnB (PAS).",
-    search_query: "Colégio Galois 608 Sul Brasília coordenação"
+    known_focus: "Pioneirismo em preparação para o ENEM e UnB (PAS)."
   },
   {
     name: "Colégio Mackenzie Brasília",
@@ -113,9 +188,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 2106-9000",
     website: "https://mackenzie.br/brasilia",
-    estimated_students: 700,
-    known_focus: "Tradição acadêmica e foco contínuo na excelência do Ensino Médio.",
-    search_query: "Colégio Presbiteriano Mackenzie Brasília coordenação"
+    known_focus: "Tradição acadêmica e foco contínuo na excelência do Ensino Médio."
   },
   {
     name: "Colégio Ideal Brasília",
@@ -124,9 +197,7 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3351-0010",
     website: "https://idealbsb.com.br",
-    estimated_students: 650,
-    known_focus: "Forte atuação em vestibulares concorridos e simulados no padrão ENEM.",
-    search_query: "Colégio Ideal Taguatinga Brasília contato coordenação"
+    known_focus: "Forte atuação em vestibulares concorridos e simulados no padrão ENEM."
   },
   {
     name: "Colégio La Salle Brasília",
@@ -135,13 +206,11 @@ const BRASILIA_TARGET_SCHOOLS: TargetSchool[] = [
     state: "DF",
     phone: "(61) 3443-7878",
     website: "https://lasalle.edu.br/brasilia",
-    estimated_students: 750,
-    known_focus: "Rede lassalista com histórico consistente nas 5 competências do ENEM.",
-    search_query: "Colégio La Salle Asa Sul Brasília contato"
+    known_focus: "Rede lassalista com histórico consistente nas 5 competências do ENEM."
   }
 ];
 
-// 🧠 Função de Qualificação e Enriquecimento Inteligente via Gemini
+// 🧠 2. QUALIFICAÇÃO INTELIGENTE DE ICP VIA GEMINI AI
 async function qualifyWithGemini(school: TargetSchool): Promise<{
   contact_name: string;
   email: string;
@@ -149,37 +218,38 @@ async function qualifyWithGemini(school: TargetSchool): Promise<{
   stage: string;
   pitch_notes: string;
 }> {
+  const domain = school.website ? school.website.replace(/https?:\/\/(www\.)?/, '').replace(/\/.*$/, '') : 'escola.com.br';
+
   if (!geminiApiKey) {
-    console.log("ℹ️ GEMINI_API_KEY não informada no ambiente, usando modelo preditivo padrão...");
     return {
       contact_name: "Coordenação Pedagógica do Ensino Médio",
-      email: `pedagogico@${school.website?.replace(/https?:\/\/(www\.)?/, '').replace(/\/.*$/, '') || 'escola.com.br'}`,
-      icp_score: 95,
+      email: `pedagogico@${domain}`,
+      icp_score: 92,
       stage: "novo_lead",
-      pitch_notes: `ICP Nota 95/100 (Alta Prioridade). Instituição com aprox. ${school.estimated_students} alunos. ${school.known_focus} Economia estimada com IA: R$ 4.500/mês.`
+      pitch_notes: `Qualificado automaticamente. ${school.known_focus || 'Ensino Médio e ENEM'}.`
     };
   }
 
-  const prompt = `Você é o Diretor de Vendas B2B (SDR Lead Qualifier) da Littera (plataforma SaaS de correção de redações ENEM com IA para colégios particulares).
-Analise a seguinte instituição de ensino em Brasília/DF:
+  const prompt = `Você é o Diretor de Vendas B2B da Littera (plataforma SaaS de correção instantânea de redações ENEM com IA para colégios particulares e cursinhos).
+Analise a seguinte instituição de ensino encontrada em Brasília/DF:
 Nome: ${school.name}
-Bairro/Região: ${school.neighborhood}, ${school.city} - ${school.state}
-Site: ${school.website}
+Endereço/Região: ${school.address || school.neighborhood || 'Brasília - DF'}
+Site: ${school.website || 'Não informado'}
 Telefone: ${school.phone}
-Foco: ${school.known_focus}
-Volume estimado: ${school.estimated_students} alunos de Ensino Médio
+Detalhes do Google Maps: ${school.known_focus || ''}
 
 Critérios de ICP (Perfil de Cliente Ideal):
-1. Colégio particular com Ensino Médio e foco em aprovação no ENEM/Vestibulares.
-2. Volume entre 200 e 1500 alunos.
-3. Alto custo atual com corretores humanos terceirizados.
+1. Colégio particular com Ensino Médio ou cursinho pré-vestibular focado em ENEM/UnB.
+2. Volume estimado de redações e necessidade de reduzir custos com corretores terceirizados.
+3. Descarte se for apenas berçário, pré-escola ou faculdade.
 
 Responda ESTRITAMENTE em formato JSON com o seguinte schema:
 {
-  "contact_name": "Cargo ou nome do responsável mais provável (ex: Coordenação Pedagógica do Ensino Médio)",
-  "email": "email institucional mais plausível da coordenação ou secretaria (ex: coordenacao@dominiodaescola.com.br)",
+  "is_fit": boolean,
+  "contact_name": "Cargo ideal (ex: Coordenação Pedagógica do Ensino Médio ou Direção)",
+  "email": "e-mail mais plausível (ex: contato@${domain} ou pedagogico@${domain})",
   "icp_score": number (de 0 a 100),
-  "pitch_notes": "Resumo de 2 linhas sobre o fit da escola, volume estimado de alunos e ganho de escala que a Littera oferece."
+  "pitch_notes": "Resumo objetivo de 2 linhas sobre o fit, proposta de valor de redução de custo com banca e ganho de tempo pedagógico."
 }`;
 
   try {
@@ -198,39 +268,51 @@ Responda ESTRITAMENTE em formato JSON com o seguinte schema:
       const parsed = JSON.parse(rawText);
       return {
         contact_name: parsed.contact_name || "Coordenação Pedagógica",
-        email: parsed.email || `contato@${school.website?.replace(/https?:\/\/(www\.)?/, '').replace(/\/.*$/, '')}`,
-        icp_score: parsed.icp_score || 90,
+        email: parsed.email || `contato@${domain}`,
+        icp_score: parsed.is_fit === false ? 40 : (parsed.icp_score || 90),
         stage: "novo_lead",
-        pitch_notes: `ICP Score: ${parsed.icp_score}/100. ${parsed.pitch_notes}`
+        pitch_notes: `ICP Score: ${parsed.icp_score || 90}/100. ${parsed.pitch_notes || ''}`
       };
     }
-  } catch (err) {
-    console.error("Erro ao qualificar com Gemini:", err);
+  } catch (err: any) {
+    console.error("Erro na qualificação Gemini:", err.message);
   }
 
   return {
     contact_name: "Coordenação Pedagógica do Ensino Médio",
-    email: `contato@${school.website?.replace(/https?:\/\/(www\.)?/, '').replace(/\/.*$/, '') || 'escola.com.br'}`,
-    icp_score: 92,
+    email: `contato@${domain}`,
+    icp_score: 90,
     stage: "novo_lead",
-    pitch_notes: `Qualificado automaticamente. ${school.known_focus} Volume est.: ${school.estimated_students} alunos.`
+    pitch_notes: `Instituição de Brasília qualificada. Fit educacional ENEM.`
   };
 }
 
-// 🚀 Função Principal do Agente SDR
+// 🚀 3. EXECUÇÃO DO AGENTE SDR
 async function runSDRAgent() {
   console.log("🤖 Agente SDR Diário do Littera Iniciado...");
   console.log("🎯 Foco Regional: BRASÍLIA - DISTRITO FEDERAL");
 
+  // 1. Busca instituições pelo Google Places API (New)
+  const placesSchools = await fetchSchoolsFromGooglePlaces();
+
+  // 2. Combina com as escolas curadas de referência
+  const allTargets: TargetSchool[] = [...BRASILIA_CURATED_SCHOOLS];
+  for (const ps of placesSchools) {
+    if (!allTargets.some(t => t.name.toLowerCase() === ps.name.toLowerCase())) {
+      allTargets.push(ps);
+    }
+  }
+
+  console.log(`📋 Total de ${allTargets.length} instituições para processar.`);
+
   let novosLeadsInseridos = 0;
 
-  // Itera sobre o catálogo de alvos qualificados
-  for (const school of BRASILIA_TARGET_SCHOOLS) {
-    // 1. Verifica se a escola já existe na base (pelo nome ou telefone)
+  for (const school of allTargets) {
+    // Verifica se já existe no CRM pelo nome
     const { data: existing, error: errCheck } = await supabase
       .from('leads')
       .select('id, school_name')
-      .or(`school_name.ilike.%${school.name}%,phone.eq.${school.phone}`)
+      .ilike('school_name', `%${school.name}%`)
       .limit(1);
 
     if (errCheck) {
@@ -243,11 +325,10 @@ async function runSDRAgent() {
       continue;
     }
 
-    // 2. Qualificação via IA & ICP
-    console.log(`🔍 Qualificando ${school.name} (${school.neighborhood})...`);
+    // Qualifica o lead com IA
+    console.log(`🔍 Qualificando com IA: ${school.name}...`);
     const qualification = await qualifyWithGemini(school);
 
-    // Se a nota do ICP for acima do limiar mínimo (ex: 70)
     if (qualification.icp_score >= 70) {
       const payload = {
         name: school.name,
@@ -260,29 +341,27 @@ async function runSDRAgent() {
         state: school.state,
         stage: "novo_lead",
         status: "pending",
-        notes: `${qualification.pitch_notes} | Tel: ${school.phone} | Site: ${school.website}`
+        notes: `${qualification.pitch_notes} | Tel: ${school.phone}${school.website ? ' | Site: ' + school.website : ''}`
       };
 
-      const { data: inserted, error: insertErr } = await supabase
+      const { error: insertErr } = await supabase
         .from('leads')
-        .insert([payload])
-        .select();
+        .insert([payload]);
 
       if (insertErr) {
-        console.error(`❌ Erro ao inserir ${school.name}:`, insertErr.message);
+        console.error(`❌ Erro ao salvar ${school.name}:`, insertErr.message);
       } else {
         novosLeadsInseridos++;
         console.log(`✅ [ICP ${qualification.icp_score}] ${school.name} inserido no CRM!`);
       }
     } else {
-      console.log(`⚠️ ${school.name} descartado por score baixo de ICP (${qualification.icp_score}).`);
+      console.log(`⚠️ ${school.name} descartado por não atender ao ICP (Score ${qualification.icp_score}).`);
     }
 
-    // Intervalo de segurança anti-rate-limit
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 500));
   }
 
-  console.log(`\n🎉 Execução concluída! ${novosLeadsInseridos} novas escolas de Brasília adicionadas ao CRM.`);
+  console.log(`\n🎉 Execução finalizada! ${novosLeadsInseridos} novos leads de Brasília foram adicionados ao CRM.`);
 }
 
 runSDRAgent();
