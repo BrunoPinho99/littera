@@ -201,7 +201,7 @@ export const FeaturesBentoSection: React.FC = () => {
     <section
       id="recursos"
       data-framer-name="Recursos"
-      className="w-full bg-white pt-[80px] sm:pt-[140px] lg:pt-[160px] pb-[40px] px-4 sm:px-[40px]"
+      className="w-full bg-white pt-[40px] sm:pt-[70px] lg:pt-[80px] pb-[40px] px-4 sm:px-[40px]"
     >
       <div className="max-w-[1200px] mx-auto flex flex-col items-center gap-[36px] sm:gap-[52px] lg:gap-[64px]">
         <SectionHeading

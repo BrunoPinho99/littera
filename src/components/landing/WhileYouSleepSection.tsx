@@ -143,9 +143,9 @@ export const WhileYouSleepSection: React.FC = () => {
   return (
     <section
       data-framer-name="Rotina Noturna"
-      className="w-full bg-white pt-[80px] sm:pt-[140px] lg:pt-[160px] pb-[32px] sm:pb-[40px] px-3 sm:px-[20px]"
+      className="w-full bg-white pt-[60px] sm:pt-[100px] lg:pt-[120px] pb-0 px-3 sm:px-[20px]"
     >
-      <div className="max-w-[1200px] mx-auto mb-[36px] sm:mb-[52px] lg:mb-[64px] px-2">
+      <div className="max-w-[1200px] mx-auto mb-[32px] sm:mb-[44px] lg:mb-[52px] px-2">
         <SectionHeading lines={['Sua instituição fecha.', 'A correção não.']} />
       </div>
 
@@ -153,7 +153,7 @@ export const WhileYouSleepSection: React.FC = () => {
       <div
         ref={pinRef}
         data-framer-name="Pin"
-        className="hidden lg:block max-w-[1400px] mx-auto relative h-[2250px]"
+        className="hidden lg:block max-w-[1400px] mx-auto relative h-[1400px]"
       >
         <div
           data-framer-name="Night Panel"
