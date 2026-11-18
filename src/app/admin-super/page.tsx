@@ -241,12 +241,9 @@ export default function CRMKanbanPage() {
   const valorTotalPipeline = leads.length * 7500; // Ticket médio institucional estimado
 
   return (
-    <div className="bg-[#f0f2f6] font-sans antialiased text-slate-800 p-2 sm:p-5 lg:p-7 flex items-center justify-center min-h-screen">
-      {/* Shell estilo janela moderna do mockup */}
-      <div className="w-full max-w-[1520px] bg-white rounded-[28px] shadow-2xl overflow-hidden flex flex-col lg:flex-row min-h-[920px] border border-slate-100">
-        
-        {/* SIDEBAR ESQUERDA */}
-        <aside className="w-full lg:w-[250px] bg-white border-r border-slate-100 flex flex-col justify-between p-6 shrink-0">
+    <div className="w-screen h-screen overflow-hidden bg-white font-sans antialiased text-slate-800 flex flex-col lg:flex-row">
+      {/* SIDEBAR ESQUERDA */}
+      <aside className="w-full lg:w-[260px] bg-white border-r border-slate-100 flex flex-col justify-between p-6 shrink-0 h-full">
           <div>
             {/* Logo Littera & Tag B2B */}
             <div className="flex items-center justify-between pb-8">
@@ -707,7 +704,6 @@ export default function CRMKanbanPage() {
 
           </div>
         </main>
-      </div>
 
       {/* MODAL DETALHES DO LEAD */}
       {selectedLead && (
