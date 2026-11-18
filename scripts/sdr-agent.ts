@@ -100,12 +100,16 @@ out tags center 40;
 `;
 
   for (const ep of OVERPASS_ENDPOINTS) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000); // timeout estrito de 12 segundos por mirror
     try {
       const res = await fetch(ep, {
         method: 'POST',
+        signal: ctrl.signal,
         headers: { 'User-Agent': 'Littera-SDR-Agent/1.0 (contato@littera.app)' },
         body: 'data=' + encodeURIComponent(query)
       });
+      clearTimeout(t);
       if (!res.ok) continue;
       const data: any = await res.json();
       const out: Candidate[] = [];
@@ -139,6 +143,7 @@ out tags center 40;
       }
       if (out.length > 0) return out;
     } catch {
+      clearTimeout(t);
       // continua para o próximo mirror
     }
   }
