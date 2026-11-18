@@ -1,367 +1,273 @@
 import { createClient } from '@supabase/supabase-js';
+import { appendFileSync, writeFileSync } from 'node:fs';
 
-// Inicializa o cliente do Supabase
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-const geminiApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
-const googlePlacesApiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '';
+/**
+ * Agente SDR Diário — Littera
+ * Prospecta escolas particulares (Ensino Médio / pré-vestibular) via Google Places API (New),
+ * qualifica com Gemini e grava na tabela EXCLUSIVA do CRM: public.crm_prospects.
+ * ⚠️ Nunca grava em public.leads (tabela do produto Littera).
+ */
+
+const CRM_TABLE = 'crm_prospects';
+
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const geminiApiKey = process.env.GEMINI_API_KEY || '';
+const placesApiKey = process.env.GOOGLE_PLACES_API_KEY || '';
+const resendApiKey = process.env.RESEND_API_KEY || '';
+const reportEmail = process.env.SDR_REPORT_EMAIL || '';
+const MAX_NEW_PER_DAY = Number(process.env.SDR_MAX_NEW_PER_DAY || 80);
+const MIN_ICP = Number(process.env.SDR_MIN_ICP || 60);
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error("❌ Faltam credenciais do Supabase (SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY).");
+  console.error('❌ Faltam SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.');
+  process.exit(1);
+}
+if (!placesApiKey) {
+  console.error('❌ Falta GOOGLE_PLACES_API_KEY — sem ela não há prospecção real. Configure o secret no GitHub.');
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false, autoRefreshToken: false }
+  auth: { persistSession: false, autoRefreshToken: false },
 });
 
-// Interface de Escola Encontrada
-interface TargetSchool {
+interface Candidate {
+  place_id: string;
   name: string;
-  neighborhood?: string;
+  address: string;
+  neighborhood: string;
   city: string;
   state: string;
   phone: string;
-  website?: string;
-  rating?: number;
-  user_ratings_total?: number;
-  address?: string;
-  known_focus?: string;
+  website: string;
+  rating: number;
+  user_ratings_total: number;
+  types: string[];
 }
 
-// 🌐 1. MOTOR GOOGLE PLACES API (NEW): Busca automática de Colégios e Cursinhos em Brasília
-async function fetchSchoolsFromGooglePlaces(): Promise<TargetSchool[]> {
-  if (!googlePlacesApiKey) {
-    console.log("ℹ️ GOOGLE_PLACES_API_KEY não encontrada. Usando base curada.");
-    return [];
-  }
-
-  console.log("📍 Consultando Google Places API (New) para escolas privadas de Ensino Médio em Brasília/DF...");
-
-  const queries = [
-    "colegio ensino medio brasilia df",
-    "escola particular ensino medio asa sul brasilia",
-    "escola particular ensino medio asa norte brasilia",
-    "cursinho pre vestibular enem brasilia df",
-    "colegio particular aguas claras df"
-  ];
-
-  const results: TargetSchool[] = [];
-  const seenPlaceNames = new Set<string>();
-
-  for (const textQuery of queries) {
-    try {
-      const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Goog-Api-Key": googlePlacesApiKey,
-          "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.internationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types"
-        },
-        body: JSON.stringify({
-          textQuery: textQuery,
-          languageCode: "pt-BR",
-          maxResultCount: 8
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.warn(`⚠️ Google Places retornou status ${response.status} para "${textQuery}":`, errorText.substring(0, 150));
-        continue;
-      }
-
-      const data = await response.json();
-      const places = data.places || [];
-
-      for (const p of places) {
-        const name = p.displayName?.text;
-        if (!name || seenPlaceNames.has(name.toLowerCase())) continue;
-        seenPlaceNames.add(name.toLowerCase());
-
-        // Filtrar termos indesejados (faculdades, idiomas, creches, berçários)
-        const lowerName = name.toLowerCase();
-        if (
-          lowerName.includes("infantil") ||
-          lowerName.includes("creche") ||
-          lowerName.includes("baby") ||
-          lowerName.includes("idiomas") ||
-          lowerName.includes("faculdade") ||
-          lowerName.includes("universidade")
-        ) {
-          continue;
-        }
-
-        results.push({
-          name: name,
-          city: "Brasília",
-          state: "DF",
-          address: p.formattedAddress || "",
-          phone: p.nationalPhoneNumber || p.internationalPhoneNumber || "(61) 3333-0000",
-          website: p.websiteUri || "",
-          rating: p.rating || 0,
-          user_ratings_total: p.userRatingCount || 0,
-          known_focus: `Encontrado no Google Maps (${p.rating ? p.rating + '★' : 'Sem nota'}). Endereço: ${p.formattedAddress || 'Brasília'}`
-        });
-      }
-    } catch (err: any) {
-      console.error(`Erro ao consultar Places para "${textQuery}":`, err.message);
-    }
-
-    // Intervalo de segurança
-    await new Promise(r => setTimeout(r, 400));
-  }
-
-  console.log(`📍 Google Places API encontrou ${results.length} instituições candidatas.`);
-  return results;
-}
-
-// 🏛️ Base de Escolas Particulares de Brasília (DF) de Alto Desempenho no ENEM e Ensino Médio
-const BRASILIA_CURATED_SCHOOLS: TargetSchool[] = [
-  {
-    name: "Colégio Podion",
-    neighborhood: "Asa Norte",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3340-0077",
-    website: "https://podion.com.br",
-    known_focus: "Foco intensivo em Medicina, vestibulares concorridos e nota 1000 no ENEM."
-  },
-  {
-    name: "Colégio Olimpo Brasília",
-    neighborhood: "Asa Sul",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3346-6000",
-    website: "https://colegioolimpo.com.br",
-    known_focus: "Referência tradicional em aprovações ENEM e olimpíadas do conhecimento."
-  },
-  {
-    name: "Centro Educacional Leonardo da Vinci",
-    neighborhood: "Asa Sul",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3214-2200",
-    website: "https://leonardodavinci.com.br",
-    known_focus: "Grande rede com múltiplas turmas de 1º a 3º ano do Ensino Médio."
-  },
-  {
-    name: "Colégio Marista de Brasília",
-    neighborhood: "Asa Sul",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3442-9400",
-    website: "https://marista.edu.br/brasilia",
-    known_focus: "Formação integral com forte produção textual e simulados regulares."
-  },
-  {
-    name: "Colégio Sigma",
-    neighborhood: "Asa Sul / Asa Norte",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3346-3200",
-    website: "https://sigmadf.com.br",
-    known_focus: "Uma das maiores escolas privadas do DF, alto volume de correções mensais."
-  },
-  {
-    name: "Colégio Seriös",
-    neighborhood: "Asa Sul",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3049-8800",
-    website: "https://colegioserios.com.br",
-    known_focus: "Pedagogia moderna, foco em tecnologia e desenvolvimento de competências BNCC/ENEM."
-  },
-  {
-    name: "Colégio Galois",
-    neighborhood: "Asa Sul",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3214-9900",
-    website: "https://galois.com.br",
-    known_focus: "Pioneirismo em preparação para o ENEM e UnB (PAS)."
-  },
-  {
-    name: "Colégio Mackenzie Brasília",
-    neighborhood: "Lago Sul",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 2106-9000",
-    website: "https://mackenzie.br/brasilia",
-    known_focus: "Tradição acadêmica e foco contínuo na excelência do Ensino Médio."
-  },
-  {
-    name: "Colégio Ideal Brasília",
-    neighborhood: "Taguatinga / Águas Claras",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3351-0010",
-    website: "https://idealbsb.com.br",
-    known_focus: "Forte atuação em vestibulares concorridos e simulados no padrão ENEM."
-  },
-  {
-    name: "Colégio La Salle Brasília",
-    neighborhood: "Asa Sul",
-    city: "Brasília",
-    state: "DF",
-    phone: "(61) 3443-7878",
-    website: "https://lasalle.edu.br/brasilia",
-    known_focus: "Rede lassalista com histórico consistente nas 5 competências do ENEM."
-  }
+// Regiões do DF + entorno. Rotaciona diariamente para cobrir tudo ao longo da semana.
+const REGIONS = [
+  'Asa Sul', 'Asa Norte', 'Lago Sul', 'Lago Norte', 'Sudoeste', 'Noroeste', 'Cruzeiro',
+  'Guará', 'Águas Claras', 'Taguatinga', 'Ceilândia', 'Samambaia', 'Vicente Pires',
+  'Sobradinho', 'Planaltina DF', 'Gama', 'Santa Maria DF', 'Recanto das Emas',
+  'Riacho Fundo', 'Núcleo Bandeirante', 'Park Way', 'Jardim Botânico DF', 'São Sebastião DF',
+  'Paranoá', 'Itapoã', 'Brazlândia', 'Valparaíso de Goiás', 'Luziânia', 'Formosa GO',
+  'Águas Lindas de Goiás', 'Cidade Ocidental', 'Novo Gama',
 ];
 
-// 🧠 2. QUALIFICAÇÃO INTELIGENTE DE ICP VIA GEMINI AI
-async function qualifyWithGemini(school: TargetSchool): Promise<{
-  contact_name: string;
-  email: string;
-  icp_score: number;
-  stage: string;
-  pitch_notes: string;
-}> {
-  const domain = school.website ? school.website.replace(/https?:\/\/(www\.)?/, '').replace(/\/.*$/, '') : 'escola.com.br';
+const QUERY_TEMPLATES = [
+  'colégio particular ensino médio {r}',
+  'escola particular {r}',
+  'cursinho pré-vestibular ENEM {r}',
+];
 
-  if (!geminiApiKey) {
-    return {
-      contact_name: "Coordenação Pedagógica do Ensino Médio",
-      email: `pedagogico@${domain}`,
-      icp_score: 92,
-      stage: "novo_lead",
-      pitch_notes: `Qualificado automaticamente. ${school.known_focus || 'Ensino Médio e ENEM'}.`
-    };
+const EXCLUDE = ['infantil', 'creche', 'baby', 'berçário', 'bercario', 'idiomas', 'english', 'inglês',
+  'faculdade', 'universidade', 'autoescola', 'auto escola', 'música', 'musica', 'natação', 'ballet',
+  'escola estadual', 'centro de ensino fundamental', 'cef ', 'caic', 'escola classe', 'pública', 'publica'];
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+function regionsForToday(): string[] {
+  const perDay = 10;
+  const day = Math.floor(Date.now() / 86_400_000);
+  const start = (day * perDay) % REGIONS.length;
+  return Array.from({ length: perDay }, (_, i) => REGIONS[(start + i) % REGIONS.length]);
+}
+
+async function searchPlaces(textQuery: string, region: string): Promise<Candidate[]> {
+  const out: Candidate[] = [];
+  let pageToken: string | undefined;
+  for (let page = 0; page < 3; page++) {
+    const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': placesApiKey,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.types,places.businessStatus,nextPageToken',
+      },
+      body: JSON.stringify({ textQuery, languageCode: 'pt-BR', regionCode: 'BR', pageSize: 20, ...(pageToken ? { pageToken } : {}) }),
+    });
+    if (!res.ok) {
+      console.warn(`⚠️ Places ${res.status} em "${textQuery}": ${(await res.text()).slice(0, 200)}`);
+      break;
+    }
+    const data: any = await res.json();
+    for (const p of data.places || []) {
+      if (p.businessStatus && p.businessStatus !== 'OPERATIONAL') continue;
+      const name: string = p.displayName?.text || '';
+      const lower = name.toLowerCase();
+      if (!name || EXCLUDE.some(t => lower.includes(t))) continue;
+      const address: string = p.formattedAddress || '';
+      const isGO = /\bGO\b|Goiás/i.test(address);
+      out.push({
+        place_id: p.id,
+        name,
+        address,
+        neighborhood: region,
+        city: isGO ? region.replace(/ GO$/, '') : 'Brasília',
+        state: isGO ? 'GO' : 'DF',
+        phone: p.nationalPhoneNumber || '',
+        website: p.websiteUri || '',
+        rating: p.rating || 0,
+        user_ratings_total: p.userRatingCount || 0,
+        types: p.types || [],
+      });
+    }
+    pageToken = data.nextPageToken;
+    if (!pageToken) break;
+    await sleep(1500);
   }
+  return out;
+}
 
-  const prompt = `Você é o Diretor de Vendas B2B da Littera (plataforma SaaS de correção instantânea de redações ENEM com IA para colégios particulares e cursinhos).
-Analise a seguinte instituição de ensino encontrada em Brasília/DF:
-Nome: ${school.name}
-Endereço/Região: ${school.address || school.neighborhood || 'Brasília - DF'}
-Site: ${school.website || 'Não informado'}
-Telefone: ${school.phone}
-Detalhes do Google Maps: ${school.known_focus || ''}
+interface Qualification { is_fit: boolean; icp_score: number; contact_name: string; email: string; pitch_notes: string; }
 
-Critérios de ICP (Perfil de Cliente Ideal):
-1. Colégio particular com Ensino Médio ou cursinho pré-vestibular focado em ENEM/UnB.
-2. Volume estimado de redações e necessidade de reduzir custos com corretores terceirizados.
-3. Descarte se for apenas berçário, pré-escola ou faculdade.
+async function qualify(c: Candidate): Promise<Qualification> {
+  const domain = c.website ? c.website.replace(/https?:\/\/(www\.)?/, '').replace(/\/.*$/, '') : '';
+  // Heurística base, usada se o Gemini falhar
+  const base = Math.min(95, 50 + (c.website ? 10 : 0) + (c.phone ? 5 : 0)
+    + Math.min(20, Math.floor(c.user_ratings_total / 25)) + (c.rating >= 4.3 ? 10 : 0));
+  const fallback: Qualification = {
+    is_fit: true,
+    icp_score: base,
+    contact_name: 'Coordenação Pedagógica do Ensino Médio',
+    email: domain ? `contato@${domain}` : '',
+    pitch_notes: `Score heurístico (${c.user_ratings_total} avaliações, nota ${c.rating || '-'}).`,
+  };
+  if (!geminiApiKey) return fallback;
 
-Responda ESTRITAMENTE em formato JSON com o seguinte schema:
-{
-  "is_fit": boolean,
-  "contact_name": "Cargo ideal (ex: Coordenação Pedagógica do Ensino Médio ou Direção)",
-  "email": "e-mail mais plausível (ex: contato@${domain} ou pedagogico@${domain})",
-  "icp_score": number (de 0 a 100),
-  "pitch_notes": "Resumo objetivo de 2 linhas sobre o fit, proposta de valor de redução de custo com banca e ganho de tempo pedagógico."
-}`;
+  const prompt = `Você é SDR B2B da Littera (SaaS de correção de redações ENEM com IA para colégios particulares e cursinhos).
+Avalie se a instituição abaixo tem potencial de compra:
+Nome: ${c.name}
+Endereço: ${c.address}
+Site: ${c.website || 'não informado'}
+Telefone: ${c.phone || 'não informado'}
+Google: nota ${c.rating || '-'} com ${c.user_ratings_total} avaliações; tipos: ${c.types.join(', ')}
+
+ICP: escola PARTICULAR com Ensino Médio, ou cursinho pré-vestibular/ENEM. Porte maior (mais avaliações) = mais alunos = mais redações.
+Descarte (is_fit=false): escola pública, só educação infantil/fundamental I, faculdade, idiomas, cursos livres, reforço escolar pequeno.
+Responda SOMENTE JSON: {"is_fit": boolean, "icp_score": 0-100, "contact_name": "cargo ideal", "email": "email mais provável${domain ? ` no domínio ${domain}` : ' ou string vazia'}", "pitch_notes": "1-2 frases sobre o fit e o argumento de venda"}`;
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
-      })
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.2 } }),
     });
-
-    const data = await res.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (rawText) {
-      const parsed = JSON.parse(rawText);
-      return {
-        contact_name: parsed.contact_name || "Coordenação Pedagógica",
-        email: parsed.email || `contato@${domain}`,
-        icp_score: parsed.is_fit === false ? 40 : (parsed.icp_score || 90),
-        stage: "novo_lead",
-        pitch_notes: `ICP Score: ${parsed.icp_score || 90}/100. ${parsed.pitch_notes || ''}`
-      };
-    }
+    const data: any = await res.json();
+    if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+    const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
+    return {
+      is_fit: parsed.is_fit !== false,
+      icp_score: Number(parsed.icp_score ?? base),
+      contact_name: parsed.contact_name || fallback.contact_name,
+      email: parsed.email || fallback.email,
+      pitch_notes: parsed.pitch_notes || fallback.pitch_notes,
+    };
   } catch (err: any) {
-    console.error("Erro na qualificação Gemini:", err.message);
+    console.warn(`⚠️ Gemini falhou para ${c.name}: ${err.message}`);
+    return fallback;
   }
-
-  return {
-    contact_name: "Coordenação Pedagógica do Ensino Médio",
-    email: `contato@${domain}`,
-    icp_score: 90,
-    stage: "novo_lead",
-    pitch_notes: `Instituição de Brasília qualificada. Fit educacional ENEM.`
-  };
 }
 
-// 🚀 3. EXECUÇÃO DO AGENTE SDR
-async function runSDRAgent() {
-  console.log("🤖 Agente SDR Diário do Littera Iniciado...");
-  console.log("🎯 Foco Regional: BRASÍLIA - DISTRITO FEDERAL");
-
-  // 1. Busca instituições pelo Google Places API (New)
-  const placesSchools = await fetchSchoolsFromGooglePlaces();
-
-  // 2. Combina com as escolas curadas de referência
-  const allTargets: TargetSchool[] = [...BRASILIA_CURATED_SCHOOLS];
-  for (const ps of placesSchools) {
-    if (!allTargets.some(t => t.name.toLowerCase() === ps.name.toLowerCase())) {
-      allTargets.push(ps);
-    }
-  }
-
-  console.log(`📋 Total de ${allTargets.length} instituições para processar.`);
-
-  let novosLeadsInseridos = 0;
-
-  for (const school of allTargets) {
-    // Verifica se já existe no CRM pelo nome
-    const { data: existing, error: errCheck } = await supabase
-      .from('leads')
-      .select('id, school_name')
-      .ilike('school_name', `%${school.name}%`)
-      .limit(1);
-
-    if (errCheck) {
-      console.error(`Erro ao verificar ${school.name}:`, errCheck.message);
-      continue;
-    }
-
-    if (existing && existing.length > 0) {
-      console.log(`⏩ ${school.name} já cadastrado no CRM.`);
-      continue;
-    }
-
-    // Qualifica o lead com IA
-    console.log(`🔍 Qualificando com IA: ${school.name}...`);
-    const qualification = await qualifyWithGemini(school);
-
-    if (qualification.icp_score >= 70) {
-      const payload = {
-        name: school.name,
-        school_name: school.name,
-        contact_name: qualification.contact_name,
-        email: qualification.email,
-        phone: school.phone,
-        whatsapp: school.phone,
-        city: school.city,
-        state: school.state,
-        stage: "novo_lead",
-        status: "pending",
-        notes: `${qualification.pitch_notes} | Tel: ${school.phone}${school.website ? ' | Site: ' + school.website : ''}`
-      };
-
-      const { error: insertErr } = await supabase
-        .from('leads')
-        .insert([payload]);
-
-      if (insertErr) {
-        console.error(`❌ Erro ao salvar ${school.name}:`, insertErr.message);
-      } else {
-        novosLeadsInseridos++;
-        console.log(`✅ [ICP ${qualification.icp_score}] ${school.name} inserido no CRM!`);
-      }
-    } else {
-      console.log(`⚠️ ${school.name} descartado por não atender ao ICP (Score ${qualification.icp_score}).`);
-    }
-
-    await new Promise(r => setTimeout(r, 500));
-  }
-
-  console.log(`\n🎉 Execução finalizada! ${novosLeadsInseridos} novos leads de Brasília foram adicionados ao CRM.`);
+async function sendReport(rows: any[], html: string) {
+  if (!resendApiKey || !reportEmail || rows.length === 0) return;
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: process.env.SDR_REPORT_FROM || 'Littera SDR <onboarding@resend.dev>',
+      to: [reportEmail],
+      subject: `🎯 ${rows.length} novas escolas para prospectar — ${new Date().toLocaleDateString('pt-BR')}`,
+      html,
+    }),
+  });
+  console.log(res.ok ? `📧 Relatório enviado para ${reportEmail}` : `⚠️ Falha ao enviar e-mail: ${await res.text()}`);
 }
 
-runSDRAgent();
+async function run() {
+  console.log('🤖 Agente SDR Littera iniciado');
+  const regions = regionsForToday();
+  console.log(`🗺️ Regiões de hoje: ${regions.join(', ')}`);
+
+  // 1. Coleta
+  const found = new Map<string, Candidate>();
+  for (const region of regions) {
+    for (const tpl of QUERY_TEMPLATES) {
+      const q = tpl.replace('{r}', region);
+      const list = await searchPlaces(q, region);
+      list.forEach(c => { if (!found.has(c.place_id)) found.set(c.place_id, c); });
+      console.log(`🔎 "${q}" → ${list.length} (total único: ${found.size})`);
+      await sleep(300);
+    }
+  }
+
+  // 2. Remove o que já está no CRM
+  const ids = [...found.keys()];
+  const existing = new Set<string>();
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error } = await supabase.from(CRM_TABLE).select('place_id').in('place_id', ids.slice(i, i + 200));
+    if (error) { console.error('❌ Erro lendo CRM:', error.message); process.exit(1); }
+    data?.forEach(r => existing.add(r.place_id));
+  }
+  const fresh = [...found.values()]
+    .filter(c => !existing.has(c.place_id))
+    .sort((a, b) => b.user_ratings_total - a.user_ratings_total);
+  console.log(`📋 ${found.size} encontradas, ${existing.size} já no CRM, ${fresh.length} novas para qualificar.`);
+
+  // 3. Qualifica e grava
+  const inserted: any[] = [];
+  for (const c of fresh) {
+    if (inserted.length >= MAX_NEW_PER_DAY) break;
+    const q = await qualify(c);
+    if (!q.is_fit || q.icp_score < MIN_ICP) {
+      console.log(`⏭️ ${c.name} descartada (ICP ${q.icp_score}${q.is_fit ? '' : ', fora do perfil'})`);
+      continue;
+    }
+    const row = {
+      place_id: c.place_id,
+      school_name: c.name,
+      name: c.name,
+      contact_name: q.contact_name,
+      email: q.email || null,
+      phone: c.phone || null,
+      whatsapp: c.phone || null,
+      website: c.website || null,
+      address: c.address,
+      neighborhood: c.neighborhood,
+      city: c.city,
+      state: c.state,
+      rating: c.rating || null,
+      user_ratings_total: c.user_ratings_total,
+      icp_score: q.icp_score,
+      stage: 'novo_lead',
+      status: 'pending',
+      notes: q.pitch_notes,
+      source: 'google_places',
+    };
+    const { error } = await supabase.from(CRM_TABLE).insert(row);
+    if (error) { console.error(`❌ ${c.name}: ${error.message}`); continue; }
+    inserted.push(row);
+    console.log(`✅ [ICP ${q.icp_score}] ${c.name} — ${c.neighborhood}`);
+    await sleep(250);
+  }
+
+  // 4. Relatório diário (resumo do GitHub Actions + CSV + e-mail opcional)
+  inserted.sort((a, b) => b.icp_score - a.icp_score);
+  const md = [`## 🎯 ${inserted.length} novas escolas para prospectar`, '',
+    '| ICP | Escola | Região | Telefone | Site | Avaliações |', '|---|---|---|---|---|---|',
+    ...inserted.map(r => `| ${r.icp_score} | ${r.school_name} | ${r.neighborhood} | ${r.phone || '-'} | ${r.website || '-'} | ${r.user_ratings_total} (${r.rating || '-'}★) |`),
+  ].join('\n');
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, md + '\n');
+  const csvEsc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  writeFileSync('sdr-report.csv', ['icp_score,school_name,neighborhood,city,state,phone,email,website,rating,user_ratings_total,notes',
+    ...inserted.map(r => [r.icp_score, r.school_name, r.neighborhood, r.city, r.state, r.phone, r.email, r.website, r.rating, r.user_ratings_total, r.notes].map(csvEsc).join(','))].join('\n'));
+  const html = `<h2>${inserted.length} novas escolas</h2><table border="1" cellpadding="6" style="border-collapse:collapse;font-family:sans-serif;font-size:13px"><tr><th>ICP</th><th>Escola</th><th>Região</th><th>Telefone</th><th>Site</th><th>Notas</th></tr>${inserted.map(r => `<tr><td>${r.icp_score}</td><td>${r.school_name}</td><td>${r.neighborhood}</td><td>${r.phone || '-'}</td><td>${r.website ? `<a href="${r.website}">${r.website}</a>` : '-'}</td><td>${r.notes}</td></tr>`).join('')}</table>`;
+  await sendReport(inserted, html);
+
+  console.log(`\n🎉 Finalizado: ${inserted.length} novas escolas adicionadas ao CRM (${CRM_TABLE}).`);
+}
+
+run().catch(err => { console.error(err); process.exit(1); });

@@ -2,8 +2,8 @@ name: Agente SDR Diário - Littera
 
 on:
   schedule:
-    - cron: '0 11 * * *' # Roda todo dia às 11:00 UTC (08:00 no horário de Brasília)
-  workflow_dispatch:      # Permite que você execute manualmente pelo painel do GitHub quando quiser
+    - cron: '0 11 * * *' # 08:00 em Brasília
+  workflow_dispatch:
 
 jobs:
   run-sdr:
@@ -18,12 +18,22 @@ jobs:
           node-version: '22'
 
       - name: Instalar Dependências
-        run: npm install
+        run: npm install --no-audit --no-fund @supabase/supabase-js tsx
 
       - name: Executar Agente SDR
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.VITE_GEMINI_API_KEY }}
-          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY || secrets.GEMINI_API_KEY }}
-        run: npx --yes tsx scripts/sdr-agent.ts
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          SDR_REPORT_EMAIL: ${{ secrets.SDR_REPORT_EMAIL }}
+        run: npx tsx scripts/sdr-agent.ts
+
+      - name: Publicar lista do dia (CSV)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdr-report-${{ github.run_number }}
+          path: sdr-report.csv
+          if-no-files-found: ignore

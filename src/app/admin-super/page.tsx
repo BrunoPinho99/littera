@@ -131,7 +131,7 @@ export default function CRMKanbanPage() {
     setError(null);
     try {
       const { data, error } = await supabase
-        .from('leads')
+        .from('crm_prospects')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -158,7 +158,7 @@ export default function CRMKanbanPage() {
 
     try {
       const { error } = await supabase
-        .from('leads')
+        .from('crm_prospects')
         .update({ stage: newStage })
         .eq('id', leadId);
 
@@ -188,7 +188,7 @@ export default function CRMKanbanPage() {
         notes: newLeadForm.notes
       };
 
-      const { data, error } = await supabase.from('leads').insert([payload]).select();
+      const { data, error } = await supabase.from('crm_prospects').insert([payload]).select();
       if (error) throw error;
 
       if (data && data[0]) {
