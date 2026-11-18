@@ -210,6 +210,90 @@ export default function CRMKanbanPage() {
     }
   };
 
+  const [sendingEmailId, setSendingEmailId] = useState<string | number | null>(null);
+
+  // Disparo de E-mail SDR Oficial via Resend (bruno@littera.app.br)
+  const handleSendEmail = async (lead: Lead) => {
+    if (!lead.email || !lead.email.includes('@')) {
+      alert('Este lead não possui um e-mail válido.');
+      return;
+    }
+
+    const school = lead.school_name || lead.name || 'a escola';
+    const confirmSend = confirm(
+      `Deseja disparar o E-mail de Apresentação Oficial (bruno@littera.app.br) para:\n\n` +
+      `Colégio: ${school}\n` +
+      `Destinatário: ${lead.email}\n` +
+      `Contato: ${lead.contact_name || 'Coordenação Pedagógica'}`
+    );
+
+    if (!confirmSend) return;
+
+    setSendingEmailId(lead.id);
+
+    try {
+      // 1. Tenta chamar a Edge Function se disponível
+      const { data, error } = await supabase.functions.invoke('disparar-email-sdr', {
+        body: { leadId: lead.id }
+      });
+
+      if (error || (data && data.error)) {
+        // Fallback direto via Resend API
+        const resendApiKey = process.env.NEXT_PUBLIC_RESEND_API_KEY || '';
+        const contactName = lead.contact_name || 'Coordenação Pedagógica';
+        
+        const htmlContent = `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; line-height: 1.6; color: #1e293b; max-width: 600px;">
+  <p>Olá, <strong>${contactName}</strong>, tudo bem?</p>
+  <p>Acompanho de perto a preparação de excelência dos estudantes do <strong>${school}</strong> para o ENEM e os vestibulares mais concorridos aqui em Brasília.</p>
+  <p>Desenvolvemos em Brasília o <strong>Littera</strong>, uma tecnologia que corrige redações no padrão oficial do ENEM em 10 segundos, entregando devolutivas pedagógicas completas nas 5 competências.</p>
+  <p>Colégios privados estão utilizando a plataforma para:</p>
+  <ul>
+    <li><strong>Duplicar a frequência</strong> de redações dos alunos do Ensino Médio;</li>
+    <li><strong>Aliviar a sobrecarga</strong> dos professores titulares de linguagens;</li>
+    <li><strong>Economizar até 70%</strong> do custo atual com bancas corretoras terceirizadas.</li>
+  </ul>
+  <p>Gostaria de liberar <strong>3 redações cortesia de alunos reais da sua escola</strong>, sem qualquer custo, apenas para que sua equipe pedagógica possa avaliar a precisão e o detalhamento dos relatórios.</p>
+  <p>Você teria 10 a 15 minutos nesta <strong>quinta ou sexta-feira</strong> para uma breve demonstração online?</p>
+  <br/>
+  <p style="margin-bottom: 2px;">Atenciosamente,</p>
+  <p style="margin: 0; font-weight: bold; color: #0f172a;">Bruno Pinho</p>
+  <p style="margin: 0; color: #475569; font-size: 13px;">Fundador | Littera Tecnologia Educacional</p>
+  <p style="margin: 0; color: #475569; font-size: 13px;">Brasília - DF | <a href="https://littera.app.br" style="color: #2563eb; text-decoration: none;">littera.app.br</a></p>
+</div>`;
+
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: 'Bruno Pinho <bruno@littera.app.br>',
+            to: [lead.email],
+            reply_to: 'bruno.pinho.brasilia@hotmail.com',
+            subject: `Redações ENEM no ${school} / Bruno - Littera`,
+            html: htmlContent
+          })
+        });
+
+        if (!res.ok) {
+          const errRes = await res.json();
+          throw new Error(errRes.message || 'Erro ao enviar e-mail pelo Resend');
+        }
+      }
+
+      // Atualiza o card no banco para "email_1_enviado"
+      await handleMoveStage(lead.id, 'email_1_enviado');
+      alert(`✅ E-mail enviado com sucesso para ${lead.email} a partir de bruno@littera.app.br!`);
+
+    } catch (err: any) {
+      alert(`❌ Erro no envio: ${err.message}`);
+    } finally {
+      setSendingEmailId(null);
+    }
+  };
+
   const openWhatsApp = (lead: Lead) => {
     const rawNumber = (lead.whatsapp || lead.phone || '').replace(/\D/g, '');
     if (!rawNumber) return;
@@ -599,23 +683,41 @@ export default function CRMKanbanPage() {
                                     </span>
                                   </div>
 
-                                  {(lead.whatsapp || lead.phone) ? (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        openWhatsApp(lead);
-                                      }}
-                                      className="text-emerald-600 font-semibold hover:underline flex items-center gap-1"
-                                    >
-                                      <MessageSquare size={12} />
-                                      WhatsApp
-                                    </button>
-                                  ) : (
-                                    <span className="text-slate-400">
-                                      {new Date(lead.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-1.5">
+                                    {lead.email && col.id === 'novo_lead' && (
+                                      <button
+                                        type="button"
+                                        disabled={sendingEmailId === lead.id}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleSendEmail(lead);
+                                        }}
+                                        className="text-indigo-600 font-semibold hover:text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md flex items-center gap-1 transition"
+                                        title="Disparar Apresentação por E-mail Oficial"
+                                      >
+                                        <Mail size={12} className={sendingEmailId === lead.id ? 'animate-bounce' : ''} />
+                                        <span>{sendingEmailId === lead.id ? 'Enviando...' : 'Email'}</span>
+                                      </button>
+                                    )}
+
+                                    {(lead.whatsapp || lead.phone) ? (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openWhatsApp(lead);
+                                        }}
+                                        className="text-emerald-600 font-semibold hover:underline flex items-center gap-1"
+                                      >
+                                        <MessageSquare size={12} />
+                                        WhatsApp
+                                      </button>
+                                    ) : (
+                                      <span className="text-slate-400">
+                                        {new Date(lead.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             );
@@ -775,20 +877,33 @@ export default function CRMKanbanPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-              {(selectedLead.whatsapp || selectedLead.phone) ? (
-                <button
-                  onClick={() => openWhatsApp(selectedLead)}
-                  className="flex items-center gap-1.5 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs shadow-emerald-600/20"
-                >
-                  <MessageSquare size={14} />
-                  Chamar no WhatsApp
-                </button>
-              ) : <div />}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 gap-2">
+              <div className="flex items-center gap-2">
+                {selectedLead.email && (
+                  <button
+                    disabled={sendingEmailId === selectedLead.id}
+                    onClick={() => handleSendEmail(selectedLead)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs shadow-indigo-600/20"
+                  >
+                    <Mail size={14} className={sendingEmailId === selectedLead.id ? 'animate-bounce' : ''} />
+                    {sendingEmailId === selectedLead.id ? 'Disparando...' : 'Disparar E-mail Oficial'}
+                  </button>
+                )}
+
+                {(selectedLead.whatsapp || selectedLead.phone) && (
+                  <button
+                    onClick={() => openWhatsApp(selectedLead)}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs shadow-emerald-600/20"
+                  >
+                    <MessageSquare size={14} />
+                    WhatsApp
+                  </button>
+                )}
+              </div>
 
               <button
                 onClick={() => setSelectedLead(null)}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
               >
                 Concluído
               </button>
