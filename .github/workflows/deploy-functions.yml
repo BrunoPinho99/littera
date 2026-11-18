@@ -44,6 +44,3 @@ jobs:
 
       - name: Deploy webhook-asaas
         run: supabase functions deploy webhook-asaas --project-ref $PROJECT_ID
-
-      - name: Deploy disparar-email-sdr
-        run: supabase functions deploy disparar-email-sdr --project-ref $PROJECT_ID

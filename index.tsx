@@ -2,7 +2,6 @@ import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { TillmornMarketingPage } from './src/app/(marketing)/page';
-import CRMKanbanPage from './src/app/admin-super/page';
 import './index.css';
 
 const App = lazy(() => import('./App'));
@@ -16,8 +15,6 @@ root.render(
         <Route path="/" element={<TillmornMarketingPage />} />
         <Route path="/tillmorn" element={<TillmornMarketingPage />} />
         <Route path="/marketing" element={<TillmornMarketingPage />} />
-        <Route path="/admin-super" element={<CRMKanbanPage />} />
-        <Route path="/crm" element={<CRMKanbanPage />} />
         <Route
           path="/*"
           element={
