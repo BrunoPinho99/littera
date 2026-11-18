@@ -56,7 +56,7 @@ const NAME_BLOCK = ['infantil', 'creche', 'baby', 'bercario', 'kids', 'maternal'
   'faculdade', 'universidade', 'centro universitario', 'autoescola', 'auto escola', 'musica', 'natacao', 'ballet', 'danca',
   'escola estadual', 'centro de ensino fundamental', 'centro de ensino medio', 'cef ', 'cem ', 'caic', 'escola classe',
   'publica', 'tecnico', 'senai', 'senac', 'pos-graduacao', 'concurso', 'profissionalizante', 'reforco', 'aulas particulares',
-  'kumon', 'robotica', 'informatica', 'futebol', 'judo', 'jiu', 'cmdf', 'colegio militar', 'gisno', 'ifb'];
+  'kumon', 'robotica', 'informatica', 'futebol', 'judo', 'jiu', 'cmdf', 'colegio militar', 'gisno', 'ifb', 'coordenacao regional', 'secretaria de', 'regional de ensino', 'anhanguera', 'unip', 'estacio', 'uniceub', 'iesb', 'iesgo', 'unopar', 'cruzeiro do sul', 'eja', 'supletivo'];
 
 function regionsForToday(): string[] {
   const perDay = 8;
@@ -86,6 +86,7 @@ async function searchPlaces(textQuery: string, region: string): Promise<Candidat
       if (!name || NAME_BLOCK.some(t => norm(name).includes(t))) continue;
       const address: string = p.formattedAddress || '';
       const isGO = /\bGO\b|Goiás/i.test(address);
+      if (!/\bDF\b|Distrito Federal|Brasília|Valparaíso|Luziânia|Formosa|Águas Lindas|Cidade Ocidental|Novo Gama/i.test(address)) continue; // fora da área de atuação
       out.push({
         place_id: p.id, name, address, neighborhood: region,
         city: isGO ? region.replace(/ GO$/, '').replace(/ de Goiás$/, ' de Goiás') : 'Brasília',
