@@ -65,7 +65,7 @@ const QUERY_TEMPLATES = [
 
 const EXCLUDE = ['infantil', 'creche', 'baby', 'berçário', 'bercario', 'idiomas', 'english', 'inglês',
   'faculdade', 'universidade', 'autoescola', 'auto escola', 'música', 'musica', 'natação', 'ballet',
-  'escola estadual', 'centro de ensino fundamental', 'cef ', 'caic', 'escola classe', 'pública', 'publica'];
+  'escola estadual', 'centro universitário', 'centro universitario', 'técnico', 'tecnico', 'sesc', 'senai', 'senac', 'pós-graduação', 'concurso', 'profissionalizante', 'reforço', 'reforco', 'centro de ensino fundamental', 'cef ', 'caic', 'escola classe', 'pública', 'publica'];
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
