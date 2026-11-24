@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { useLenis } from 'lenis/react';
 import { SectionHeading } from './SectionHeading';
 import {
   AnalyticsIcon,
@@ -89,26 +90,31 @@ export const WhileYouSleepSection: React.FC = () => {
   const pinRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState<number>(0.6); // default focused on 22:41
 
+  const calcCurrentProgress = useCallback(() => {
+    const el = pinRef.current;
+    if (!el || typeof window === 'undefined') return;
+    const rect = el.getBoundingClientRect();
+    const stickyTop = 24;
+    const panel = el.firstElementChild as HTMLElement | null;
+    const panelHeight = panel ? panel.offsetHeight : Math.min(846, window.innerHeight - 48);
+    const totalStickyDistance = Math.max(1, rect.height - panelHeight);
+    const next = clamp01((stickyTop - rect.top) / totalStickyDistance);
+    setProgress((prev) => (Math.abs(prev - next) < 0.0005 ? prev : next));
+  }, []);
+
   useEffect(() => {
     let rafId = 0;
 
-    const updateProgress = () => {
-      rafId = 0;
-      const el = pinRef.current;
-      if (!el || typeof window === 'undefined') return;
-      const rect = el.getBoundingClientRect();
-      const scrollable = Math.max(1, rect.height - window.innerHeight);
-      const next = clamp01(-rect.top / scrollable);
-      setProgress((prev) => (Math.abs(prev - next) < 0.0005 ? prev : next));
-    };
-
     const onScrollOrResize = () => {
       if (!rafId) {
-        rafId = window.requestAnimationFrame(updateProgress);
+        rafId = window.requestAnimationFrame(() => {
+          rafId = 0;
+          calcCurrentProgress();
+        });
       }
     };
 
-    updateProgress();
+    calcCurrentProgress();
     window.addEventListener('scroll', onScrollOrResize, { passive: true });
     window.addEventListener('resize', onScrollOrResize);
 
@@ -117,15 +123,22 @@ export const WhileYouSleepSection: React.FC = () => {
       window.removeEventListener('resize', onScrollOrResize);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [calcCurrentProgress]);
+
+  useLenis(() => {
+    calcCurrentProgress();
+  });
 
   const handleJumpToThreshold = useCallback((threshold: number) => {
     const el = pinRef.current;
     if (!el || typeof window === 'undefined') return;
     const rect = el.getBoundingClientRect();
+    const stickyTop = 24;
+    const panel = el.firstElementChild as HTMLElement | null;
+    const panelHeight = panel ? panel.offsetHeight : Math.min(846, window.innerHeight - 48);
+    const totalStickyDistance = Math.max(1, rect.height - panelHeight);
     const pageTop = window.scrollY + rect.top;
-    const scrollable = Math.max(1, rect.height - window.innerHeight);
-    const targetScrollY = pageTop + Math.min(1, threshold + 0.015) * scrollable;
+    const targetScrollY = pageTop - stickyTop + Math.min(1, threshold + 0.015) * totalStickyDistance;
     window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
   }, []);
 
@@ -153,7 +166,7 @@ export const WhileYouSleepSection: React.FC = () => {
       <div
         ref={pinRef}
         data-framer-name="Pin"
-        className="hidden lg:block max-w-[1400px] mx-auto relative h-[1400px]"
+        className="hidden lg:block max-w-[1400px] mx-auto relative h-[2250px]"
       >
         <div
           data-framer-name="Night Panel"
